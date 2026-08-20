@@ -1,18 +1,50 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { Stack } from 'expo-router/stack';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { useEffect } from 'react';
+import { ActivityIndicator, useColorScheme, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { AuthProvider, useAuth } from '@/auth/auth-context';
+import { useTheme } from '@/hooks/use-theme';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
+function RootNavigator() {
+  const { profile, isLoading } = useAuth();
+  const theme = useTheme();
+
+  useEffect(() => {
+    if (!isLoading) void SplashScreen.hideAsync();
+  }, [isLoading]);
+
+  if (isLoading) {
+    return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.background }}><ActivityIndicator size="large" color={theme.primary} /></View>;
+  }
+
+  return (
+    <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal', contentStyle: { backgroundColor: theme.background } }}>
+      <Stack.Protected guard={!profile}>
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+      </Stack.Protected>
+      <Stack.Protected guard={Boolean(profile)}>
+        <Stack.Screen name="(app)" options={{ headerShown: false }} />
+        <Stack.Screen name="schedule/[id]" options={{ title: 'Detail Tugas' }} />
+        <Stack.Screen name="meeting/[id]" options={{ title: 'Absensi Pertemuan' }} />
+        <Stack.Screen name="report/[id]" options={{ title: 'Detail Pertemuan' }} />
+      </Stack.Protected>
+    </Stack>
+  );
+}
+
+export default function RootLayout() {
   const colorScheme = useColorScheme();
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
+      <AuthProvider>
+        <StatusBar style="auto" />
+        <RootNavigator />
+      </AuthProvider>
     </ThemeProvider>
   );
 }
