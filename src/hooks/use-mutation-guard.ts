@@ -12,13 +12,15 @@ import { ApiError, actionableError, createIdempotencyKey } from '@/api/client';
  *   2. Satu operasi memakai SATU kunci idempotensi. Percobaan ulang setelah
  *      gagal (jaringan putus, timeout, 5xx) memakai kunci yang SAMA sehingga
  *      server memutar ulang respons alih-alih membuat data tambahan.
- *   3. Kunci baru hanya dibuat setelah operasi benar-benar berhasil, atau
- *      setelah pengguna mengubah isian dan memanggil `reset()`.
+ *   3. Kunci baru hanya dibuat setelah operasi benar-benar berhasil, setelah
+ *      server menolak request secara definitif, atau ketika fingerprint payload
+ *      berubah. Layar tidak perlu mengingat memanggil `reset()` untuk setiap isian.
  */
 export function useMutationGuard(prefix: string) {
   const [isBusy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const keyRef = useRef<string | null>(null);
+  const payloadFingerprintRef = useRef<string | null>(null);
   const inFlight = useRef(false);
 
   const idempotencyKey = useCallback(() => {
@@ -28,6 +30,7 @@ export function useMutationGuard(prefix: string) {
 
   const reset = useCallback(() => {
     keyRef.current = null;
+    payloadFingerprintRef.current = null;
     setError(null);
   }, []);
 
@@ -36,8 +39,16 @@ export function useMutationGuard(prefix: string) {
    * bila gagal / diabaikan karena masih ada request berjalan.
    */
   const run = useCallback(
-    async <T,>(operation: (key: string) => Promise<T>): Promise<T | null> => {
+    async <T,>(fingerprint: string, operation: (key: string) => Promise<T>): Promise<T | null> => {
       if (inFlight.current) return null;
+
+      // Retry payload yang identik mempertahankan kunci lama. Begitu isi operasi
+      // berubah, kunci lama tidak boleh ikut ke request dengan hash payload baru.
+      if (payloadFingerprintRef.current !== null && payloadFingerprintRef.current !== fingerprint) {
+        keyRef.current = null;
+      }
+      payloadFingerprintRef.current = fingerprint;
+
       inFlight.current = true;
       setBusy(true);
       setError(null);
@@ -46,6 +57,7 @@ export function useMutationGuard(prefix: string) {
         // Sukses: kunci berikutnya harus baru agar operasi berikutnya tidak
         // dianggap sebagai pemutaran ulang operasi ini.
         keyRef.current = null;
+        payloadFingerprintRef.current = null;
         return result;
       } catch (caught) {
         setError(actionableError(caught));
@@ -53,6 +65,7 @@ export function useMutationGuard(prefix: string) {
           // Permintaan sudah sampai dan ditolak server. Percobaan berikutnya
           // adalah permintaan BARU, jadi kuncinya juga harus baru.
           keyRef.current = null;
+          payloadFingerprintRef.current = null;
         }
         return null;
       } finally {

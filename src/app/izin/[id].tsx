@@ -79,18 +79,15 @@ export default function IzinDetailScreen() {
     async (hasil: 'Disetujui' | 'Ditolak') => {
       if (!detail) return;
       const adminPengganti = detail.aksi.putuskan_admin && !detail.aksi.putuskan_murobi;
-      const hasilMutasi = await keputusanGuard.run((key) =>
-        api.izinKeputusan(
-          id,
-          {
-            hasil,
-            alasan,
-            version: detail.pengajuan.version,
-            ...(adminPengganti ? { alasan_penggantian: alasanPenggantian } : {}),
-          },
-          key,
-          mode,
-        ),
+      const payload = {
+        hasil,
+        alasan,
+        version: detail.pengajuan.version,
+        ...(adminPengganti ? { alasan_penggantian: alasanPenggantian } : {}),
+      };
+      const hasilMutasi = await keputusanGuard.run(
+        JSON.stringify({ id, mode, payload }),
+        (key) => api.izinKeputusan(id, payload, key, mode),
       );
       if (hasilMutasi) {
         setPesan(
@@ -108,8 +105,10 @@ export default function IzinDetailScreen() {
 
   const batalkan = useCallback(async () => {
     if (!detail) return;
-    const hasil = await batalGuard.run((key) =>
-      api.izinPembatalan(id, { alasan: alasanBatal, version: detail.pengajuan.version }, key, mode),
+    const payload = { alasan: alasanBatal, version: detail.pengajuan.version };
+    const hasil = await batalGuard.run(
+      JSON.stringify({ id, mode, payload }),
+      (key) => api.izinPembatalan(id, payload, key, mode),
     );
     if (hasil) {
       setPesan(
@@ -124,12 +123,14 @@ export default function IzinDetailScreen() {
 
   const tetapkanMurobi = useCallback(async () => {
     if (!detail || murobiTerpilih === null) return;
-    const hasil = await tetapkanGuard.run((key) =>
-      api.izinPenetapanMurobi(
-        id,
-        { murobi_guru_id: murobiTerpilih, alasan: alasanTetapkan, version: detail.pengajuan.version },
-        key,
-      ),
+    const payload = {
+      murobi_guru_id: murobiTerpilih,
+      alasan: alasanTetapkan,
+      version: detail.pengajuan.version,
+    };
+    const hasil = await tetapkanGuard.run(
+      JSON.stringify({ id, payload }),
+      (key) => api.izinPenetapanMurobi(id, payload, key),
     );
     if (hasil) {
       setPesan('Murobi tujuan ditetapkan. Pengajuan masuk ke antrean murobi tersebut.');

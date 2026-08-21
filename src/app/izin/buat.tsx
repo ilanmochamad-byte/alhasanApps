@@ -80,18 +80,16 @@ export default function BuatPengajuanScreen() {
       return;
     }
     setValidasi(null);
-    const hasil = await guard.run((key) =>
-      api.izinBuat(
-        {
-          santri_id: terpilih.id,
-          tgl_izin: tglIzin,
-          tgl_kembali: tglKembali,
-          alasan: alasan.trim(),
-          catatan_pengurus: catatan.trim(),
-        },
-        key,
-        mode,
-      ),
+    const payload = {
+      santri_id: terpilih.id,
+      tgl_izin: tglIzin,
+      tgl_kembali: tglKembali,
+      alasan: alasan.trim(),
+      catatan_pengurus: catatan.trim(),
+    };
+    const hasil = await guard.run(
+      JSON.stringify({ payload, mode }),
+      (key) => api.izinBuat(payload, key, mode),
     );
     if (hasil) {
       router.replace({ pathname: '/izin/[id]', params: { id: String(hasil.id), mode: mode ?? '' } });
