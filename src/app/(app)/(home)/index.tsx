@@ -14,19 +14,27 @@ import { useTheme } from '@/hooks/use-theme';
 export default function HomeScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { profile, logout } = useAuth();
+  const { profile, capabilities, logout } = useAuth();
   const [data, setData] = useState<TodayResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Akun pengurus dan orang tua tidak memiliki akses jadwal V1. Beranda mereka
+  // tidak boleh memanggil endpoint jadwal (yang akan dijawab 403 oleh server)
+  // dan langsung menawarkan menu perizinan sesuai kemampuannya.
+  const roles = profile?.roles ?? [];
+  const aksesJadwal = roles.includes('guru') || roles.includes('admin');
+  const adaPerizinan = capabilities.list.length > 0;
+
   const load = useCallback(async (refresh = false) => {
+    if (!aksesJadwal) { setLoading(false); setRefreshing(false); return; }
     if (refresh) setRefreshing(true);
     else setLoading(true);
     setError(null);
     try { setData(await api.today()); } catch (caught) { setError(actionableError(caught)); }
     finally { setLoading(false); setRefreshing(false); }
-  }, []);
+  }, [aksesJadwal]);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
@@ -48,7 +56,8 @@ export default function HomeScreen() {
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: theme.background }} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />}>
       <View style={[styles.welcome, { backgroundColor: theme.primary }]}><ThemedText selectable style={[styles.greeting, { color: theme.onPrimary }]}>Assalamu’alaikum, {profile?.guru?.name ?? profile?.name}</ThemedText><ThemedText selectable style={{ color: theme.onPrimary }}>Semoga tugas pengajian hari ini dimudahkan.</ThemedText></View>
-      {loading && !data ? <LoadingState label="Memuat jadwal hari ini…" /> : error && !data ? <ErrorState message={error} onRetry={() => void load()} /> : data ? <>
+      {adaPerizinan ? <View style={styles.section}><ThemedText selectable style={styles.sectionTitle}>Perizinan santri</ThemedText><ThemedText selectable themeColor="textSecondary">Menu ini tampil karena akun Anda memiliki kemampuan: {capabilities.list.join(', ')}.</ThemedText><View style={styles.shortcut}><AppButton label="Buka menu perizinan" onPress={() => router.push('/perizinan')} /></View></View> : null}
+      {!aksesJadwal ? <ThemedText selectable themeColor="textSecondary">Akun ini tidak memiliki jadwal mengajar, sehingga menu jadwal dan laporan tidak ditampilkan.</ThemedText> : loading && !data ? <LoadingState label="Memuat jadwal hari ini…" /> : error && !data ? <ErrorState message={error} onRetry={() => void load()} /> : data ? <>
         <View style={styles.section}><ThemedText selectable style={styles.sectionTitle}>Jadwal hari ini</ThemedText><ThemedText selectable themeColor="textSecondary">{formatDate(data.date)}</ThemedText></View>
         {data.schedules.length === 0 ? <EmptyState title="Tidak ada jadwal hari ini" message="Jadwal berikutnya akan ditampilkan di bawah." /> : data.schedules.map((schedule) => <ScheduleCard key={`${schedule.id}-${schedule.occurrence_date}`} schedule={schedule} onPress={() => openSchedule(schedule)} />)}
         <View style={styles.section}><ThemedText selectable style={styles.sectionTitle}>Jadwal berikutnya</ThemedText></View>
@@ -66,4 +75,5 @@ const styles = StyleSheet.create({
   section: { paddingTop: 10, gap: 2 },
   sectionTitle: { fontSize: 20, fontWeight: '900' },
   account: { borderTopWidth: 1, paddingTop: 20, marginTop: 14, gap: 12 },
+  shortcut: { paddingTop: 8 },
 });

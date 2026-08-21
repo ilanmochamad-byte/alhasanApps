@@ -32,6 +32,9 @@ function RootNavigator() {
         <Stack.Screen name="schedule/[id]" options={{ title: 'Detail Tugas' }} />
         <Stack.Screen name="meeting/[id]" options={{ title: 'Absensi Pertemuan' }} />
         <Stack.Screen name="report/[id]" options={{ title: 'Detail Pertemuan' }} />
+        {/* V2 Fase 3 — perizinan */}
+        <Stack.Screen name="izin/buat" options={{ title: 'Buat Pengajuan Izin' }} />
+        <Stack.Screen name="izin/[id]" options={{ title: 'Detail Pengajuan Izin' }} />
       </Stack.Protected>
     </Stack>
   );

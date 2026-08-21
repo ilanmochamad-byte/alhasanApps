@@ -11,9 +11,19 @@ import { Pressable, View, StyleSheet } from 'react-native';
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
+import { useAuth } from '@/auth/auth-context';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 
+/**
+ * Versi web dari navigasi utama. Sama seperti versi native, menu perizinan
+ * hanya muncul bila server melaporkan capability perizinan pada profil.
+ */
 export default function AppTabs() {
+  const { profile, capabilities } = useAuth();
+  const roles = profile?.roles ?? [];
+  const aksesJadwal = roles.includes('guru') || roles.includes('admin');
+  const adaPerizinan = capabilities.list.length > 0;
+
   return (
     <Tabs>
       <TabSlot style={{ height: '100%' }} />
@@ -22,12 +32,21 @@ export default function AppTabs() {
           <TabTrigger name="home" href="/" asChild>
             <TabButton>Beranda</TabButton>
           </TabTrigger>
-          <TabTrigger name="schedules" href="/schedules" asChild>
-            <TabButton>Jadwal</TabButton>
-          </TabTrigger>
-          <TabTrigger name="reports" href="/reports" asChild>
-            <TabButton>Laporan</TabButton>
-          </TabTrigger>
+          {adaPerizinan ? (
+            <TabTrigger name="izin" href="/perizinan" asChild>
+              <TabButton>Perizinan</TabButton>
+            </TabTrigger>
+          ) : null}
+          {aksesJadwal ? (
+            <TabTrigger name="schedules" href="/schedules" asChild>
+              <TabButton>Jadwal</TabButton>
+            </TabTrigger>
+          ) : null}
+          {aksesJadwal ? (
+            <TabTrigger name="reports" href="/reports" asChild>
+              <TabButton>Laporan</TabButton>
+            </TabTrigger>
+          ) : null}
         </CustomTabList>
       </TabList>
     </Tabs>
