@@ -6,6 +6,12 @@ export type Profile = {
   username: string;
   guru: { id: number; nip: string | null; name: string } | null;
   roles: string[];
+  /**
+   * V2 Fase 3: kemampuan aktual yang dihitung server. Navigasi aplikasi HANYA
+   * dibangun dari sini, tidak pernah dari `roles`. Ditandai opsional agar
+   * aplikasi tetap berjalan bila server belum diperbarui.
+   */
+  capabilities?: CapabilityPayload;
 };
 
 export type MeetingSummary = {
@@ -220,4 +226,221 @@ export type ReportMeetingDetail = {
     recorded_count: number;
     statuses: Record<AttendanceStatus, number>;
   };
+};
+
+// ---------------------------------------------------------------------------
+// V2 Fase 3 — perizinan multi-peran.
+// Bentuk tipe mengikuti kontrak `/api/v1` (lihat docs/api-v1.md pada repo web).
+// ---------------------------------------------------------------------------
+
+export type IzinCapability = 'admin' | 'pengurus' | 'murobi' | 'orang_tua';
+
+export type IzinStatus =
+  | 'Diajukan'
+  | 'Perlu Penetapan Admin'
+  | 'Disetujui'
+  | 'Ditolak'
+  | 'Dibatalkan';
+
+export type CapabilityMenu = {
+  key: string;
+  label: string;
+  capability: IzinCapability | null;
+};
+
+export type CapabilityActions = {
+  dapat_membuat_pengajuan: boolean;
+  dapat_memutuskan: boolean;
+  dapat_menetapkan_murobi: boolean;
+  dapat_mengoreksi_keputusan: boolean;
+  dapat_membatalkan: boolean;
+  hanya_baca: boolean;
+};
+
+export type CapabilityPayload = {
+  list: IzinCapability[];
+  default_mode: IzinCapability | null;
+  konteks: { guru_id: number | null; pengurus_id: number | null; wali_id: number | null };
+  menus: CapabilityMenu[];
+  aksi: CapabilityActions;
+};
+
+export type IzinScope = {
+  mode: IzinCapability;
+  label: string;
+  pengurus_id: number | null;
+  guru_id: number | null;
+  wali_id: number | null;
+  hanya_baca: boolean;
+};
+
+export type IzinActions = {
+  putuskan_murobi: boolean;
+  putuskan_admin: boolean;
+  tetapkan_murobi: boolean;
+  batalkan: boolean;
+  koreksi: boolean;
+};
+
+export type SantriRingkas = { id: number; nis: string; nama: string };
+
+export type SantriPilihan = SantriRingkas & {
+  jenis_kelamin: string | null;
+  cakupan: string | null;
+  pembimbing_assignment_id: number | null;
+  hubungan: string | null;
+};
+
+export type Pengajuan = {
+  id: number;
+  is_legacy: boolean;
+  sumber_label: string;
+  status: IzinStatus;
+  version: number;
+  santri: SantriRingkas;
+  pengurus: { id: number; nama: string | null } | null;
+  pengurus_label: string;
+  murobi: { guru_id: number; nama: string | null } | null;
+  murobi_label: string;
+  tahun_ajaran: { id: number; tahun: string | null; semester: string | null } | null;
+  tgl_izin: string;
+  tgl_kembali: string;
+  alasan: string;
+  catatan_pengurus: string | null;
+  routing: { kandidat: number; catatan: string | null; pada: string | null };
+  keputusan_ringkas: { hasil: string; kapasitas: string | null; diputus_pada: string | null } | null;
+  keputusan_label: string;
+  pembatalan: { oleh: string | null; pada: string; alasan: string | null } | null;
+  diajukan_pada: string | null;
+  aksi: IzinActions;
+};
+
+export type Keputusan = {
+  id: number;
+  hasil: 'Disetujui' | 'Ditolak';
+  alasan: string;
+  kapasitas: 'Murobi' | 'Admin Pengganti';
+  alasan_penggantian: string | null;
+  pemberi_keputusan: string | null;
+  diputus_pada: string;
+};
+
+export type RiwayatItem = {
+  id: number;
+  peristiwa: string;
+  status_sebelum: string | null;
+  status_sesudah: string | null;
+  pelaku_nama: string | null;
+  pelaku_kapasitas: string | null;
+  alasan: string | null;
+  waktu: string;
+};
+
+export type KoreksiItem = {
+  id: number;
+  hasil_sebelum: string;
+  hasil_sesudah: string;
+  alasan_sebelum: string;
+  alasan_sesudah: string;
+  status_sebelum: string;
+  status_sesudah: string;
+  alasan_koreksi: string;
+  pelaku_nama: string | null;
+  waktu: string;
+};
+
+export type IzinListResponse = {
+  scope: IzinScope;
+  items: Pengajuan[];
+  pagination: Pagination;
+  filters: {
+    q: string;
+    status: string;
+    source: string;
+    date_from: string;
+    date_to: string;
+    santri_id: number | null;
+    antrean: boolean;
+  };
+  summary: { total: number; legacy: number; per_status: Record<IzinStatus, number> };
+  antrean_admin?: number;
+};
+
+export type IzinDetailResponse = {
+  scope: IzinScope;
+  pengajuan: Pengajuan;
+  keputusan: Keputusan | null;
+  riwayat: RiwayatItem[];
+  koreksi: KoreksiItem[];
+  aksi: IzinActions;
+};
+
+export type IzinHistoryResponse = {
+  pengajuan_id: number;
+  status: IzinStatus;
+  version: number;
+  riwayat: RiwayatItem[];
+  koreksi: KoreksiItem[];
+};
+
+export type SantriListResponse = {
+  scope: IzinScope;
+  items: SantriPilihan[];
+  pagination: Pagination;
+  filters: { q: string };
+};
+
+export type AnakListResponse = {
+  scope: IzinScope;
+  items: { santri: SantriRingkas; hubungan: string | null; wali_utama: boolean }[];
+  total: number;
+};
+
+export type GuruPilihan = { guru_id: number; nama: string; nip: string | null; targets: string[] };
+
+export type RoutingResponse = {
+  pengajuan_id: number;
+  status: IzinStatus;
+  version: number;
+  murobi_saat_ini: number | null;
+  routing: { kandidat: number; catatan: string | null; pada: string | null };
+  kandidat: GuruPilihan[];
+  murobi_berhak: GuruPilihan[];
+};
+
+export type CreatePengajuanResponse = {
+  id: number;
+  status: IzinStatus;
+  murobi_guru_id: number | null;
+  routing_kandidat: number;
+  routing_catatan: string;
+  idempotent_replay: boolean;
+};
+
+export type KeputusanResponse = {
+  id: number;
+  keputusan_id: number;
+  status: IzinStatus;
+  kapasitas: 'Murobi' | 'Admin Pengganti';
+  version: number;
+  idempotent_replay: boolean;
+};
+
+export type MutasiResponse = {
+  id: number;
+  status: IzinStatus;
+  version: number;
+  idempotent_replay: boolean;
+};
+
+export type IzinListQuery = {
+  mode?: IzinCapability;
+  q?: string;
+  status?: string;
+  source?: string;
+  date_from?: string;
+  date_to?: string;
+  santri_id?: number;
+  page?: number;
+  per_page?: number;
 };

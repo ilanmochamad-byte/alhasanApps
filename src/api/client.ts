@@ -2,14 +2,26 @@ import { fetch } from 'expo/fetch';
 import Constants from 'expo-constants';
 
 import type {
+  AnakListResponse,
   AttendancePayload,
+  CapabilityPayload,
+  CreatePengajuanResponse,
+  IzinCapability,
+  IzinDetailResponse,
+  IzinHistoryResponse,
+  IzinListQuery,
+  IzinListResponse,
+  KeputusanResponse,
   LoginResponse,
   MeetingDetail,
+  MutasiResponse,
   Profile,
   ReportFilters,
   ReportMeetingDetail,
   ReportOptions,
   ReportResponse,
+  RoutingResponse,
+  SantriListResponse,
   ScheduleListResponse,
   ScheduleOccurrence,
   TodayResponse,
@@ -124,7 +136,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   throw new ApiError('Permintaan gagal.', 0, 'NETWORK_ERROR');
 }
 
-function query(values: Record<string, string | number | undefined>) {
+function query(values: Record<string, string | number | boolean | undefined>) {
   const params = new URLSearchParams();
   Object.entries(values).forEach(([key, value]) => {
     if (value !== undefined && value !== '') params.set(key, String(value));
@@ -167,17 +179,125 @@ export const api = {
   reportPrintHtml(filters: ReportFilters) {
     return request<{ html: string }>(`/reports/print${query(filters)}`);
   },
+
+  // -------------------------------------------------------------------------
+  // V2 Fase 3 — perizinan.
+  //
+  // Setiap mutasi WAJIB menerima `idempotencyKey` dari pemanggil dan memakai
+  // kunci yang SAMA pada setiap percobaan ulang, sehingga retry jaringan atau
+  // ketukan ganda tidak pernah membuat pengajuan/keputusan tambahan.
+  // -------------------------------------------------------------------------
+  capabilities: () => request<CapabilityPayload>('/me/capabilities'),
+
+  izinSantri(mode: IzinCapability | undefined, q: string, page = 1, perPage = 25) {
+    return request<SantriListResponse>(`/izin/santri${query({ mode, q, page, per_page: perPage })}`);
+  },
+  izinAnak: () => request<AnakListResponse>('/izin/anak'),
+  izinList(params: IzinListQuery = {}) {
+    return request<IzinListResponse>(`/izin/pengajuan${query({ ...params, per_page: params.per_page ?? 20 })}`);
+  },
+  izinAntrean(params: IzinListQuery = {}) {
+    return request<IzinListResponse>(`/izin/antrean${query({ ...params, per_page: params.per_page ?? 20 })}`);
+  },
+  izinMonitorAdmin(params: IzinListQuery = {}) {
+    return request<IzinListResponse>(`/izin/admin/monitor${query({ ...params, per_page: params.per_page ?? 20 })}`);
+  },
+  izinDetail(id: number, mode?: IzinCapability) {
+    return request<IzinDetailResponse>(`/izin/pengajuan/${id}${query({ mode })}`);
+  },
+  izinRiwayat(id: number, mode?: IzinCapability) {
+    return request<IzinHistoryResponse>(`/izin/pengajuan/${id}/riwayat${query({ mode })}`);
+  },
+  izinRouting(id: number) {
+    return request<RoutingResponse>(`/izin/pengajuan/${id}/routing`);
+  },
+  izinBuat(
+    payload: {
+      santri_id: number;
+      tgl_izin: string;
+      tgl_kembali: string;
+      alasan: string;
+      catatan_pengurus?: string;
+    },
+    idempotencyKey: string,
+    mode?: IzinCapability,
+  ) {
+    return request<CreatePengajuanResponse>(`/izin/pengajuan${query({ mode })}`, {
+      method: 'POST',
+      body: { ...payload, idempotency_key: idempotencyKey },
+    });
+  },
+  izinKeputusan(
+    id: number,
+    payload: { hasil: 'Disetujui' | 'Ditolak'; alasan: string; alasan_penggantian?: string; version?: number },
+    idempotencyKey: string,
+    mode?: IzinCapability,
+  ) {
+    return request<KeputusanResponse>(`/izin/pengajuan/${id}/keputusan${query({ mode })}`, {
+      method: 'POST',
+      body: { ...payload, idempotency_key: idempotencyKey },
+    });
+  },
+  izinPenetapanMurobi(
+    id: number,
+    payload: { murobi_guru_id: number; alasan: string; version?: number },
+    idempotencyKey: string,
+  ) {
+    return request<MutasiResponse>(`/izin/pengajuan/${id}/penetapan-murobi`, {
+      method: 'POST',
+      body: { ...payload, idempotency_key: idempotencyKey },
+    });
+  },
+  izinPembatalan(
+    id: number,
+    payload: { alasan: string; version?: number },
+    idempotencyKey: string,
+    mode?: IzinCapability,
+  ) {
+    return request<MutasiResponse>(`/izin/pengajuan/${id}/pembatalan${query({ mode })}`, {
+      method: 'POST',
+      body: { ...payload, idempotency_key: idempotencyKey },
+    });
+  },
+  izinKoreksi(
+    id: number,
+    payload: { hasil: 'Disetujui' | 'Ditolak'; alasan: string; alasan_koreksi: string; version?: number },
+    idempotencyKey: string,
+  ) {
+    return request<MutasiResponse>(`/izin/pengajuan/${id}/koreksi`, {
+      method: 'POST',
+      body: { ...payload, idempotency_key: idempotencyKey },
+    });
+  },
 };
 
 export function actionableError(error: unknown): string {
   if (!(error instanceof ApiError)) {
     return error instanceof Error ? error.message : 'Terjadi kesalahan. Silakan coba lagi.';
   }
+  // Offline dan timeout dibedakan dari galat server agar saran tindak lanjutnya
+  // tepat (PRD Fase 3 §10).
+  if (error.code === 'NETWORK_ERROR') {
+    return 'Perangkat sedang offline atau server tidak terjangkau. Periksa koneksi lalu coba lagi.';
+  }
+  if (error.code === 'TIMEOUT') return 'Permintaan melewati batas waktu. Periksa koneksi lalu coba lagi.';
+  if (error.code === 'CONFIG_ERROR') return error.message;
   if (error.status === 401) return 'Sesi Anda berakhir. Silakan masuk kembali.';
   if (error.status === 403) return 'Anda tidak memiliki akses ke tugas ini. Muat ulang jadwal Anda.';
+  if (error.status === 404) return `${error.message} Data mungkin sudah dihapus atau dipindahkan.`;
   if (error.status === 409) return `${error.message} Muat ulang data sebelum mencoba kembali.`;
   if (error.status === 422) return `${error.message} Periksa kembali isian Anda.`;
   return error.message;
+}
+
+/**
+ * Saran tindak lanjut untuk galat perizinan, dipakai pada layar mutasi.
+ *
+ * 409 tidak pernah diminta ulang otomatis: pengguna harus memuat ulang versi
+ * terbaru lebih dulu supaya keputusan pertama tidak tertimpa.
+ */
+export function shouldReloadAfter(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 409 || error.status === 403);
 }
 
 export function createIdempotencyKey(prefix: string): string {
