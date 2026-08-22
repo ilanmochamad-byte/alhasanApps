@@ -7,6 +7,7 @@ import type { AnakListResponse, IzinCapability, IzinListResponse } from '@/api/t
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
 import { IzinCard } from '@/components/izin-card';
+import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { MODE_LABEL, ModeSwitcher } from '@/components/mode-switcher';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
@@ -111,9 +112,8 @@ function PerizinanSession() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       contentInsetAdjustmentBehavior="automatic"
-      keyboardShouldPersistTaps="handled"
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={styles.content}
       refreshControl={
@@ -301,7 +301,7 @@ function PerizinanSession() {
           ) : null}
         </>
       ) : null}
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 

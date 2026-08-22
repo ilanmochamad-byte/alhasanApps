@@ -1,10 +1,11 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { actionableError, api } from '@/api/client';
 import type { IzinCapability, SantriPilihan } from '@/api/types';
 import { AppButton } from '@/components/app-button';
+import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { formatTanggal } from '@/components/izin-card';
 import { ThemedText } from '@/components/themed-text';
@@ -104,9 +105,8 @@ export default function BuatPengajuanScreen() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       contentInsetAdjustmentBehavior="automatic"
-      keyboardShouldPersistTaps="handled"
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={styles.content}>
       <View style={styles.stepRow}>
@@ -285,7 +285,7 @@ export default function BuatPengajuanScreen() {
           </View>
         </View>
       ) : null}
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 

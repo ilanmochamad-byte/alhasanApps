@@ -5,6 +5,7 @@ import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { actionableError, api, createIdempotencyKey } from '@/api/client';
 import type { AttendancePayload, AttendanceStatus, MeetingDetail } from '@/api/types';
 import { AppButton } from '@/components/app-button';
+import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { formatDate } from '@/components/schedule-card';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { StatusSelector } from '@/components/status-selector';
@@ -100,7 +101,7 @@ export default function MeetingScreen() {
   if (error && !meeting) return <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: theme.background }}><ErrorState message={error} onRetry={() => void load()} /></ScrollView>;
 
   return (
-    <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" style={{ backgroundColor: theme.background }} contentContainerStyle={styles.content}>
+    <KeyboardAwareScrollView contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: theme.background }} contentContainerStyle={styles.content}>
       {meeting ? <>
         <View style={[styles.hero, { backgroundColor: theme.primary }]}><ThemedText selectable style={[styles.subject, { color: theme.onPrimary }]}>{meeting.task.subject}</ThemedText><ThemedText selectable style={{ color: theme.onPrimary }}>{formatDate(meeting.date)} · {meeting.task.start_time}–{meeting.task.end_time}</ThemedText><ThemedText selectable style={{ color: theme.onPrimary }}>{meeting.task.class.name} · {meeting.task.place}</ThemedText></View>
         <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}><View style={styles.row}><ThemedText selectable style={styles.heading}>Kehadiran guru</ThemedText><ThemedText selectable type="smallBold" themeColor={meeting.status === 'Selesai' ? 'success' : 'warning'}>{meeting.status}</ThemedText></View><StatusSelector value={teacherStatus} onChange={(value) => { setTeacherStatus(value); setSuccess(null); }} /><TextInput multiline value={teacherNotes} onChangeText={(value) => { setTeacherNotes(value); setSuccess(null); }} placeholder="Catatan guru (opsional)" placeholderTextColor={theme.textSecondary} style={[styles.notes, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]} /></View>
@@ -108,7 +109,7 @@ export default function MeetingScreen() {
         {meeting.students.map((student, index) => { const draft = students[student.student_id] ?? { status: 'Hadir' as const, notes: '' }; return <View key={student.student_id} style={[styles.studentCard, { backgroundColor: theme.card, borderColor: theme.border }]}><View style={styles.studentTitle}><ThemedText selectable style={styles.number}>{index + 1}</ThemedText><View style={{ flex: 1 }}><ThemedText selectable style={{ fontWeight: '800' }}>{student.name}</ThemedText><ThemedText selectable type="small" themeColor="textSecondary">NIS {student.nis}</ThemedText></View></View><StatusSelector value={draft.status} onChange={(status) => updateStudent(student.student_id, { status })} /><TextInput value={draft.notes} onChangeText={(notes) => updateStudent(student.student_id, { notes })} placeholder="Catatan santri (opsional)" placeholderTextColor={theme.textSecondary} style={[styles.smallInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]} /></View>; })}
         <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}><ThemedText selectable style={styles.heading}>Ringkasan</ThemedText><View style={styles.summary}>{Object.entries(counts).map(([status, count]) => <View key={status} style={[styles.summaryItem, { backgroundColor: theme.backgroundElement }]}><ThemedText selectable type="smallBold">{status}</ThemedText><ThemedText selectable style={styles.count}>{count}</ThemedText></View>)}</View>{meeting.status === 'Selesai' ? <View style={{ gap: 7 }}><ThemedText selectable type="smallBold">Alasan koreksi</ThemedText><TextInput multiline value={correctionReason} onChangeText={setCorrectionReason} placeholder="Wajib diisi untuk menyimpan koreksi" placeholderTextColor={theme.textSecondary} style={[styles.notes, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]} /></View> : null}{error ? <ThemedText selectable themeColor="danger" accessibilityLiveRegion="assertive">{error}</ThemedText> : null}{success ? <ThemedText selectable themeColor="success" accessibilityLiveRegion="polite">{success}</ThemedText> : null}<AppButton label={meeting.status === 'Selesai' ? 'Simpan koreksi' : 'Konfirmasi dan kirim'} onPress={confirmSubmit} loading={submitting} disabled={meeting.students.some((student) => !students[student.student_id])} /></View>
       </> : null}
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 
 import { actionableError } from '@/api/client';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
+import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -32,8 +33,8 @@ export default function LoginScreen() {
   }
 
   return (
-    <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" style={{ backgroundColor: theme.background }} contentContainerStyle={styles.scrollContent}>
-      <KeyboardAvoidingView behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined} style={styles.wrapper}>
+    <KeyboardAwareScrollView contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: theme.background }} contentContainerStyle={styles.scrollContent}>
+      <View style={styles.wrapper}>
         <View style={[styles.brand, { backgroundColor: theme.primary }]}><ThemedText selectable style={[styles.brandText, { color: theme.onPrimary }]}>AH</ThemedText></View>
         <View style={styles.intro}><ThemedText selectable style={styles.title}>Aplikasi Guru Al Hasan</ThemedText><ThemedText selectable themeColor="textSecondary" style={styles.subtitle}>Masuk untuk melihat jadwal dan mencatat absensi pengajian.</ThemedText></View>
         <View style={[styles.form, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -42,8 +43,8 @@ export default function LoginScreen() {
           {error ? <ThemedText selectable themeColor="danger" accessibilityLiveRegion="assertive">{error}</ThemedText> : null}
           <AppButton label="Masuk" onPress={() => void submit()} loading={submitting} />
         </View>
-      </KeyboardAvoidingView>
-    </ScrollView>
+      </View>
+    </KeyboardAwareScrollView>
   );
 }
 

@@ -1,10 +1,11 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { RefreshControl, StyleSheet, TextInput, View } from 'react-native';
 
 import { actionableError, api } from '@/api/client';
 import type { AttendanceStatus, ReportFilters, ReportOptions, ReportResponse } from '@/api/types';
 import { AppButton } from '@/components/app-button';
+import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
@@ -79,9 +80,8 @@ export default function ReportsScreen() {
   const statusTotal = data ? Object.values(data.summary.statuses).reduce((sum, count) => sum + count, 0) : 0;
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       contentInsetAdjustmentBehavior="automatic"
-      keyboardShouldPersistTaps="handled"
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />}>
@@ -109,7 +109,7 @@ export default function ReportsScreen() {
         {data.items.map((row) => <View key={`${row.subject_type}-${row.attendance_id}`} style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}><View style={styles.cardHeading}><View style={{ flex: 1, gap: 2 }}><ThemedText selectable style={styles.cardTitle}>{row.subject_name}</ThemedText><ThemedText selectable type="small" themeColor="textSecondary">{row.subject_type} · {row.identity_number || 'Tanpa nomor identitas'}</ThemedText></View><ThemedText selectable style={{ fontWeight: '800', color: theme.primary }}>{row.attendance_status}</ThemedText></View><ThemedText selectable>{row.meeting_date} · {row.subject} · {row.class_name}</ThemedText><ThemedText selectable type="small" themeColor="textSecondary">Pencatat: {row.recorder_name ?? '-'} · diperbarui {row.updated_at}</ThemedText><AppButton label="Buka detail pertemuan" variant="secondary" onPress={() => router.push({ pathname: '/report/[id]', params: { id: String(row.meeting_id) } })} /></View>)}
         {data.pagination.total_pages > 1 ? <View style={styles.documentButtons}><View style={styles.buttonFlex}><AppButton label="Sebelumnya" variant="secondary" disabled={page <= 1} onPress={() => setPage((value) => Math.max(1, value - 1))} /></View><ThemedText selectable style={{ fontVariant: ['tabular-nums'] }}>{page}/{data.pagination.total_pages}</ThemedText><View style={styles.buttonFlex}><AppButton label="Berikutnya" variant="secondary" disabled={page >= data.pagination.total_pages} onPress={() => setPage((value) => value + 1)} /></View></View> : null}
       </> : null}
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 

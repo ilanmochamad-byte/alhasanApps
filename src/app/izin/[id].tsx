@@ -1,10 +1,11 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
+import { Pressable, RefreshControl, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
 
 import { actionableError, api } from '@/api/client';
 import type { GuruPilihan, IzinCapability, IzinDetailResponse, RoutingResponse } from '@/api/types';
 import { AppButton } from '@/components/app-button';
+import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { StatusBadge, formatTanggal } from '@/components/izin-card';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
@@ -161,9 +162,8 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
     : [];
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       contentInsetAdjustmentBehavior="automatic"
-      keyboardShouldPersistTaps="handled"
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={styles.content}
       refreshControl={
@@ -426,7 +426,7 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
       ) : null}
 
       <AppButton label="Kembali ke daftar" variant="secondary" onPress={() => router.back()} />
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 

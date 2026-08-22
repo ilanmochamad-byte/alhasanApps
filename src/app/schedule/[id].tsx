@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { actionableError, api, createIdempotencyKey } from '@/api/client';
 import type { ScheduleOccurrence } from '@/api/types';
 import { AppButton } from '@/components/app-button';
+import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { formatDate } from '@/components/schedule-card';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
@@ -54,14 +55,14 @@ export default function ScheduleDetailScreen() {
   if (error && !schedule) return <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: theme.background }}><ErrorState message={error} onRetry={() => void load()} /></ScrollView>;
 
   return (
-    <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" style={{ backgroundColor: theme.background }} contentContainerStyle={styles.content}>
+    <KeyboardAwareScrollView contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: theme.background }} contentContainerStyle={styles.content}>
       {schedule ? <>
         <View style={[styles.hero, { backgroundColor: theme.primary }]}><ThemedText selectable style={[styles.subject, { color: theme.onPrimary }]}>{schedule.subject}</ThemedText><ThemedText selectable style={{ color: theme.onPrimary }}>{formatDate(schedule.occurrence_date)} · {schedule.start_time}–{schedule.end_time}</ThemedText></View>
         <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}><Detail label="Kelas" value={`${schedule.class.name} · ${schedule.class.level}`} /><Detail label="Kitab" value={schedule.book} /><Detail label="Tempat" value={schedule.place} /><Detail label="Tahun ajaran" value={`${schedule.academic_year.year} · ${schedule.academic_year.semester}`} /><Detail label="Guru" value={schedule.teacher.name} /></View>
         {schedule.meeting ? <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}><ThemedText selectable style={styles.heading}>Pertemuan sudah tersedia</ThemedText><ThemedText selectable themeColor="textSecondary">Status: {schedule.meeting.status}</ThemedText><AppButton label={schedule.meeting.status === 'Selesai' ? 'Buka absensi tersimpan' : 'Isi absensi'} onPress={() => router.push({ pathname: '/meeting/[id]', params: { id: String(schedule.meeting!.id) } })} /></View> : <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}><ThemedText selectable style={styles.heading}>Buka pertemuan</ThemedText><ThemedText selectable themeColor="textSecondary">Daftar santri akan dibekukan dari keanggotaan kelas saat pertemuan dibuka.</ThemedText><TextInput multiline value={notes} onChangeText={setNotes} placeholder="Catatan pertemuan (opsional)" placeholderTextColor={theme.textSecondary} style={[styles.notes, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]} /><AppButton label="Buka pertemuan" onPress={() => void openMeeting()} loading={opening} /></View>}
         {error ? <ThemedText selectable themeColor="danger" accessibilityLiveRegion="assertive">{error}</ThemedText> : null}
       </> : null}
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 
