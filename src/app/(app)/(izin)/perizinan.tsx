@@ -23,6 +23,15 @@ type Tampilan = 'antrean' | 'semua';
  * tidak pernah menjadi satu-satunya kontrol akses.
  */
 export default function PerizinanScreen() {
+  const { profile } = useAuth();
+
+  // Native tabs mempertahankan layar yang sudah pernah dibuka. Mengganti key
+  // ketika identitas berubah memastikan cakupan, filter, data, dan posisi gulir
+  // akun sebelumnya tidak ikut terbawa ke sesi baru.
+  return <PerizinanSession key={profile?.id ?? 'guest'} />;
+}
+
+function PerizinanSession() {
   const router = useRouter();
   const theme = useTheme();
   const { capabilities } = useAuth();
