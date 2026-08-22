@@ -1,6 +1,6 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
 
 import { actionableError, api } from '@/api/client';
 import type { GuruPilihan, IzinCapability, IzinDetailResponse, RoutingResponse } from '@/api/types';
@@ -22,6 +22,8 @@ import { useTheme } from '@/hooks/use-theme';
 export default function IzinDetailScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { fontScale } = useWindowDimensions();
+  const teksBesar = fontScale >= 1.6;
   const params = useLocalSearchParams<{ id: string; mode?: string }>();
   const id = Number(params.id);
   const mode = (params.mode || undefined) as IzinCapability | undefined;
@@ -161,7 +163,7 @@ export default function IzinDetailScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
       }>
       <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <View style={styles.headerRow}>
+        <View style={[styles.headerRow, teksBesar && styles.headerRowLarge]}>
           <ThemedText selectable style={styles.title}>
             #{pengajuan.id} · {pengajuan.santri.nama}
           </ThemedText>
@@ -422,12 +424,14 @@ export default function IzinDetailScreen() {
 }
 
 function Baris({ label, nilai }: { label: string; nilai: string }) {
+  const { fontScale } = useWindowDimensions();
+  const teksBesar = fontScale >= 1.6;
   return (
-    <View style={styles.baris}>
-      <ThemedText selectable type="small" themeColor="textSecondary" style={styles.barisLabel}>
+    <View style={[styles.baris, teksBesar && styles.barisLarge]}>
+      <ThemedText selectable type="small" themeColor="textSecondary" style={[styles.barisLabel, teksBesar && styles.barisLabelLarge]}>
         {label}
       </ThemedText>
-      <ThemedText selectable style={styles.barisNilai}>
+      <ThemedText selectable style={[styles.barisNilai, teksBesar && styles.barisNilaiLarge]}>
         {nilai}
       </ThemedText>
     </View>
@@ -439,10 +443,14 @@ const styles = StyleSheet.create({
   panel: { borderWidth: 1, borderRadius: 18, borderCurve: 'continuous', padding: 16, gap: 9 },
   panelTitle: { fontSize: 17, fontWeight: '800' },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  headerRowLarge: { alignItems: 'flex-start', flexDirection: 'column' },
   title: { fontSize: 19, fontWeight: '900', flexShrink: 1 },
   baris: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  barisLarge: { flexDirection: 'column' },
   barisLabel: { width: 132 },
+  barisLabelLarge: { width: 'auto' },
   barisNilai: { flex: 1, minWidth: 140 },
+  barisNilaiLarge: { flex: 0, minWidth: 0, width: '100%' },
   textarea: { minHeight: 76, borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 15, textAlignVertical: 'top' },
   buttonRow: { flexDirection: 'row', gap: 10 },
   buttonCell: { flex: 1 },
