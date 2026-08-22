@@ -20,9 +20,16 @@ import { useTheme } from '@/hooks/use-theme';
  * `useMutationGuard`), sehingga tidak pernah ada pengajuan/keputusan ganda.
  */
 export default function IzinDetailScreen() {
+  const { fontScale } = useWindowDimensions();
+
+  // iOS dapat mempertahankan pengukuran ScrollView lama ketika Dynamic Type
+  // diubah saat layar aktif. Remount terarah mencegah judul/status terpotong.
+  return <IzinDetailSession key={fontScale} fontScale={fontScale} />;
+}
+
+function IzinDetailSession({ fontScale }: { fontScale: number }) {
   const router = useRouter();
   const theme = useTheme();
-  const { fontScale } = useWindowDimensions();
   const teksBesar = fontScale >= 1.6;
   const params = useLocalSearchParams<{ id: string; mode?: string }>();
   const id = Number(params.id);

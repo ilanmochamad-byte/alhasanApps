@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
 
 import { actionableError, api } from '@/api/client';
 import type { AnakListResponse, IzinCapability, IzinListResponse } from '@/api/types';
@@ -24,11 +24,13 @@ type Tampilan = 'antrean' | 'semua';
  */
 export default function PerizinanScreen() {
   const { profile } = useAuth();
+  const { fontScale } = useWindowDimensions();
 
   // Native tabs mempertahankan layar yang sudah pernah dibuka. Mengganti key
   // ketika identitas berubah memastikan cakupan, filter, data, dan posisi gulir
-  // akun sebelumnya tidak ikut terbawa ke sesi baru.
-  return <PerizinanSession key={profile?.id ?? 'guest'} />;
+  // akun sebelumnya tidak ikut terbawa ke sesi baru. Skala teks ikut menjadi
+  // bagian key agar perubahan Dynamic Type menghitung ulang layout seketika.
+  return <PerizinanSession key={`${profile?.id ?? 'guest'}:${fontScale}`} />;
 }
 
 function PerizinanSession() {
