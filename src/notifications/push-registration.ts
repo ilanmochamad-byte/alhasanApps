@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 /**
@@ -26,6 +27,7 @@ import { Platform } from 'react-native';
  * plugin expo-notifications di app.json.
  */
 export const ANDROID_CHANNEL_ID = 'perizinan';
+const INSTALLATION_ID_KEY = 'alhasan_installation_id';
 
 export type RegistrationOutcome =
   | { status: 'ok'; token: string; platform: 'android' | 'ios' | 'web' }
@@ -100,14 +102,19 @@ export async function registerForPushNotificationsAsync(minta = false): Promise<
     let granted = existing.granted || existing.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
 
     if (!granted) {
-      // Hanya bertanya ketika pengguna belum pernah memutuskan, atau ketika
-      // pengguna sendiri yang meminta lewat tombol. Izin yang sudah ditolak
-      // tidak ditanyakan ulang secara diam-diam.
-      const bolehBertanya = minta || existing.canAskAgain;
-      if (!bolehBertanya) {
+      // Registrasi otomatis tidak pernah memunculkan dialog. Bahkan ketika
+      // pengguna menekan tombol, status `canAskAgain=false` dihormati agar OS
+      // tidak diminta ulang setelah penolakan permanen.
+      if (!existing.canAskAgain) {
         return {
           status: 'ditolak',
           alasan: 'Izin notifikasi ditolak. Nyalakan kembali melalui Pengaturan perangkat.',
+        };
+      }
+      if (!minta) {
+        return {
+          status: 'ditolak',
+          alasan: 'Push belum dinyalakan. Tekan Nyalakan push untuk meminta izin notifikasi.',
         };
       }
       const diminta = await Notifications.requestPermissionsAsync({
@@ -156,9 +163,26 @@ export async function registerForPushNotificationsAsync(minta = false): Promise<
  * alih-alih menumpuk. Bukan pengenal perangkat keras dan tidak dipakai untuk
  * pelacakan.
  */
-export function installationId(): string {
-  const id = Constants.sessionId;
-  return typeof id === 'string' && id.length > 0 ? id.slice(0, 100) : 'tanpa-id';
+export async function installationId(): Promise<string> {
+  if (process.env.EXPO_OS === 'web') return 'web';
+  try {
+    const existing = await SecureStore.getItemAsync(INSTALLATION_ID_KEY);
+    if (existing) return existing.slice(0, 100);
+
+    // Ini bukan secret atau pengenal perangkat keras. Nilainya hanya perlu
+    // acak dan persisten agar rotasi Expo push token memperbarui baris perangkat
+    // yang sama, bukan membuat baris baru pada setiap sesi aplikasi.
+    const random = Array.from({ length: 4 }, () => Math.random().toString(36).slice(2)).join('');
+    const created = `install-${Date.now().toString(36)}-${random}`.slice(0, 100);
+    await SecureStore.setItemAsync(INSTALLATION_ID_KEY, created, {
+      keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
+    });
+    return created;
+  } catch {
+    // Fallback tetap stabil selama proses berjalan. Registrasi token yang sama
+    // masih dideduplikasi server lewat token_hash.
+    return `install-fallback-${Constants.sessionId ?? 'tanpa-id'}`.slice(0, 100);
+  }
 }
 
 export function deviceLabel(): string {

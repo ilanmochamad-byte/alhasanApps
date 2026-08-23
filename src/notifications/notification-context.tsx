@@ -151,7 +151,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
         const terdaftar = await api.perangkatDaftar({
           token: hasil.token,
           platform: hasil.platform,
-          device_id: installationId(),
+          device_id: await installationId(),
           device_label: deviceLabel(),
           app_version: appVersion(),
         });
