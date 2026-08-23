@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { actionableError } from '@/api/client';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
+import { KeyboardAwareScrollView, KeyboardAwareTextInput } from '@/components/keyboard-aware-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -38,8 +38,8 @@ export default function LoginScreen() {
         <View style={[styles.brand, { backgroundColor: theme.primary }]}><ThemedText selectable style={[styles.brandText, { color: theme.onPrimary }]}>AH</ThemedText></View>
         <View style={styles.intro}><ThemedText selectable style={styles.title}>Aplikasi Guru Al Hasan</ThemedText><ThemedText selectable themeColor="textSecondary" style={styles.subtitle}>Masuk untuk melihat jadwal dan mencatat absensi pengajian.</ThemedText></View>
         <View style={[styles.form, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <View style={styles.field}><ThemedText selectable type="smallBold">Username</ThemedText><TextInput autoCapitalize="none" autoCorrect={false} autoComplete="username" value={username} onChangeText={setUsername} placeholder="Masukkan username" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]} /></View>
-          <View style={styles.field}><ThemedText selectable type="smallBold">Password</ThemedText><TextInput autoCapitalize="none" autoCorrect={false} autoComplete="current-password" secureTextEntry value={password} onChangeText={setPassword} onSubmitEditing={() => void submit()} placeholder="Masukkan password" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]} /></View>
+          <View style={styles.field}><ThemedText selectable type="smallBold">Username</ThemedText><KeyboardAwareTextInput autoCapitalize="none" autoCorrect={false} autoComplete="username" value={username} onChangeText={setUsername} placeholder="Masukkan username" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]} /></View>
+          <View style={styles.field}><ThemedText selectable type="smallBold">Password</ThemedText><KeyboardAwareTextInput autoCapitalize="none" autoCorrect={false} autoComplete="current-password" secureTextEntry value={password} onChangeText={setPassword} onSubmitEditing={() => void submit()} placeholder="Masukkan password" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]} /></View>
           {error ? <ThemedText selectable themeColor="danger" accessibilityLiveRegion="assertive">{error}</ThemedText> : null}
           <AppButton label="Masuk" onPress={() => void submit()} loading={submitting} />
         </View>

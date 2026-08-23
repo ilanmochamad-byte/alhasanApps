@@ -1,11 +1,11 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { RefreshControl, StyleSheet, TextInput, View } from 'react-native';
+import { RefreshControl, StyleSheet, View } from 'react-native';
 
 import { actionableError, api } from '@/api/client';
 import type { ScheduleListResponse } from '@/api/types';
 import { AppButton } from '@/components/app-button';
-import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
+import { KeyboardAwareScrollView, KeyboardAwareTextInput } from '@/components/keyboard-aware-scroll-view';
 import { ScheduleCard } from '@/components/schedule-card';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
@@ -40,7 +40,7 @@ export default function SchedulesScreen() {
 
   return (
     <KeyboardAwareScrollView contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: theme.background }} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />}>
-      <View style={[styles.filter, { backgroundColor: theme.card, borderColor: theme.border }]}><ThemedText selectable style={styles.filterTitle}>Filter tanggal</ThemedText><View style={styles.filterRow}><View style={styles.field}><ThemedText selectable type="smallBold">Dari</ThemedText><TextInput value={from} onChangeText={setFrom} placeholder="YYYY-MM-DD" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} /></View><View style={styles.field}><ThemedText selectable type="smallBold">Sampai</ThemedText><TextInput value={to} onChangeText={setTo} placeholder="YYYY-MM-DD" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} /></View></View><AppButton label="Terapkan filter" onPress={() => setApplied({ from: from.trim(), to: to.trim() })} /></View>
+      <View style={[styles.filter, { backgroundColor: theme.card, borderColor: theme.border }]}><ThemedText selectable style={styles.filterTitle}>Filter tanggal</ThemedText><View style={styles.filterRow}><View style={styles.field}><ThemedText selectable type="smallBold">Dari</ThemedText><KeyboardAwareTextInput value={from} onChangeText={setFrom} placeholder="YYYY-MM-DD" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} /></View><View style={styles.field}><ThemedText selectable type="smallBold">Sampai</ThemedText><KeyboardAwareTextInput value={to} onChangeText={setTo} placeholder="YYYY-MM-DD" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} /></View></View><AppButton label="Terapkan filter" onPress={() => setApplied({ from: from.trim(), to: to.trim() })} /></View>
       {loading && !data ? <LoadingState label="Memuat daftar jadwal…" /> : error && !data ? <ErrorState message={error} onRetry={() => void load()} /> : data?.items.length === 0 ? <EmptyState title="Jadwal tidak ditemukan" message="Ubah rentang tanggal atau tarik ke bawah untuk memuat ulang." /> : data ? <><ThemedText selectable themeColor="textSecondary">{data.pagination.total} tugas ditemukan</ThemedText>{data.items.map((schedule) => <ScheduleCard key={`${schedule.id}-${schedule.occurrence_date}`} schedule={schedule} onPress={() => router.push({ pathname: '/schedule/[id]', params: { id: String(schedule.id), date: schedule.occurrence_date } })} />)}</> : null}
     </KeyboardAwareScrollView>
   );

@@ -1,11 +1,11 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, StyleSheet, TextInput, View } from 'react-native';
+import { RefreshControl, StyleSheet, View } from 'react-native';
 
 import { actionableError, api } from '@/api/client';
 import type { AttendanceStatus, ReportFilters, ReportOptions, ReportResponse } from '@/api/types';
 import { AppButton } from '@/components/app-button';
-import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
+import { KeyboardAwareScrollView, KeyboardAwareTextInput } from '@/components/keyboard-aware-scroll-view';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
@@ -88,7 +88,7 @@ export default function ReportsScreen() {
       <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}>
         <ThemedText selectable style={styles.panelTitle}>Filter laporan saya</ThemedText>
         <ThemedText selectable themeColor="textSecondary">Server selalu membatasi hasil pada jadwal guru yang sedang masuk.</ThemedText>
-        <View style={styles.row}><View style={styles.field}><ThemedText selectable type="smallBold">Dari</ThemedText><TextInput value={from} onChangeText={setFrom} placeholder="YYYY-MM-DD" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} /></View><View style={styles.field}><ThemedText selectable type="smallBold">Sampai</ThemedText><TextInput value={to} onChangeText={setTo} placeholder="YYYY-MM-DD" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} /></View></View>
+        <View style={styles.row}><View style={styles.field}><ThemedText selectable type="smallBold">Dari</ThemedText><KeyboardAwareTextInput value={from} onChangeText={setFrom} placeholder="YYYY-MM-DD" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} /></View><View style={styles.field}><ThemedText selectable type="smallBold">Sampai</ThemedText><KeyboardAwareTextInput value={to} onChangeText={setTo} placeholder="YYYY-MM-DD" placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border }]} /></View></View>
         <ThemedText selectable type="smallBold">Status</ThemedText>
         <View style={styles.chips}>{statusOptions.map((item) => <AppButton key={item ?? 'all'} label={item ?? 'Semua'} variant={status === item ? 'primary' : 'secondary'} onPress={() => setStatus(item)} />)}</View>
         {options && options.schedules.length > 0 ? <><ThemedText selectable type="smallBold">Jadwal</ThemedText><View style={styles.scheduleOptions}><AppButton label="Semua jadwal saya" variant={scheduleId === undefined ? 'primary' : 'secondary'} onPress={() => setScheduleId(undefined)} />{options.schedules.map((schedule) => <AppButton key={schedule.id} label={schedule.label} variant={scheduleId === schedule.id ? 'primary' : 'secondary'} onPress={() => setScheduleId(schedule.id)} />)}</View></> : null}

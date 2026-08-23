@@ -1,11 +1,11 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
+import { Pressable, RefreshControl, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { actionableError, api } from '@/api/client';
 import type { GuruPilihan, IzinCapability, IzinDetailResponse, RoutingResponse } from '@/api/types';
 import { AppButton } from '@/components/app-button';
-import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
+import { KeyboardAwareScrollView, KeyboardAwareTextInput } from '@/components/keyboard-aware-scroll-view';
 import { StatusBadge, formatTanggal } from '@/components/izin-card';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
@@ -235,7 +235,7 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
             </ThemedText>
           ) : null}
           <ThemedText selectable type="smallBold">Alasan keputusan</ThemedText>
-          <TextInput
+          <KeyboardAwareTextInput
             value={alasan}
             onChangeText={setAlasan}
             editable={!sedangMutasi}
@@ -247,7 +247,7 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
           {adminPengganti ? (
             <>
               <ThemedText selectable type="smallBold">Alasan penggantian murobi</ThemedText>
-              <TextInput
+              <KeyboardAwareTextInput
                 value={alasanPenggantian}
                 onChangeText={setAlasanPenggantian}
                 editable={!sedangMutasi}
@@ -326,7 +326,7 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
             </ThemedText>
           ) : null}
           <ThemedText selectable type="smallBold">Alasan penetapan</ThemedText>
-          <TextInput
+          <KeyboardAwareTextInput
             value={alasanTetapkan}
             onChangeText={setAlasanTetapkan}
             editable={!sedangMutasi}
@@ -357,7 +357,7 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
           <ThemedText selectable type="small" themeColor="textSecondary">
             Pembatalan hanya dapat dilakukan sebelum ada keputusan dan wajib memuat alasan.
           </ThemedText>
-          <TextInput
+          <KeyboardAwareTextInput
             value={alasanBatal}
             onChangeText={setAlasanBatal}
             editable={!sedangMutasi}

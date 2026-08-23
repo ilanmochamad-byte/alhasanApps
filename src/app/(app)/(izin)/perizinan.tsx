@@ -1,13 +1,13 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { actionableError, api } from '@/api/client';
 import type { AnakListResponse, IzinCapability, IzinListResponse } from '@/api/types';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
 import { IzinCard } from '@/components/izin-card';
-import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
+import { KeyboardAwareScrollView, KeyboardAwareTextInput } from '@/components/keyboard-aware-scroll-view';
 import { MODE_LABEL, ModeSwitcher } from '@/components/mode-switcher';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
@@ -206,7 +206,7 @@ function PerizinanSession() {
         <ThemedText selectable type="smallBold">
           Cari santri, NIS, atau alasan
         </ThemedText>
-        <TextInput
+        <KeyboardAwareTextInput
           value={pencarian}
           onChangeText={setPencarian}
           placeholder="Ketik lalu tekan Terapkan"
