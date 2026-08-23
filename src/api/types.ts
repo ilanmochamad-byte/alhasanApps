@@ -444,3 +444,90 @@ export type IzinListQuery = {
   page?: number;
   per_page?: number;
 };
+
+// ---------------------------------------------------------------------------
+// V2 Fase 4 — notifikasi in-app, perangkat push, dan kanal.
+// ---------------------------------------------------------------------------
+
+export type NotifikasiEventType =
+  | 'izin.pengajuan_dibuat'
+  | 'izin.routing_perlu_admin'
+  | 'izin.murobi_ditetapkan'
+  | 'izin.murobi_ditetapkan_ulang'
+  | 'izin.keputusan_disetujui'
+  | 'izin.keputusan_ditolak'
+  | 'izin.keputusan_admin_pengganti'
+  | 'izin.pembatalan'
+  | 'izin.koreksi'
+  | 'sistem.pesan_uji';
+
+export type Notifikasi = {
+  id: number;
+  event_type: NotifikasiEventType | string;
+  event_label: string;
+  judul: string;
+  isi: string;
+  pengajuan_id: number | null;
+  pengajuan_status: IzinStatus | null;
+  santri_nama: string | null;
+  dibaca: boolean;
+  dibaca_pada: string | null;
+  dibuat_pada: string;
+  /**
+   * Penunjuk sumber daya saja. Aplikasi WAJIB tetap memanggil endpoint detail
+   * izin, yang memverifikasi hak akses di server.
+   */
+  tautan: { tipe: string; pengajuan_id: number | null };
+};
+
+export type NotifikasiListResponse = {
+  items: Notifikasi[];
+  jumlah_belum_dibaca: number;
+  filters: { status: 'semua' | 'belum_dibaca' | 'sudah_dibaca' };
+  pagination: Pagination;
+};
+
+export type NotifikasiDetailResponse = { notifikasi: Notifikasi };
+
+export type NotifikasiMarkReadResponse = {
+  notifikasi: Notifikasi;
+  jumlah_belum_dibaca: number;
+};
+
+export type NotifikasiUnreadResponse = { jumlah: number };
+
+export type NotifikasiMarkAllResponse = { ditandai: number; jumlah_belum_dibaca: number };
+
+/**
+ * Perangkat push milik pengguna. Server TIDAK PERNAH mengembalikan token,
+ * baik terbaca maupun terlindungi.
+ */
+export type PerangkatPush = {
+  id: number;
+  platform: 'android' | 'ios' | 'web';
+  device_label: string | null;
+  app_version: string | null;
+  push_aktif: boolean;
+  dicabut: boolean;
+  alasan_pencabutan: string | null;
+  terakhir_aktif_pada: string | null;
+  terdaftar_pada: string;
+};
+
+export type PerangkatListResponse = { items: PerangkatPush[] };
+
+export type PerangkatRegistrasiResponse = {
+  perangkat_id: number;
+  baru: boolean;
+  platform: 'android' | 'ios' | 'web';
+  push_aktif: boolean;
+  pesan: string;
+};
+
+export type PerangkatPencabutanResponse = { dicabut: number; pesan: string };
+
+export type PerangkatPushToggleResponse = {
+  perangkat_id: number;
+  push_aktif: boolean;
+  pesan: string;
+};
