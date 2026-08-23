@@ -37,6 +37,14 @@ export default function AppTabs() {
               <TabButton>Perizinan</TabButton>
             </TabTrigger>
           ) : null}
+          {/* V2 Fase 4 — pusat notifikasi in-app. Ditampilkan dengan syarat
+              yang sama seperti versi native agar permukaan uji web tetap
+              sepadan dengan aplikasi perangkat. */}
+          {adaPerizinan ? (
+            <TabTrigger name="notifikasi" href="/notifikasi" asChild>
+              <TabButton>Notifikasi</TabButton>
+            </TabTrigger>
+          ) : null}
           {aksesJadwal ? (
             <TabTrigger name="schedules" href="/schedules" asChild>
               <TabButton>Jadwal</TabButton>

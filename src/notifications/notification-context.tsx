@@ -37,6 +37,23 @@ Notifications.setNotificationHandler({
   }),
 });
 
+/**
+ * Web tidak memiliki `getLastNotificationResponse` pada modul native
+ * expo-notifications, sehingga memanggil `useLastNotificationResponse()` di
+ * sana melempar dan menggagalkan render seluruh aplikasi. Build web dipakai
+ * sebagai permukaan pengujian sejak Fase 3, jadi penjagaan ini menjaga
+ * pengujian tetap berjalan tanpa mengubah perilaku Android/iOS sedikit pun.
+ *
+ * `EXPO_OS` adalah konstanta per-platform pada saat bundling, bukan nilai yang
+ * berubah saat berjalan — urutan hook karenanya tetap stabil.
+ */
+const BERJALAN_DI_WEB = process.env.EXPO_OS === 'web';
+
+function useTanggapanTerakhir(): Notifications.NotificationResponse | null | undefined {
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  return BERJALAN_DI_WEB ? null : Notifications.useLastNotificationResponse();
+}
+
 type PushState =
   | { status: 'memeriksa' }
   | { status: 'aktif'; perangkatId: number }
@@ -255,7 +272,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   // --- Aplikasi dibuka DARI notifikasi saat sebelumnya tertutup (cold start).
   // `useLastNotificationResponse` mengembalikan tanggapan terakhir, termasuk
   // yang terjadi sebelum listener di atas terpasang.
-  const tanggapanTerakhir = Notifications.useLastNotificationResponse();
+  const tanggapanTerakhir = useTanggapanTerakhir();
   const tanggapanDiproses = useRef<string | null>(null);
   useEffect(() => {
     if (!tanggapanTerakhir) return;
