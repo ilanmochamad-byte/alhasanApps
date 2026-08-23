@@ -1,10 +1,11 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, RefreshControl, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { actionableError, api } from '@/api/client';
 import type { GuruPilihan, IzinCapability, IzinDetailResponse, RoutingResponse } from '@/api/types';
 import { AppButton } from '@/components/app-button';
+import { KeyboardAwareScrollView, KeyboardAwareTextInput } from '@/components/keyboard-aware-scroll-view';
 import { StatusBadge, formatTanggal } from '@/components/izin-card';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
@@ -20,8 +21,17 @@ import { useTheme } from '@/hooks/use-theme';
  * `useMutationGuard`), sehingga tidak pernah ada pengajuan/keputusan ganda.
  */
 export default function IzinDetailScreen() {
+  const { fontScale } = useWindowDimensions();
+
+  // iOS dapat mempertahankan pengukuran ScrollView lama ketika Dynamic Type
+  // diubah saat layar aktif. Remount terarah mencegah judul/status terpotong.
+  return <IzinDetailSession key={fontScale} fontScale={fontScale} />;
+}
+
+function IzinDetailSession({ fontScale }: { fontScale: number }) {
   const router = useRouter();
   const theme = useTheme();
+  const teksBesar = fontScale >= 1.6;
   const params = useLocalSearchParams<{ id: string; mode?: string }>();
   const id = Number(params.id);
   const mode = (params.mode || undefined) as IzinCapability | undefined;
@@ -152,16 +162,15 @@ export default function IzinDetailScreen() {
     : [];
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       contentInsetAdjustmentBehavior="automatic"
-      keyboardShouldPersistTaps="handled"
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={styles.content}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
       }>
       <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <View style={styles.headerRow}>
+        <View style={[styles.headerRow, teksBesar && styles.headerRowLarge]}>
           <ThemedText selectable style={styles.title}>
             #{pengajuan.id} · {pengajuan.santri.nama}
           </ThemedText>
@@ -226,7 +235,7 @@ export default function IzinDetailScreen() {
             </ThemedText>
           ) : null}
           <ThemedText selectable type="smallBold">Alasan keputusan</ThemedText>
-          <TextInput
+          <KeyboardAwareTextInput
             value={alasan}
             onChangeText={setAlasan}
             editable={!sedangMutasi}
@@ -238,7 +247,7 @@ export default function IzinDetailScreen() {
           {adminPengganti ? (
             <>
               <ThemedText selectable type="smallBold">Alasan penggantian murobi</ThemedText>
-              <TextInput
+              <KeyboardAwareTextInput
                 value={alasanPenggantian}
                 onChangeText={setAlasanPenggantian}
                 editable={!sedangMutasi}
@@ -317,7 +326,7 @@ export default function IzinDetailScreen() {
             </ThemedText>
           ) : null}
           <ThemedText selectable type="smallBold">Alasan penetapan</ThemedText>
-          <TextInput
+          <KeyboardAwareTextInput
             value={alasanTetapkan}
             onChangeText={setAlasanTetapkan}
             editable={!sedangMutasi}
@@ -348,7 +357,7 @@ export default function IzinDetailScreen() {
           <ThemedText selectable type="small" themeColor="textSecondary">
             Pembatalan hanya dapat dilakukan sebelum ada keputusan dan wajib memuat alasan.
           </ThemedText>
-          <TextInput
+          <KeyboardAwareTextInput
             value={alasanBatal}
             onChangeText={setAlasanBatal}
             editable={!sedangMutasi}
@@ -417,17 +426,19 @@ export default function IzinDetailScreen() {
       ) : null}
 
       <AppButton label="Kembali ke daftar" variant="secondary" onPress={() => router.back()} />
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 
 function Baris({ label, nilai }: { label: string; nilai: string }) {
+  const { fontScale } = useWindowDimensions();
+  const teksBesar = fontScale >= 1.6;
   return (
-    <View style={styles.baris}>
-      <ThemedText selectable type="small" themeColor="textSecondary" style={styles.barisLabel}>
+    <View style={[styles.baris, teksBesar && styles.barisLarge]}>
+      <ThemedText selectable type="small" themeColor="textSecondary" style={[styles.barisLabel, teksBesar && styles.barisLabelLarge]}>
         {label}
       </ThemedText>
-      <ThemedText selectable style={styles.barisNilai}>
+      <ThemedText selectable style={[styles.barisNilai, teksBesar && styles.barisNilaiLarge]}>
         {nilai}
       </ThemedText>
     </View>
@@ -439,10 +450,14 @@ const styles = StyleSheet.create({
   panel: { borderWidth: 1, borderRadius: 18, borderCurve: 'continuous', padding: 16, gap: 9 },
   panelTitle: { fontSize: 17, fontWeight: '800' },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  headerRowLarge: { alignItems: 'flex-start', flexDirection: 'column' },
   title: { fontSize: 19, fontWeight: '900', flexShrink: 1 },
   baris: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  barisLarge: { flexDirection: 'column' },
   barisLabel: { width: 132 },
+  barisLabelLarge: { width: 'auto' },
   barisNilai: { flex: 1, minWidth: 140 },
+  barisNilaiLarge: { flex: 0, minWidth: 0, width: '100%' },
   textarea: { minHeight: 76, borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 15, textAlignVertical: 'top' },
   buttonRow: { flexDirection: 'row', gap: 10 },
   buttonCell: { flex: 1 },

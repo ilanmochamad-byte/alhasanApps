@@ -15,6 +15,15 @@ import type {
   LoginResponse,
   MeetingDetail,
   MutasiResponse,
+  NotifikasiDetailResponse,
+  NotifikasiListResponse,
+  NotifikasiMarkAllResponse,
+  NotifikasiMarkReadResponse,
+  NotifikasiUnreadResponse,
+  PerangkatListResponse,
+  PerangkatPencabutanResponse,
+  PerangkatPushToggleResponse,
+  PerangkatRegistrasiResponse,
   Profile,
   ReportFilters,
   ReportMeetingDetail,
@@ -152,7 +161,16 @@ export const api = {
     });
   },
   profile: () => request<Profile>('/profile'),
-  logout: () => request<{ message: string }>('/auth/logout', { method: 'POST' }),
+  /**
+   * Logout mencabut token API dan — bila `pushToken` disertakan — registrasi
+   * push perangkat ini saja. Tanpa `pushToken`, server mencabut seluruh
+   * perangkat akun tersebut (PRD V2 Fase 4 §5.5).
+   */
+  logout: (pushToken?: string | null) =>
+    request<{ message: string; perangkat_push_dicabut: number }>('/auth/logout', {
+      method: 'POST',
+      body: pushToken ? { push_token: pushToken } : {},
+    }),
   today: () => request<TodayResponse>('/schedules/today'),
   schedules(dateFrom: string, dateTo: string, page = 1, perPage = 100) {
     return request<ScheduleListResponse>(
@@ -267,6 +285,50 @@ export const api = {
     return request<MutasiResponse>(`/izin/pengajuan/${id}/koreksi`, {
       method: 'POST',
       body: { ...payload, idempotency_key: idempotencyKey },
+    });
+  },
+
+  // -------------------------------------------------------------------------
+  // V2 Fase 4 — notifikasi dan perangkat push.
+  //
+  // Notifikasi selalu milik SATU akun: tidak ada parameter pemilik pada satu
+  // pun endpoint di bawah. Penerima ditentukan server dari token bearer,
+  // sehingga mengganti id pada URL hanya menghasilkan 403.
+  // -------------------------------------------------------------------------
+  notifikasiList(params: { status?: string; page?: number; per_page?: number } = {}) {
+    return request<NotifikasiListResponse>(
+      `/notifikasi${query({ ...params, per_page: params.per_page ?? 20 })}`,
+    );
+  },
+  notifikasiBelumDibaca: () => request<NotifikasiUnreadResponse>('/notifikasi/belum-dibaca'),
+  notifikasiDetail: (id: number) => request<NotifikasiDetailResponse>(`/notifikasi/${id}`),
+  notifikasiTandaiDibaca(id: number) {
+    return request<NotifikasiMarkReadResponse>(`/notifikasi/${id}/dibaca`, { method: 'POST', body: {} });
+  },
+  notifikasiTandaiSemua() {
+    return request<NotifikasiMarkAllResponse>('/notifikasi/dibaca-semua', { method: 'POST', body: {} });
+  },
+
+  perangkatList: () => request<PerangkatListResponse>('/notifikasi/perangkat'),
+  perangkatDaftar(payload: {
+    token: string;
+    platform: 'android' | 'ios' | 'web';
+    device_id?: string;
+    device_label?: string;
+    app_version?: string;
+  }) {
+    return request<PerangkatRegistrasiResponse>('/notifikasi/perangkat', { method: 'POST', body: payload });
+  },
+  perangkatCabut(payload: { perangkat_id?: number; token?: string; semua?: boolean; alasan?: string }) {
+    return request<PerangkatPencabutanResponse>('/notifikasi/perangkat/pencabutan', {
+      method: 'POST',
+      body: payload,
+    });
+  },
+  perangkatSetPush(perangkatId: number, aktif: boolean) {
+    return request<PerangkatPushToggleResponse>(`/notifikasi/perangkat/${perangkatId}/push`, {
+      method: 'POST',
+      body: { push_aktif: aktif },
     });
   },
 };

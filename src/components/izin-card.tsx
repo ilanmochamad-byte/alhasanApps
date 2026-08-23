@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import type { IzinStatus, Pengajuan } from '@/api/types';
@@ -39,6 +39,8 @@ export function StatusBadge({ status }: { status: IzinStatus }) {
 
 export function IzinCard({ item, onPress }: { item: Pengajuan; onPress: () => void }) {
   const theme = useTheme();
+  const { fontScale } = useWindowDimensions();
+  const teksBesar = fontScale >= 1.6;
   return (
     <Pressable
       accessibilityRole="button"
@@ -48,7 +50,7 @@ export function IzinCard({ item, onPress }: { item: Pengajuan; onPress: () => vo
         styles.card,
         { backgroundColor: theme.card, borderColor: theme.border, opacity: pressed ? 0.85 : 1 },
       ]}>
-      <View style={styles.headerRow}>
+      <View style={[styles.headerRow, teksBesar && styles.headerRowLarge]}>
         <ThemedText selectable style={styles.title}>
           {item.santri.nama}
         </ThemedText>
@@ -60,7 +62,7 @@ export function IzinCard({ item, onPress }: { item: Pengajuan; onPress: () => vo
       <ThemedText selectable>
         {formatTanggal(item.tgl_izin)} → {formatTanggal(item.tgl_kembali)}
       </ThemedText>
-      <ThemedText selectable type="small" themeColor="textSecondary" numberOfLines={2}>
+      <ThemedText selectable type="small" themeColor="textSecondary">
         {item.alasan}
       </ThemedText>
       <View style={styles.metaRow}>
@@ -83,6 +85,7 @@ export function IzinCard({ item, onPress }: { item: Pengajuan; onPress: () => vo
 const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: 18, borderCurve: 'continuous', padding: 16, gap: 5 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  headerRowLarge: { alignItems: 'flex-start', flexDirection: 'column' },
   title: { fontSize: 17, fontWeight: '800', flexShrink: 1 },
   badge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingTop: 4 },

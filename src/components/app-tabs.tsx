@@ -3,6 +3,7 @@ import { useColorScheme } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
 import { Colors } from '@/constants/theme';
+import { useNotifications } from '@/notifications/notification-context';
 
 /**
  * Navigasi utama berbasis KEMAMPUAN, bukan nama role (PRD V2 Fase 3 §3–§4).
@@ -20,6 +21,7 @@ export default function AppTabs() {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
   const { profile, capabilities } = useAuth();
+  const { jumlahBelumDibaca } = useNotifications();
 
   const roles = profile?.roles ?? [];
   const aksesJadwal = roles.includes('guru') || roles.includes('admin');
@@ -40,6 +42,20 @@ export default function AppTabs() {
 
       <NativeTabs.Trigger name="(izin)" hidden={!adaPerizinan}>
         <NativeTabs.Trigger.Label>Perizinan</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          src={require('@/assets/images/tabIcons/explore.png')}
+          renderingMode="template"
+        />
+      </NativeTabs.Trigger>
+
+      {/* V2 Fase 4 — pusat notifikasi in-app. Tampil untuk setiap akun yang
+          memiliki kemampuan perizinan, karena kanal in-app adalah sumber
+          status utama dan tidak pernah dapat dimatikan. */}
+      <NativeTabs.Trigger name="(notifikasi)" hidden={!adaPerizinan}>
+        <NativeTabs.Trigger.Label>Notifikasi</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Badge hidden={jumlahBelumDibaca < 1}>
+          {jumlahBelumDibaca > 99 ? '99+' : String(jumlahBelumDibaca)}
+        </NativeTabs.Trigger.Badge>
         <NativeTabs.Trigger.Icon
           src={require('@/assets/images/tabIcons/explore.png')}
           renderingMode="template"

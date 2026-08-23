@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { AuthProvider, useAuth } from '@/auth/auth-context';
 import { useTheme } from '@/hooks/use-theme';
+import { NotificationProvider } from '@/notifications/notification-context';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -35,6 +36,9 @@ function RootNavigator() {
         {/* V2 Fase 3 — perizinan */}
         <Stack.Screen name="izin/buat" options={{ title: 'Buat Pengajuan Izin' }} />
         <Stack.Screen name="izin/[id]" options={{ title: 'Detail Pengajuan Izin' }} />
+        {/* V2 Fase 4 — notifikasi */}
+        <Stack.Screen name="notifikasi/[id]" options={{ title: 'Detail Notifikasi' }} />
+        <Stack.Screen name="notifikasi/perangkat" options={{ title: 'Perangkat & Push' }} />
       </Stack.Protected>
     </Stack>
   );
@@ -45,8 +49,12 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AuthProvider>
-        <StatusBar style="auto" />
-        <RootNavigator />
+        {/* V2 Fase 4: penyedia notifikasi berada DI DALAM AuthProvider karena
+            registrasi perangkat dan deep link bergantung pada sesi aktif. */}
+        <NotificationProvider>
+          <StatusBar style="auto" />
+          <RootNavigator />
+        </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   );

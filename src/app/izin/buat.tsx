@@ -1,10 +1,11 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { actionableError, api } from '@/api/client';
 import type { IzinCapability, SantriPilihan } from '@/api/types';
 import { AppButton } from '@/components/app-button';
+import { KeyboardAwareScrollView, KeyboardAwareTextInput } from '@/components/keyboard-aware-scroll-view';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { formatTanggal } from '@/components/izin-card';
 import { ThemedText } from '@/components/themed-text';
@@ -104,9 +105,8 @@ export default function BuatPengajuanScreen() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       contentInsetAdjustmentBehavior="automatic"
-      keyboardShouldPersistTaps="handled"
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={styles.content}>
       <View style={styles.stepRow}>
@@ -131,7 +131,7 @@ export default function BuatPengajuanScreen() {
         <>
           <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <ThemedText selectable type="smallBold">Cari santri (nama atau NIS)</ThemedText>
-            <TextInput
+            <KeyboardAwareTextInput
               value={pencarian}
               onChangeText={setPencarian}
               placeholder="Ketik lalu tekan Cari"
@@ -189,7 +189,7 @@ export default function BuatPengajuanScreen() {
             {terpilih?.nama} · NIS {terpilih?.nis}
           </ThemedText>
           <ThemedText selectable type="smallBold">Tanggal izin</ThemedText>
-          <TextInput
+          <KeyboardAwareTextInput
             value={tglIzin}
             onChangeText={setTglIzin}
             placeholder="YYYY-MM-DD"
@@ -197,7 +197,7 @@ export default function BuatPengajuanScreen() {
             style={[styles.input, { color: theme.text, borderColor: theme.border }]}
           />
           <ThemedText selectable type="smallBold">Tanggal kembali</ThemedText>
-          <TextInput
+          <KeyboardAwareTextInput
             value={tglKembali}
             onChangeText={setTglKembali}
             placeholder="YYYY-MM-DD"
@@ -205,7 +205,7 @@ export default function BuatPengajuanScreen() {
             style={[styles.input, { color: theme.text, borderColor: theme.border }]}
           />
           <ThemedText selectable type="smallBold">Alasan izin</ThemedText>
-          <TextInput
+          <KeyboardAwareTextInput
             value={alasan}
             onChangeText={setAlasan}
             multiline
@@ -214,7 +214,7 @@ export default function BuatPengajuanScreen() {
             style={[styles.textarea, { color: theme.text, borderColor: theme.border }]}
           />
           <ThemedText selectable type="smallBold">Catatan pengurus (opsional)</ThemedText>
-          <TextInput
+          <KeyboardAwareTextInput
             value={catatan}
             onChangeText={setCatatan}
             multiline
@@ -285,7 +285,7 @@ export default function BuatPengajuanScreen() {
           </View>
         </View>
       ) : null}
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 

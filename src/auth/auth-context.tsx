@@ -4,6 +4,7 @@ import { createContext, type PropsWithChildren, use, useCallback, useEffect, use
 import { api, setUnauthorizedHandler } from '@/api/client';
 import type { CapabilityPayload, IzinCapability, Profile } from '@/api/types';
 import { tokenStorage } from '@/auth/token-storage';
+import { pushTokenStorage } from '@/notifications/push-token-storage';
 
 /**
  * Kemampuan kosong: dipakai saat profil belum dimuat atau ketika server belum
@@ -74,8 +75,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setProfile(result.profile);
   }, []);
 
+  /**
+   * Logout mencabut token API dan registrasi push PERANGKAT INI (PRD V2 Fase 4
+   * §5.5). Token push disertakan agar perangkat lain milik pengguna yang sama
+   * tetap menerima notifikasi. Pencabutan tidak pernah menggagalkan logout:
+   * sesi lokal selalu dibersihkan.
+   */
   const logout = useCallback(async () => {
-    try { await api.logout(); } finally { await clearSession(); }
+    const pushToken = await pushTokenStorage.get();
+    try {
+      await api.logout(pushToken);
+    } finally {
+      await pushTokenStorage.clear();
+      await clearSession();
+    }
   }, [clearSession]);
 
   const capabilities = profile?.capabilities ?? NO_CAPABILITIES;
