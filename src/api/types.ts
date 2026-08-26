@@ -531,3 +531,122 @@ export type PerangkatPushToggleResponse = {
   push_aktif: boolean;
   pesan: string;
 };
+
+// ---------------------------------------------------------------------------
+// V2 Fase 5 — laporan perizinan.
+//
+// Bentuk tipe di bawah mengikuti respons `/izin/laporan*` APA ADANYA. Aplikasi
+// TIDAK menghitung ulang ringkasan, total, maupun median dari `items`: seluruh
+// angka berasal dari server yang memakai satu definisi filter/repository, dan
+// `items` hanya memuat satu halaman. Menghitung ulang di sini justru akan
+// membuat angka aplikasi berbeda dari angka web untuk filter yang sama.
+// ---------------------------------------------------------------------------
+
+export type IzinLaporanBasisTanggal = 'izin' | 'pengajuan' | 'keputusan';
+
+export type IzinLaporanKanal = 'InApp' | 'Push' | 'WhatsApp';
+
+export type IzinLaporanFilters = {
+  mode?: IzinCapability;
+  date_from?: string;
+  date_to?: string;
+  basis_tanggal?: IzinLaporanBasisTanggal;
+  status?: IzinStatus;
+  santri_id?: number;
+  pengurus_id?: number;
+  murobi_guru_id?: number;
+  kamar_id?: number;
+  kelas_id?: number;
+  tahun_ajaran_id?: number;
+  durasi_min_jam?: number;
+  durasi_maks_jam?: number;
+  kanal?: IzinLaporanKanal;
+  sumber?: 'legacy' | 'v2';
+  q?: string;
+};
+
+export type IzinLaporanRingkasan = {
+  total: number;
+  legacy: number;
+  per_status: Record<IzinStatus, number>;
+};
+
+export type IzinLaporanDurasi = {
+  jumlah: number;
+  median_detik: number | null;
+  rata_detik: number | null;
+  min_detik: number | null;
+  maks_detik: number | null;
+  median_label: string;
+  rata_label: string;
+  min_label: string;
+  maks_label: string;
+  median_jam: number | null;
+};
+
+export type IzinLaporanBaris = {
+  id: number;
+  is_legacy: boolean;
+  sumber_label: string;
+  nis: string;
+  nama_santri: string;
+  kamar_kelas_label: string;
+  tgl_izin: string;
+  tgl_kembali: string;
+  alasan: string;
+  status: IzinStatus;
+  pengurus_label: string;
+  murobi_label: string;
+  keputusan_label: string;
+  keputusan_kapasitas: string | null;
+  keputusan_alasan: string | null;
+  diputus_pada: string | null;
+  durasi_keputusan_detik: number | null;
+  durasi_label: string;
+  kanal_notifikasi: string | null;
+};
+
+export type IzinLaporanResponse = {
+  cakupan: { mode: IzinCapability; label: string };
+  cakupan_label: string;
+  ringkasan: IzinLaporanRingkasan;
+  durasi: IzinLaporanDurasi;
+  items: IzinLaporanBaris[];
+  pagination: Pagination;
+  filter: Record<string, string | number | null>;
+  filter_aktif: Record<string, string>;
+  /** Sidik jari kriteria filter; sama untuk ringkasan, detail, cetak, dan CSV. */
+  kriteria: string;
+  query: string;
+};
+
+export type IzinLaporanOptions = {
+  cakupan: { mode: IzinCapability; label: string };
+  santri: { id: number; nis: string; nama: string }[];
+  pengurus: { id: number; nama: string }[];
+  murobi: { id: number; nama: string }[];
+  tahun_ajaran: { id: number; tahun: string; semester: string; status: string }[];
+  kamar: { id: number; nama: string }[];
+  kelas: { id: number; nama: string; jenjang: string }[];
+  status: IzinStatus[];
+  kanal: IzinLaporanKanal[];
+  basis_tanggal: IzinLaporanBasisTanggal[];
+};
+
+export type IzinLaporanCetakResponse = {
+  html: string;
+  judul: string;
+  jumlah_baris: number;
+  kriteria: string;
+  ringkasan: IzinLaporanRingkasan;
+  dibuat_pada: string;
+};
+
+export type IzinLaporanCsvResponse = {
+  konten: string;
+  nama_berkas: string;
+  jumlah_baris: number;
+  kriteria: string;
+  terpotong: boolean;
+  ringkasan: IzinLaporanRingkasan;
+};
