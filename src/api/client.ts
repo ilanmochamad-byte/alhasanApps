@@ -9,6 +9,11 @@ import type {
   IzinCapability,
   IzinDetailResponse,
   IzinHistoryResponse,
+  IzinLaporanCetakResponse,
+  IzinLaporanCsvResponse,
+  IzinLaporanFilters,
+  IzinLaporanOptions,
+  IzinLaporanResponse,
   IzinListQuery,
   IzinListResponse,
   KeputusanResponse,
@@ -307,6 +312,36 @@ export const api = {
   },
   notifikasiTandaiSemua() {
     return request<NotifikasiMarkAllResponse>('/notifikasi/dibaca-semua', { method: 'POST', body: {} });
+  },
+
+  // -------------------------------------------------------------------------
+  // V2 Fase 5 — laporan perizinan.
+  //
+  // Aplikasi memakai endpoint yang SAMA dengan website. Aturan cakupan TIDAK
+  // diduplikasi di sini: server menghitung ulang kemampuan akun pada setiap
+  // permintaan, sehingga `mode` di bawah hanya preferensi tampilan. Mengirim
+  // `mode: 'admin'` dari akun orang tua tidak memberi hak apa pun — server
+  // mengabaikannya dan tetap memakai cakupan orang tua.
+  // -------------------------------------------------------------------------
+  izinLaporan(filters: IzinLaporanFilters = {}, page = 1, perPage = 25) {
+    return request<IzinLaporanResponse>(
+      `/izin/laporan${query({ ...filters, page, per_page: perPage })}`,
+    );
+  },
+  izinLaporanOptions(filters: IzinLaporanFilters = {}) {
+    return request<IzinLaporanOptions>(`/izin/laporan/filters${query({ ...filters })}`);
+  },
+  /** HTML ramah cetak; diubah menjadi PDF oleh `expo-print` di perangkat. */
+  izinLaporanCetak(filters: IzinLaporanFilters = {}) {
+    return request<IzinLaporanCetakResponse>(`/izin/laporan/cetak${query({ ...filters })}`);
+  },
+  /**
+   * CSV SELURUH hasil filter (bukan halaman yang sedang terlihat). `jumlah_baris`
+   * dikirim server agar aplikasi dapat memastikan berkas yang dibagikan memang
+   * memuat seluruh hasil, bukan potongan.
+   */
+  izinLaporanCsv(filters: IzinLaporanFilters = {}) {
+    return request<IzinLaporanCsvResponse>(`/izin/laporan/csv${query({ ...filters })}`);
   },
 
   perangkatList: () => request<PerangkatListResponse>('/notifikasi/perangkat'),

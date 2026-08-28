@@ -1,25 +1,43 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
-export default ({ config }: ConfigContext): ExpoConfig => ({
-  ...config,
-  name: config.name ?? 'alhasanApps',
-  slug: config.slug ?? 'alhasanApps',
-  extra: {
-    ...config.extra,
-    apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? '',
-    // V2 Fase 4 — push notification.
-    //
-    // `expo-notifications` SDK 57 mewajibkan projectId saat meminta Expo push
-    // token. Nilainya normalnya berasal dari `extra.eas.projectId` yang ditulis
-    // `eas init`; variabel di bawah hanya jalur cadangan agar development build
-    // lokal tetap dapat mendaftar tanpa menyunting app.json.
-    //
-    // Nilai ini BUKAN secret: ia hanya pengenal proyek Expo, aman berada di
-    // bundle. Credential push (FCM/APNs) tetap berada di server EAS dan tidak
-    // pernah masuk repositori maupun bundle aplikasi.
-    easProjectId:
-      process.env.EXPO_PUBLIC_EAS_PROJECT_ID
-      ?? (config.extra?.eas as { projectId?: string } | undefined)?.projectId
-      ?? '',
-  },
-});
+const EAS_PROJECT_ID = 'eb56f1b5-1e7b-470a-9f42-9582326858e0';
+
+export default ({ config }: ConfigContext): ExpoConfig => {
+  const easProjectId =
+    process.env.EXPO_PUBLIC_EAS_PROJECT_ID
+    ?? (config.extra?.eas as { projectId?: string } | undefined)?.projectId
+    ?? EAS_PROJECT_ID;
+  const googleServicesFile = process.env.GOOGLE_SERVICES_JSON;
+  const apsEnvironment = process.env.EAS_BUILD_PROFILE === 'production'
+    ? 'production'
+    : 'development';
+
+  return {
+    ...config,
+    name: config.name ?? 'alhasanApps',
+    slug: config.slug ?? 'alhasanApps',
+    ios: {
+      ...config.ios,
+      entitlements: {
+        ...config.ios?.entitlements,
+        'aps-environment': apsEnvironment,
+      },
+    },
+    android: {
+      ...config.android,
+      // Firebase client configuration is supplied as an EAS file environment
+      // variable. Its service-account credential remains only in EAS.
+      ...(googleServicesFile ? { googleServicesFile } : {}),
+    },
+    extra: {
+      ...config.extra,
+      apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? '',
+      eas: {
+        ...(config.extra?.eas as Record<string, unknown> | undefined),
+        projectId: easProjectId,
+      },
+      // V2 Fase 4 — jalur cadangan untuk development build lokal.
+      easProjectId,
+    },
+  };
+};

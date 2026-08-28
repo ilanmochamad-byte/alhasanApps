@@ -202,6 +202,21 @@ function PerizinanSession() {
         />
       ) : null}
 
+      {/* V2 Fase 5 — laporan tersedia untuk SELURUH peran perizinan, termasuk
+          orang tua (riwayat santri yang terhubung dengannya). Isi laporan
+          dibatasi cakupan di server, bukan oleh tombol ini. */}
+      <AppButton
+        label="Laporan perizinan"
+        variant="secondary"
+        onPress={() =>
+          router.push({
+            pathname: '/izin/laporan',
+            params: { mode: modeAktif ?? '' },
+          })
+        }
+      />
+
+
       <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}>
         <ThemedText selectable type="smallBold">
           Cari santri, NIS, atau alasan
