@@ -44,4 +44,10 @@ export const opsiCetakA4Lanskap: Print.PrintOptions = {
 /** Opsi `printToFileAsync` untuk laporan: A4 lanskap lintas platform. */
 export const opsiPdfA4Lanskap: Print.FilePrintOptions = {
   ...A4_LANSKAP,
+  // WebView Android memiliki pengaturan zoom teks sendiri. Menetapkannya
+  // eksplisit mencegah konfigurasi perangkat/OEM memperbesar tinggi baris
+  // dan memecah satu lembar server menjadi dua halaman fisik. iOS
+  // mengabaikan opsi khusus Android ini dan dilindungi oleh CSS
+  // `text-size-adjust` pada HTML laporan.
+  textZoom: 100,
 };
