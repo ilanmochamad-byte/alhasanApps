@@ -4,6 +4,7 @@ import * as Sharing from 'expo-sharing';
 
 import { api } from '@/api/client';
 import type { IzinLaporanFilters } from '@/api/types';
+import { opsiCetakA4Lanskap, opsiPdfA4Lanskap } from '@/report/print-page';
 
 /**
  * Cetak, simpan, dan bagikan laporan perizinan dari aplikasi (V2 Fase 5).
@@ -39,7 +40,7 @@ function namaBerkasAman(nama: string, ekstensiDefault: string): string {
  */
 export async function cetakLaporanIzin(filters: IzinLaporanFilters) {
   const { html } = await api.izinLaporanCetak(filters);
-  await Print.printAsync({ html });
+  await Print.printAsync({ html, ...opsiCetakA4Lanskap });
 }
 
 /**
@@ -52,11 +53,11 @@ export async function bagikanLaporanIzinPdf(filters: IzinLaporanFilters) {
   const { html } = await api.izinLaporanCetak(filters);
 
   if (process.env.EXPO_OS === 'web') {
-    await Print.printAsync({ html });
+    await Print.printAsync({ html, ...opsiCetakA4Lanskap });
     return;
   }
 
-  const pdf = await Print.printToFileAsync({ html });
+  const pdf = await Print.printToFileAsync({ html, ...opsiPdfA4Lanskap });
   if (!(await Sharing.isAvailableAsync())) {
     throw new Error('Dialog berbagi tidak tersedia pada perangkat ini. Gunakan tombol Cetak / PDF.');
   }
