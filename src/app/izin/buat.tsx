@@ -12,12 +12,14 @@ import { formatTanggal } from '@/components/izin-card';
 import { ThemedText } from '@/components/themed-text';
 import { ActionBar } from '@/components/ui/action-bar';
 import { Field, SearchField } from '@/components/ui/app-field';
+import { DateField } from '@/components/ui/date-field';
 import { Badge } from '@/components/ui/chip';
 import { Stepper } from '@/components/ui/stepper';
 import { Overline, Panel } from '@/components/ui/surface';
 import { Radius } from '@/constants/theme';
 import { useMutationGuard } from '@/hooks/use-mutation-guard';
 import { useTheme } from '@/hooks/use-theme';
+import { lamaHari as hitungLamaHari } from '@/lib/date';
 
 type Langkah = 'pilih' | 'isi' | 'konfirmasi';
 
@@ -111,14 +113,7 @@ export default function BuatPengajuanScreen() {
   }, [alasan, catatan, guard, mode, periksaIsian, router, terpilih, tglIzin, tglKembali]);
 
   // Keterangan lama izin; murni tampilan, tidak ikut dikirim ke server.
-  const lamaHari = useMemo(() => {
-    if (!POLA_TANGGAL.test(tglIzin) || !POLA_TANGGAL.test(tglKembali)) return null;
-    const a = new Date(`${tglIzin}T00:00:00`);
-    const b = new Date(`${tglKembali}T00:00:00`);
-    if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return null;
-    const hari = Math.round((b.getTime() - a.getTime()) / 86400000) + 1;
-    return hari > 0 ? hari : null;
-  }, [tglIzin, tglKembali]);
+  const lamaHari = useMemo(() => hitungLamaHari(tglIzin, tglKembali), [tglIzin, tglKembali]);
 
   if (loading && santri.length === 0 && langkah === 'pilih') {
     return <LoadingState label="Memuat santri dalam cakupan Anda…" />;
@@ -234,21 +229,25 @@ export default function BuatPengajuanScreen() {
               <Overline>Rentang izin</Overline>
               <View style={styles.row}>
                 <View style={styles.field}>
-                  <Field
+                  <DateField
                     label="Mulai"
-                    icon="calendar"
                     value={tglIzin}
-                    onChangeText={setTglIzin}
-                    placeholder="YYYY-MM-DD"
+                    onChange={(next) => {
+                      setTglIzin(next);
+                      // Tanggal kembali tidak boleh mendahului tanggal izin —
+                      // aturan yang sama dengan `periksaIsian`. Menyesuaikannya
+                      // di sini mencegah pengguna terjebak pada kombinasi yang
+                      // pasti ditolak.
+                      if (tglKembali && tglKembali < next) setTglKembali(next);
+                    }}
                   />
                 </View>
                 <View style={styles.field}>
-                  <Field
+                  <DateField
                     label="Kembali"
-                    icon="calendar"
                     value={tglKembali}
-                    onChangeText={setTglKembali}
-                    placeholder="YYYY-MM-DD"
+                    onChange={setTglKembali}
+                    minimumDate={tglIzin || undefined}
                   />
                 </View>
               </View>

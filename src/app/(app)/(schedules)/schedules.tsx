@@ -11,20 +11,11 @@ import { ScheduleCard, formatDateShort } from '@/components/schedule-card';
 import { ScreenHeader } from '@/components/screen-header';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { Field } from '@/components/ui/app-field';
+import { DateField } from '@/components/ui/date-field';
 import { Chip, ChipRow } from '@/components/ui/chip';
 import { Overline, Panel } from '@/components/ui/surface';
 import { useTheme } from '@/hooks/use-theme';
-
-function isoDate(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
-function tambahHari(jumlah: number) {
-  const date = new Date();
-  date.setDate(date.getDate() + jumlah);
-  return isoDate(date);
-}
+import { isoHariIni, isoTambahHari } from '@/lib/date';
 
 type Preset = 'pekan' | 'bulan' | 'kustom';
 
@@ -33,7 +24,7 @@ export default function SchedulesScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
-  const awal = useMemo(() => ({ from: isoDate(new Date()), to: tambahHari(30) }), []);
+  const awal = useMemo(() => ({ from: isoHariIni(), to: isoTambahHari(30) }), []);
   const [preset, setPreset] = useState<Preset>('bulan');
   const [from, setFrom] = useState(awal.from);
   const [to, setTo] = useState(awal.to);
@@ -75,8 +66,8 @@ export default function SchedulesScreen() {
     setPreset(next);
     if (next === 'kustom') return;
     const rentang = next === 'pekan'
-      ? { from: isoDate(new Date()), to: tambahHari(7) }
-      : { from: isoDate(new Date()), to: tambahHari(30) };
+      ? { from: isoHariIni(), to: isoTambahHari(7) }
+      : { from: isoHariIni(), to: isoTambahHari(30) };
     setFrom(rentang.from);
     setTo(rentang.to);
     setApplied(rentang);
@@ -122,10 +113,10 @@ export default function SchedulesScreen() {
           <Overline>Rentang tanggal</Overline>
           <View style={styles.filterRow}>
             <View style={styles.field}>
-              <Field label="Dari" value={from} onChangeText={setFrom} placeholder="YYYY-MM-DD" />
+              <DateField label="Dari" value={from} onChange={setFrom} maximumDate={to} />
             </View>
             <View style={styles.field}>
-              <Field label="Sampai" value={to} onChangeText={setTo} placeholder="YYYY-MM-DD" />
+              <DateField label="Sampai" value={to} onChange={setTo} minimumDate={from} />
             </View>
           </View>
           <AppButton

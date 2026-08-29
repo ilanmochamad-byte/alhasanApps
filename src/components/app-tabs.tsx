@@ -24,6 +24,11 @@ import { Colors } from '@/constants/theme';
  *  - tab Profil menampung identitas, cakupan peran, perangkat, dan tombol
  *    Keluar yang dulu terselip di dasar Beranda.
  *
+ * Label sengaja dipendekkan ("Izin", bukan "Perizinan") dan ukurannya dikunci
+ * 11 pt: lima label berdampingan pada layar 390 pt saling berdempetan bila
+ * dibiarkan memakai ukuran bawaan. Judul lengkapnya tetap muncul di kepala
+ * layar masing-masing.
+ *
  * Bentuk bilah tab digambar oleh sistem operasi — pada iOS 26 ia tampil
  * sebagai bar Liquid Glass yang mengambang. Yang dikendalikan berkas ini
  * hanyalah ikon, label, warna, dan tab mana yang tampil.
@@ -51,9 +56,14 @@ export default function AppTabs() {
       tintColor={colors.primary}
       iconColor={{ default: colors.textMuted, selected: colors.primary }}
       indicatorColor={colors.backgroundSelected}
+      // iOS 26: bilah menyusut saat pengguna menggulir ke bawah, sehingga isi
+      // layar mendapat ruang penuh dan bilah tidak terasa sesak.
+      minimizeBehavior="onScrollDown"
+      // Android: label selalu tampil, tidak hanya pada tab yang aktif.
+      labelVisibilityMode="labeled"
       labelStyle={{
-        default: { color: colors.textMuted },
-        selected: { color: colors.primary },
+        default: { fontSize: 11, fontWeight: '600', color: colors.textMuted },
+        selected: { fontSize: 11, fontWeight: '700', color: colors.primary },
       }}>
       <NativeTabs.Trigger name="(home)">
         <NativeTabs.Trigger.Label>Beranda</NativeTabs.Trigger.Label>
@@ -72,7 +82,7 @@ export default function AppTabs() {
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="(izin)" hidden={!adaPerizinan}>
-        <NativeTabs.Trigger.Label>Perizinan</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Izin</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           src={require('@/assets/images/icons/izin.png')}
           renderingMode="template"

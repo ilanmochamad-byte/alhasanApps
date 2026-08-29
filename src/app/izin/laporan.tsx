@@ -16,7 +16,9 @@ import { KeyboardAwareScrollView, KeyboardAwareTextInput } from '@/components/ke
 import { ModeSwitcher } from '@/components/mode-switcher';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
+import { DateField } from '@/components/ui/date-field';
 import { useTheme } from '@/hooks/use-theme';
+import { isoAwalBulan, isoHariIni } from '@/lib/date';
 import {
   bagikanLaporanIzinCsv,
   bagikanLaporanIzinPdf,
@@ -25,15 +27,7 @@ import {
 
 type AksiDokumen = 'cetak' | 'pdf' | 'csv';
 
-function isoDate(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
 
-function awalBulan() {
-  const date = new Date();
-  date.setDate(1);
-  return isoDate(date);
-}
 
 /**
  * Laporan perizinan pada aplikasi (PRD V2 Fase 5 §2 dan §4).
@@ -70,15 +64,15 @@ function LaporanIzinSession() {
     ? (params.mode as IzinCapability)
     : capabilities.default_mode;
   const [mode, setMode] = useState<IzinCapability | null>(modeAwal);
-  const [dari, setDari] = useState(awalBulan());
-  const [sampai, setSampai] = useState(isoDate(new Date()));
+  const [dari, setDari] = useState(isoAwalBulan());
+  const [sampai, setSampai] = useState(isoHariIni());
   const [status, setStatus] = useState<IzinStatus | undefined>();
   const [pencarian, setPencarian] = useState('');
   const [halaman, setHalaman] = useState(1);
 
   const [terapkan, setTerapkan] = useState<IzinLaporanFilters>({
-    date_from: awalBulan(),
-    date_to: isoDate(new Date()),
+    date_from: isoAwalBulan(),
+    date_to: isoHariIni(),
   });
 
   const [data, setData] = useState<IzinLaporanResponse | null>(null);
@@ -189,28 +183,10 @@ function LaporanIzinSession() {
 
         <View style={styles.fieldRow}>
           <View style={styles.field}>
-            <ThemedText selectable type="small" themeColor="textSecondary">
-              Dari tanggal
-            </ThemedText>
-            <KeyboardAwareTextInput
-              value={dari}
-              onChangeText={setDari}
-              placeholder="YYYY-MM-DD"
-              autoCapitalize="none"
-              style={[styles.input, { borderColor: theme.border, color: theme.text }]}
-            />
+            <DateField label="Dari tanggal" value={dari} onChange={setDari} maximumDate={sampai} />
           </View>
           <View style={styles.field}>
-            <ThemedText selectable type="small" themeColor="textSecondary">
-              Sampai tanggal
-            </ThemedText>
-            <KeyboardAwareTextInput
-              value={sampai}
-              onChangeText={setSampai}
-              placeholder="YYYY-MM-DD"
-              autoCapitalize="none"
-              style={[styles.input, { borderColor: theme.border, color: theme.text }]}
-            />
+            <DateField label="Sampai tanggal" value={sampai} onChange={setSampai} minimumDate={dari} />
           </View>
         </View>
 

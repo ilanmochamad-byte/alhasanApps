@@ -10,37 +10,22 @@ import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view
 import { ScreenHeader } from '@/components/screen-header';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { Field } from '@/components/ui/app-field';
+import { DateField } from '@/components/ui/date-field';
 import { Chip, ChipRow } from '@/components/ui/chip';
 import { IconButton } from '@/components/ui/icon-button';
 import { StatTile } from '@/components/ui/stat-tile';
 import { StatusRecap } from '@/components/ui/status-recap';
 import { Card, Overline, Panel, SectionHeader } from '@/components/ui/surface';
 import { useTheme } from '@/hooks/use-theme';
+import { formatPendek, isoAwalBulan, isoHariIni } from '@/lib/date';
 import { openPrintDialog, shareReportPdf } from '@/report/report-document';
-
-function isoDate(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
-function monthStart() {
-  const date = new Date();
-  date.setDate(1);
-  return isoDate(date);
-}
-
-function ringkasTanggal(value: string) {
-  const parsed = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-}
 
 export default function ReportsScreen() {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const initial = useMemo<ReportFilters>(
-    () => ({ date_from: monthStart(), date_to: isoDate(new Date()) }),
+    () => ({ date_from: isoAwalBulan(), date_to: isoHariIni() }),
     [],
   );
   const [from, setFrom] = useState(initial.date_from);
@@ -146,7 +131,7 @@ export default function ReportsScreen() {
       <ChipRow>
         <Chip
           icon="calendar"
-          label={`${ringkasTanggal(applied.date_from)} – ${ringkasTanggal(applied.date_to)}`}
+          label={`${formatPendek(applied.date_from)} – ${formatPendek(applied.date_to)}`}
           selected
           onPress={() => setBukaFilter(true)}
         />
@@ -162,10 +147,10 @@ export default function ReportsScreen() {
           </ThemedText>
           <View style={styles.row}>
             <View style={styles.field}>
-              <Field label="Dari" value={from} onChangeText={setFrom} placeholder="YYYY-MM-DD" />
+              <DateField label="Dari" value={from} onChange={setFrom} maximumDate={to} />
             </View>
             <View style={styles.field}>
-              <Field label="Sampai" value={to} onChangeText={setTo} placeholder="YYYY-MM-DD" />
+              <DateField label="Sampai" value={to} onChange={setTo} minimumDate={from} />
             </View>
           </View>
 
