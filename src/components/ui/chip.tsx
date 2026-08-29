@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { AppIcon, type IconName } from '@/components/app-icon';
 import { ThemedText } from '@/components/themed-text';
@@ -25,7 +25,7 @@ export function Chip({
   disabled?: boolean;
   icon?: IconName;
   accessibilityRole?: 'button' | 'radio' | 'tab';
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }) {
   const theme = useTheme();
   const fg = selected ? theme.onPrimary : theme.textSecondary;

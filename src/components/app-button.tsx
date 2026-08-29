@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { AppIcon, type IconName } from '@/components/app-icon';
 import { ThemedText } from '@/components/themed-text';
@@ -17,7 +17,7 @@ type Props = {
   icon?: IconName;
   /** `md` = 48 (baku), `sm` = 40 untuk tombol sekunder yang berdampingan. */
   size?: 'md' | 'sm';
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 };
 
 export function AppButton({

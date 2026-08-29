@@ -1,20 +1,29 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { actionableError, api } from '@/api/client';
 import type { IzinCapability, SantriPilihan } from '@/api/types';
 import { AppButton } from '@/components/app-button';
-import { KeyboardAwareScrollView, KeyboardAwareTextInput } from '@/components/keyboard-aware-scroll-view';
+import { AppIcon } from '@/components/app-icon';
+import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { formatTanggal } from '@/components/izin-card';
 import { ThemedText } from '@/components/themed-text';
+import { ActionBar } from '@/components/ui/action-bar';
+import { Field, SearchField } from '@/components/ui/app-field';
+import { Badge } from '@/components/ui/chip';
+import { Stepper } from '@/components/ui/stepper';
+import { Overline, Panel } from '@/components/ui/surface';
+import { Radius } from '@/constants/theme';
 import { useMutationGuard } from '@/hooks/use-mutation-guard';
 import { useTheme } from '@/hooks/use-theme';
 
 type Langkah = 'pilih' | 'isi' | 'konfirmasi';
 
 const POLA_TANGGAL = /^\d{4}-\d{2}-\d{2}$/;
+const LANGKAH: Langkah[] = ['pilih', 'isi', 'konfirmasi'];
+const LABEL_LANGKAH = ['Pilih santri', 'Data izin', 'Tinjau'];
 
 /**
  * Alur pengurus membuat pengajuan (PRD V2 Fase 3 §5):
@@ -23,6 +32,10 @@ const POLA_TANGGAL = /^\d{4}-\d{2}-\d{2}$/;
  * Daftar santri berasal dari endpoint bercakupan server; mengetik ID santri di
  * luar cakupan tidak mungkin dilakukan dari layar ini, dan seandainya dipaksa
  * lewat API, server tetap menolaknya dengan 403.
+ *
+ * Redesain V2 hanya mengubah penyajiannya: penanda langkah menunjukkan posisi
+ * dalam alur, dan tombol maju/mundur pindah ke bilah tetap di dasar layar.
+ * Aturan validasi dan muatan yang dikirim tidak berubah sama sekali.
  */
 export default function BuatPengajuanScreen() {
   const router = useRouter();
@@ -97,6 +110,16 @@ export default function BuatPengajuanScreen() {
     }
   }, [alasan, catatan, guard, mode, periksaIsian, router, terpilih, tglIzin, tglKembali]);
 
+  // Keterangan lama izin; murni tampilan, tidak ikut dikirim ke server.
+  const lamaHari = useMemo(() => {
+    if (!POLA_TANGGAL.test(tglIzin) || !POLA_TANGGAL.test(tglKembali)) return null;
+    const a = new Date(`${tglIzin}T00:00:00`);
+    const b = new Date(`${tglKembali}T00:00:00`);
+    if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return null;
+    const hari = Math.round((b.getTime() - a.getTime()) / 86400000) + 1;
+    return hari > 0 ? hari : null;
+  }, [tglIzin, tglKembali]);
+
   if (loading && santri.length === 0 && langkah === 'pilih') {
     return <LoadingState label="Memuat santri dalam cakupan Anda…" />;
   }
@@ -105,199 +128,310 @@ export default function BuatPengajuanScreen() {
   }
 
   return (
-    <KeyboardAwareScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: theme.background }}
-      contentContainerStyle={styles.content}>
-      <View style={styles.stepRow}>
-        {(['pilih', 'isi', 'konfirmasi'] as Langkah[]).map((nama, index) => (
-          <View
-            key={nama}
-            style={[
-              styles.step,
-              {
-                borderColor: nama === langkah ? theme.primary : theme.border,
-                backgroundColor: nama === langkah ? theme.backgroundSelected : theme.backgroundElement,
-              },
-            ]}>
-            <ThemedText selectable type="smallBold">
-              {index + 1}. {nama === 'pilih' ? 'Pilih santri' : nama === 'isi' ? 'Isi data' : 'Konfirmasi'}
-            </ThemedText>
-          </View>
-        ))}
-      </View>
+    <View style={styles.screen}>
+      <KeyboardAwareScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        style={{ backgroundColor: theme.background }}
+        contentContainerStyle={styles.content}>
+        <Stepper steps={LABEL_LANGKAH} current={LANGKAH.indexOf(langkah)} />
 
-      {langkah === 'pilih' ? (
-        <>
-          <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <ThemedText selectable type="smallBold">Cari santri (nama atau NIS)</ThemedText>
-            <KeyboardAwareTextInput
+        {langkah === 'pilih' ? (
+          <>
+            <SearchField
               value={pencarian}
               onChangeText={setPencarian}
-              placeholder="Ketik lalu tekan Cari"
-              placeholderTextColor={theme.textSecondary}
-              returnKeyType="search"
+              placeholder="Cari nama santri atau NIS"
               onSubmitEditing={() => setKataKunci(pencarian.trim())}
-              style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+              trailing={
+                pencarian.trim() !== kataKunci ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Cari santri"
+                    onPress={() => setKataKunci(pencarian.trim())}
+                    hitSlop={8}>
+                    <ThemedText selectable type="label" themeColor="primary">
+                      Cari
+                    </ThemedText>
+                  </Pressable>
+                ) : null
+              }
             />
-            <AppButton label="Cari santri" variant="secondary" onPress={() => setKataKunci(pencarian.trim())} />
-          </View>
 
-          {santri.length === 0 ? (
-            <EmptyState
-              title="Tidak ada santri dalam cakupan"
-              message="Belum ada penugasan pembimbing aktif untuk akun ini, atau pencarian terlalu sempit. Hubungi admin bila seharusnya ada."
-            />
-          ) : (
-            santri.map((item) => {
-              const dipilih = terpilih?.id === item.id;
-              return (
-                <Pressable
-                  key={item.id}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: dipilih }}
-                  onPress={() => setTerpilih(item)}
-                  style={({ pressed }) => [
-                    styles.santriCard,
-                    {
-                      backgroundColor: dipilih ? theme.backgroundSelected : theme.card,
-                      borderColor: dipilih ? theme.primary : theme.border,
-                      opacity: pressed ? 0.85 : 1,
-                    },
-                  ]}>
-                  <ThemedText selectable type="smallBold">{item.nama}</ThemedText>
-                  <ThemedText selectable type="small" themeColor="textSecondary">
-                    NIS {item.nis}
-                    {item.cakupan ? ` · ${item.cakupan}` : ''}
+            {santri.length === 0 ? (
+              <EmptyState
+                title="Tidak ada santri dalam cakupan"
+                message="Belum ada penugasan pembimbing aktif untuk akun ini, atau pencarian terlalu sempit. Hubungi admin bila seharusnya ada."
+              />
+            ) : (
+              <View accessibilityRole="radiogroup" accessibilityLabel="Pilih santri" style={styles.list}>
+                {santri.map((item) => {
+                  const dipilih = terpilih?.id === item.id;
+                  return (
+                    <Pressable
+                      key={item.id}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: dipilih }}
+                      onPress={() => setTerpilih(item)}
+                      style={({ pressed }) => [
+                        styles.santriCard,
+                        {
+                          backgroundColor: dipilih ? theme.primarySoft : theme.card,
+                          borderColor: dipilih ? theme.primary : theme.border,
+                          borderWidth: dipilih ? 1.5 : 1,
+                          opacity: pressed ? 0.85 : 1,
+                        },
+                      ]}>
+                      <View style={styles.santriText}>
+                        <ThemedText selectable type="h3">
+                          {item.nama}
+                        </ThemedText>
+                        <ThemedText selectable type="caption" themeColor="textMuted">
+                          NIS {item.nis}
+                          {item.cakupan ? ` · ${item.cakupan}` : ''}
+                        </ThemedText>
+                      </View>
+                      {dipilih ? <AppIcon name="check" size={20} themeColor="primary" /> : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+          </>
+        ) : null}
+
+        {langkah === 'isi' ? (
+          <>
+            <View
+              style={[
+                styles.selected,
+                { backgroundColor: theme.primarySoft, borderColor: theme.primaryBorder },
+              ]}>
+              <View style={[styles.avatar, { backgroundColor: theme.card }]}>
+                <ThemedText selectable type="label" themeColor="primary">
+                  {(terpilih?.nama ?? '').slice(0, 2).toUpperCase()}
+                </ThemedText>
+              </View>
+              <View style={styles.santriText}>
+                <ThemedText selectable type="bodyBold">
+                  {terpilih?.nama}
+                </ThemedText>
+                <ThemedText selectable type="caption" themeColor="textSecondary">
+                  NIS {terpilih?.nis}
+                </ThemedText>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Ubah pilihan santri"
+                onPress={() => setLangkah('pilih')}
+                hitSlop={8}>
+                <ThemedText selectable type="label" themeColor="primary">
+                  Ubah
+                </ThemedText>
+              </Pressable>
+            </View>
+
+            <Panel>
+              <Overline>Rentang izin</Overline>
+              <View style={styles.row}>
+                <View style={styles.field}>
+                  <Field
+                    label="Mulai"
+                    icon="calendar"
+                    value={tglIzin}
+                    onChangeText={setTglIzin}
+                    placeholder="YYYY-MM-DD"
+                  />
+                </View>
+                <View style={styles.field}>
+                  <Field
+                    label="Kembali"
+                    icon="calendar"
+                    value={tglKembali}
+                    onChangeText={setTglKembali}
+                    placeholder="YYYY-MM-DD"
+                  />
+                </View>
+              </View>
+              {lamaHari ? (
+                <View style={styles.durasi}>
+                  <Badge label={`${lamaHari} hari`} />
+                  <ThemedText selectable type="caption" themeColor="textMuted">
+                    Dihitung otomatis dari rentang tanggal.
                   </ThemedText>
-                </Pressable>
-              );
-            })
-          )}
+                </View>
+              ) : null}
+            </Panel>
 
+            <Field
+              label="Alasan izin"
+              value={alasan}
+              onChangeText={setAlasan}
+              multiline
+              placeholder="Minimal 3 karakter"
+            />
+            <Field
+              label="Catatan pengurus"
+              hint="Opsional"
+              value={catatan}
+              onChangeText={setCatatan}
+              multiline
+              placeholder="Catatan tambahan"
+            />
+
+            {validasi ? (
+              <ThemedText selectable type="caption" themeColor="danger" accessibilityLiveRegion="polite">
+                {validasi}
+              </ThemedText>
+            ) : null}
+
+            <View
+              style={[styles.hint, { backgroundColor: theme.backgroundElement }]}>
+              <AppIcon name="info" size={17} themeColor="textSecondary" />
+              <ThemedText selectable type="caption" themeColor="textSecondary" style={styles.hintText}>
+                Setelah dikirim, pengajuan diteruskan ke murobi santri. Bila kandidatnya tidak
+                tunggal, admin akan menetapkannya.
+              </ThemedText>
+            </View>
+          </>
+        ) : null}
+
+        {langkah === 'konfirmasi' ? (
+          <Panel>
+            <Overline>Tinjau sebelum mengirim</Overline>
+            <Baris label="Santri" nilai={`${terpilih?.nama} (NIS ${terpilih?.nis})`} />
+            <Baris
+              label="Rentang"
+              nilai={`${formatTanggal(tglIzin)} → ${formatTanggal(tglKembali)}${lamaHari ? ` · ${lamaHari} hari` : ''}`}
+            />
+            <Baris label="Alasan" nilai={alasan.trim()} />
+            {catatan.trim() ? <Baris label="Catatan" nilai={catatan.trim()} /> : null}
+            <ThemedText selectable type="caption" themeColor="textSecondary">
+              Setelah dikirim, sistem menentukan murobi tujuan secara otomatis. Bila kandidatnya
+              tidak tunggal, pengajuan masuk ke antrean penetapan admin.
+            </ThemedText>
+            {guard.error ? (
+              <ThemedText selectable type="caption" themeColor="danger">
+                {guard.error}
+              </ThemedText>
+            ) : null}
+          </Panel>
+        ) : null}
+      </KeyboardAwareScrollView>
+
+      <ActionBar>
+        {langkah === 'pilih' ? (
           <AppButton
             label="Lanjut isi data izin"
+            style={styles.grow}
             disabled={terpilih === null}
             onPress={() => setLangkah('isi')}
           />
-        </>
-      ) : null}
+        ) : langkah === 'isi' ? (
+          <>
+            <AppButton
+              label="Kembali"
+              variant="secondary"
+              style={styles.narrow}
+              onPress={() => setLangkah('pilih')}
+            />
+            <AppButton
+              label="Tinjau pengajuan"
+              style={styles.grow}
+              onPress={() => {
+                const masalah = periksaIsian();
+                setValidasi(masalah);
+                if (masalah === null) setLangkah('konfirmasi');
+              }}
+            />
+          </>
+        ) : (
+          <>
+            <AppButton
+              label="Ubah data"
+              variant="secondary"
+              style={styles.narrow}
+              disabled={guard.isBusy}
+              onPress={() => setLangkah('isi')}
+            />
+            <AppButton
+              label="Kirim pengajuan"
+              style={styles.grow}
+              loading={guard.isBusy}
+              disabled={guard.isBusy}
+              onPress={() => void kirim()}
+            />
+          </>
+        )}
+      </ActionBar>
+    </View>
+  );
+}
 
-      {langkah === 'isi' ? (
-        <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <ThemedText selectable style={styles.panelTitle}>
-            {terpilih?.nama} · NIS {terpilih?.nis}
-          </ThemedText>
-          <ThemedText selectable type="smallBold">Tanggal izin</ThemedText>
-          <KeyboardAwareTextInput
-            value={tglIzin}
-            onChangeText={setTglIzin}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { color: theme.text, borderColor: theme.border }]}
-          />
-          <ThemedText selectable type="smallBold">Tanggal kembali</ThemedText>
-          <KeyboardAwareTextInput
-            value={tglKembali}
-            onChangeText={setTglKembali}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { color: theme.text, borderColor: theme.border }]}
-          />
-          <ThemedText selectable type="smallBold">Alasan izin</ThemedText>
-          <KeyboardAwareTextInput
-            value={alasan}
-            onChangeText={setAlasan}
-            multiline
-            placeholder="Minimal 3 karakter"
-            placeholderTextColor={theme.textSecondary}
-            style={[styles.textarea, { color: theme.text, borderColor: theme.border }]}
-          />
-          <ThemedText selectable type="smallBold">Catatan pengurus (opsional)</ThemedText>
-          <KeyboardAwareTextInput
-            value={catatan}
-            onChangeText={setCatatan}
-            multiline
-            placeholder="Catatan tambahan"
-            placeholderTextColor={theme.textSecondary}
-            style={[styles.textarea, { color: theme.text, borderColor: theme.border }]}
-          />
-          {validasi ? (
-            <ThemedText selectable type="small" themeColor="danger">
-              {validasi}
-            </ThemedText>
-          ) : null}
-          <View style={styles.buttonRow}>
-            <View style={styles.buttonCell}>
-              <AppButton label="Kembali" variant="secondary" onPress={() => setLangkah('pilih')} />
-            </View>
-            <View style={styles.buttonCell}>
-              <AppButton
-                label="Tinjau pengajuan"
-                onPress={() => {
-                  const masalah = periksaIsian();
-                  setValidasi(masalah);
-                  if (masalah === null) setLangkah('konfirmasi');
-                }}
-              />
-            </View>
-          </View>
-        </View>
-      ) : null}
-
-      {langkah === 'konfirmasi' ? (
-        <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <ThemedText selectable style={styles.panelTitle}>
-            Tinjau sebelum mengirim
-          </ThemedText>
-          <ThemedText selectable>Santri: {terpilih?.nama} (NIS {terpilih?.nis})</ThemedText>
-          <ThemedText selectable>
-            Rentang: {formatTanggal(tglIzin)} → {formatTanggal(tglKembali)}
-          </ThemedText>
-          <ThemedText selectable>Alasan: {alasan.trim()}</ThemedText>
-          {catatan.trim() ? <ThemedText selectable>Catatan: {catatan.trim()}</ThemedText> : null}
-          <ThemedText selectable type="small" themeColor="textSecondary">
-            Setelah dikirim, sistem menentukan murobi tujuan secara otomatis. Bila kandidatnya tidak tunggal,
-            pengajuan masuk ke antrean penetapan admin.
-          </ThemedText>
-          {guard.error ? (
-            <ThemedText selectable type="small" themeColor="danger">
-              {guard.error}
-            </ThemedText>
-          ) : null}
-          <View style={styles.buttonRow}>
-            <View style={styles.buttonCell}>
-              <AppButton
-                label="Ubah data"
-                variant="secondary"
-                disabled={guard.isBusy}
-                onPress={() => setLangkah('isi')}
-              />
-            </View>
-            <View style={styles.buttonCell}>
-              <AppButton
-                label="Kirim pengajuan"
-                loading={guard.isBusy}
-                disabled={guard.isBusy}
-                onPress={() => void kirim()}
-              />
-            </View>
-          </View>
-        </View>
-      ) : null}
-    </KeyboardAwareScrollView>
+function Baris({ label, nilai }: { label: string; nilai: string }) {
+  return (
+    <View style={styles.baris}>
+      <ThemedText selectable type="caption" themeColor="textMuted" style={styles.barisLabel}>
+        {label}
+      </ThemedText>
+      <ThemedText selectable type="caption" style={styles.barisNilai}>
+        {nilai}
+      </ThemedText>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 18, paddingBottom: 60, gap: 14, maxWidth: 760, width: '100%', alignSelf: 'center' },
-  panel: { borderWidth: 1, borderRadius: 18, borderCurve: 'continuous', padding: 16, gap: 9 },
-  panelTitle: { fontSize: 17, fontWeight: '800' },
-  input: { minHeight: 46, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, fontSize: 15 },
-  textarea: { minHeight: 76, borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 15, textAlignVertical: 'top' },
-  santriCard: { borderWidth: 1, borderRadius: 14, padding: 13, gap: 3 },
-  stepRow: { flexDirection: 'row', gap: 7 },
-  step: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 8, alignItems: 'center' },
-  buttonRow: { flexDirection: 'row', gap: 10 },
-  buttonCell: { flex: 1 },
+  screen: { flex: 1 },
+  content: {
+    padding: 16,
+    paddingBottom: 28,
+    gap: 16,
+    maxWidth: 760,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  list: { gap: 8 },
+  santriCard: {
+    borderRadius: Radius.lg,
+    borderCurve: 'continuous',
+    padding: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  santriText: { flex: 1, gap: 2 },
+  selected: {
+    borderWidth: 1,
+    borderRadius: Radius.xl,
+    borderCurve: 'continuous',
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.sm,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  row: { flexDirection: 'row', gap: 10 },
+  field: { flex: 1 },
+  durasi: { flexDirection: 'row', alignItems: 'center', gap: 9, flexWrap: 'wrap' },
+  hint: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    borderRadius: Radius.md,
+    borderCurve: 'continuous',
+    padding: 12,
+  },
+  hintText: { flex: 1 },
+  baris: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  barisLabel: { width: 92 },
+  barisNilai: { flex: 1, minWidth: 140, fontWeight: '600' },
+  grow: { flex: 1 },
+  narrow: { width: 118 },
 });

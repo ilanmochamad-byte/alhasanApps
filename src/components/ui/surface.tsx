@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Elevation, Radius } from '@/constants/theme';
@@ -15,7 +15,7 @@ export function Card({
   children: ReactNode;
   onPress?: () => void;
   accessibilityLabel?: string;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }) {
   const theme = useTheme();
   const base: ViewStyle = {
@@ -36,7 +36,7 @@ export function Card({
 }
 
 /** Panel: radius 20, dipakai untuk blok isian dan ringkasan. */
-export function Panel({ children, style }: { children: ReactNode; style?: ViewStyle }) {
+export function Panel({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const theme = useTheme();
   return (
     <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }, style]}>
