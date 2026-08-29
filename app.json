@@ -14,7 +14,13 @@
         "dark": "./assets/images/ios-icon-dark.png",
         "tinted": "./assets/images/ios-icon-tinted.png"
       },
-      "bundleIdentifier": "com.ilanmochamad.alhasanApps"
+      "bundleIdentifier": "com.ilanmochamad.alhasanApps",
+      "entitlements": {
+        "aps-environment": "development"
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {

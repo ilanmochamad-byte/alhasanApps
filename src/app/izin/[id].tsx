@@ -1,14 +1,20 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { RefreshControl, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { actionableError, api } from '@/api/client';
 import type { GuruPilihan, IzinCapability, IzinDetailResponse, RoutingResponse } from '@/api/types';
 import { AppButton } from '@/components/app-button';
-import { KeyboardAwareScrollView, KeyboardAwareTextInput } from '@/components/keyboard-aware-scroll-view';
-import { StatusBadge, formatTanggal } from '@/components/izin-card';
+import { AppIcon } from '@/components/app-icon';
+import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
+import { StatusBadge, formatTanggal, statusColor } from '@/components/izin-card';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
+import { ActionBar } from '@/components/ui/action-bar';
+import { Field } from '@/components/ui/app-field';
+import { Chip, ChipRow } from '@/components/ui/chip';
+import { Divider, Overline, Panel } from '@/components/ui/surface';
+import { Radius } from '@/constants/theme';
 import { useMutationGuard } from '@/hooks/use-mutation-guard';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -19,6 +25,10 @@ import { useTheme } from '@/hooks/use-theme';
  * cakupan pengguna. Selama satu mutasi berjalan seluruh tombol dinonaktifkan
  * dan percobaan ulang memakai kunci idempotensi yang sama (lihat
  * `useMutationGuard`), sehingga tidak pernah ada pengajuan/keputusan ganda.
+ *
+ * Redesain V2: pasangan Setujui/Tolak pindah ke bilah tetap di dasar layar
+ * supaya selalu terjangkau; kolom alasannya tetap berada di badan layar dan
+ * tetap wajib diisi — server yang memvalidasinya, persis seperti sebelumnya.
  */
 export default function IzinDetailScreen() {
   const { fontScale } = useWindowDimensions();
@@ -65,7 +75,9 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
         if (hasil.aksi.tetapkan_murobi) {
           const rute = await api.izinRouting(id);
           setRouting(rute);
-          setMurobiTerpilih((current) => current ?? rute.kandidat[0]?.guru_id ?? rute.murobi_berhak[0]?.guru_id ?? null);
+          setMurobiTerpilih(
+            (current) => current ?? rute.kandidat[0]?.guru_id ?? rute.murobi_berhak[0]?.guru_id ?? null,
+          );
         } else {
           setRouting(null);
         }
@@ -155,6 +167,7 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
 
   const { pengajuan, keputusan, riwayat, koreksi, aksi, scope } = detail;
   const adminPengganti = aksi.putuskan_admin && !aksi.putuskan_murobi;
+  const dapatMemutuskan = aksi.putuskan_murobi || aksi.putuskan_admin;
   const daftarMurobi: GuruPilihan[] = routing
     ? routing.kandidat.length > 0
       ? routing.kandidat
@@ -162,271 +175,329 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
     : [];
 
   return (
-    <KeyboardAwareScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: theme.background }}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
-      }>
-      <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <View style={[styles.headerRow, teksBesar && styles.headerRowLarge]}>
-          <ThemedText selectable style={styles.title}>
-            #{pengajuan.id} · {pengajuan.santri.nama}
-          </ThemedText>
-          <StatusBadge status={pengajuan.status} />
-        </View>
-        <Baris label="NIS" nilai={pengajuan.santri.nis} />
-        <Baris label="Rentang izin" nilai={`${formatTanggal(pengajuan.tgl_izin)} → ${formatTanggal(pengajuan.tgl_kembali)}`} />
-        <Baris label="Alasan" nilai={pengajuan.alasan} />
-        {pengajuan.catatan_pengurus ? <Baris label="Catatan pengurus" nilai={pengajuan.catatan_pengurus} /> : null}
-        <Baris label="Pengurus" nilai={pengajuan.pengurus_label || '—'} />
-        <Baris label="Murobi" nilai={pengajuan.murobi_label || '—'} />
-        <Baris label="Routing" nilai={pengajuan.routing.catatan ?? '—'} />
-        <Baris label="Sumber" nilai={pengajuan.sumber_label} />
-        <Baris label="Cakupan Anda" nilai={scope.label} />
-      </View>
+    <View style={styles.screen}>
+      <KeyboardAwareScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        style={{ backgroundColor: theme.background }}
+        contentContainerStyle={[styles.content, dapatMemutuskan && styles.contentWithBar]}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
+        }>
+        {/* Kepala: status besar, identitas santri, dan rentang izin. */}
+        <Panel>
+          <View style={styles.statusRow}>
+            <View
+              style={[styles.statusIcon, { backgroundColor: theme.backgroundElement }]}>
+              <AppIcon
+                name={
+                  pengajuan.status === 'Disetujui'
+                    ? 'check'
+                    : pengajuan.status === 'Ditolak' || pengajuan.status === 'Dibatalkan'
+                      ? 'close'
+                      : 'clock'
+                }
+                size={22}
+                color={statusColor(pengajuan.status, theme)}
+              />
+            </View>
+            <View style={styles.statusText}>
+              <ThemedText selectable type="h2" style={{ color: statusColor(pengajuan.status, theme) }}>
+                {pengajuan.status}
+              </ThemedText>
+              <ThemedText selectable type="caption" themeColor="textSecondary">
+                #{pengajuan.id} · {pengajuan.sumber_label}
+                {pengajuan.diajukan_pada ? ` · diajukan ${pengajuan.diajukan_pada}` : ''}
+              </ThemedText>
+            </View>
+            {teksBesar ? null : <StatusBadge status={pengajuan.status} />}
+          </View>
 
-      {pesan ? (
-        <View style={[styles.notice, { borderColor: theme.success }]}>
-          <ThemedText selectable type="small" themeColor="success">
-            {pesan}
-          </ThemedText>
-        </View>
-      ) : null}
-      {error ? (
-        <View style={[styles.notice, { borderColor: theme.danger }]}>
-          <ThemedText selectable type="small" themeColor="danger">
-            {error}
-          </ThemedText>
-        </View>
-      ) : null}
+          <Divider />
 
-      {keputusan ? (
-        <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <ThemedText selectable style={styles.panelTitle}>
-            Keputusan
-          </ThemedText>
-          <Baris label="Hasil" nilai={keputusan.hasil} />
-          <Baris label="Kapasitas" nilai={keputusan.kapasitas} />
-          <Baris label="Alasan" nilai={keputusan.alasan} />
-          {keputusan.alasan_penggantian ? <Baris label="Alasan penggantian" nilai={keputusan.alasan_penggantian} /> : null}
-          <Baris label="Pemberi keputusan" nilai={keputusan.pemberi_keputusan ?? 'Data warisan'} />
-          <Baris label="Waktu" nilai={keputusan.diputus_pada} />
-        </View>
-      ) : null}
+          <View style={styles.santriRow}>
+            <View style={[styles.avatar, { backgroundColor: theme.primarySoft }]}>
+              <ThemedText selectable type="label" themeColor="primary">
+                {pengajuan.santri.nama.slice(0, 2).toUpperCase()}
+              </ThemedText>
+            </View>
+            <View style={styles.statusText}>
+              <ThemedText selectable type="h3">
+                {pengajuan.santri.nama}
+              </ThemedText>
+              <ThemedText selectable type="caption" themeColor="textMuted">
+                NIS {pengajuan.santri.nis}
+              </ThemedText>
+            </View>
+          </View>
 
-      {scope.hanya_baca ? (
-        <View style={[styles.notice, { borderColor: theme.border }]}>
-          <ThemedText selectable type="small" themeColor="textSecondary">
-            Akun orang tua bersifat baca-saja: tidak tersedia tombol pengajuan, keputusan, pembatalan, atau koreksi.
-          </ThemedText>
-        </View>
-      ) : null}
-
-      {aksi.putuskan_murobi || aksi.putuskan_admin ? (
-        <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <ThemedText selectable style={styles.panelTitle}>
-            {adminPengganti ? 'Keputusan Admin Pengganti' : 'Keputusan murobi'}
-          </ThemedText>
-          {adminPengganti ? (
-            <ThemedText selectable type="small" themeColor="textSecondary">
-              Admin memutus sebagai Admin Pengganti. Alasan penggantian wajib diisi dan tercatat pada audit.
+          <View style={styles.rangeRow}>
+            <ThemedText selectable type="bodyBold">
+              {formatTanggal(pengajuan.tgl_izin)}
             </ThemedText>
+            <AppIcon name="arrow-right" size={15} themeColor="textMuted" />
+            <ThemedText selectable type="bodyBold">
+              {formatTanggal(pengajuan.tgl_kembali)}
+            </ThemedText>
+          </View>
+        </Panel>
+
+        {pesan ? (
+          <View style={[styles.notice, { borderColor: theme.success, backgroundColor: theme.primarySoft }]}>
+            <ThemedText selectable type="caption" themeColor="success">
+              {pesan}
+            </ThemedText>
+          </View>
+        ) : null}
+        {error ? (
+          <View style={[styles.notice, { borderColor: theme.danger, backgroundColor: theme.dangerSoft }]}>
+            <ThemedText selectable type="caption" themeColor="danger">
+              {error}
+            </ThemedText>
+          </View>
+        ) : null}
+
+        <Panel>
+          <Overline>Rincian</Overline>
+          <Baris label="Alasan" nilai={pengajuan.alasan} />
+          {pengajuan.catatan_pengurus ? (
+            <Baris label="Catatan pengurus" nilai={pengajuan.catatan_pengurus} />
           ) : null}
-          <ThemedText selectable type="smallBold">Alasan keputusan</ThemedText>
-          <KeyboardAwareTextInput
-            value={alasan}
-            onChangeText={setAlasan}
-            editable={!sedangMutasi}
-            multiline
-            placeholder="Minimal 3 karakter"
-            placeholderTextColor={theme.textSecondary}
-            style={[styles.textarea, { color: theme.text, borderColor: theme.border }]}
-          />
-          {adminPengganti ? (
-            <>
-              <ThemedText selectable type="smallBold">Alasan penggantian murobi</ThemedText>
-              <KeyboardAwareTextInput
+          <Baris label="Pengurus" nilai={pengajuan.pengurus_label || '—'} />
+          <Baris label="Murobi" nilai={pengajuan.murobi_label || '—'} />
+          <Baris label="Routing" nilai={pengajuan.routing.catatan ?? '—'} />
+          <Baris label="Cakupan Anda" nilai={scope.label} />
+        </Panel>
+
+        {keputusan ? (
+          <Panel>
+            <Overline>Keputusan</Overline>
+            <Baris label="Hasil" nilai={keputusan.hasil} />
+            <Baris label="Kapasitas" nilai={keputusan.kapasitas} />
+            <Baris label="Alasan" nilai={keputusan.alasan} />
+            {keputusan.alasan_penggantian ? (
+              <Baris label="Alasan penggantian" nilai={keputusan.alasan_penggantian} />
+            ) : null}
+            <Baris label="Pemberi keputusan" nilai={keputusan.pemberi_keputusan ?? 'Data warisan'} />
+            <Baris label="Waktu" nilai={keputusan.diputus_pada} />
+          </Panel>
+        ) : null}
+
+        {scope.hanya_baca ? (
+          <View style={[styles.notice, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
+            <ThemedText selectable type="caption" themeColor="textSecondary">
+              Akun orang tua bersifat baca-saja: tidak tersedia tombol pengajuan, keputusan,
+              pembatalan, atau koreksi.
+            </ThemedText>
+          </View>
+        ) : null}
+
+        {dapatMemutuskan ? (
+          <Panel>
+            <Overline>{adminPengganti ? 'Keputusan Admin Pengganti' : 'Keputusan murobi'}</Overline>
+            {adminPengganti ? (
+              <ThemedText selectable type="caption" themeColor="textSecondary">
+                Admin memutus sebagai Admin Pengganti. Alasan penggantian wajib diisi dan tercatat
+                pada audit.
+              </ThemedText>
+            ) : null}
+            <Field
+              label="Alasan keputusan"
+              value={alasan}
+              onChangeText={setAlasan}
+              editable={!sedangMutasi}
+              multiline
+              placeholder="Minimal 3 karakter"
+            />
+            {adminPengganti ? (
+              <Field
+                label="Alasan penggantian murobi"
                 value={alasanPenggantian}
                 onChangeText={setAlasanPenggantian}
                 editable={!sedangMutasi}
                 multiline
                 placeholder="Wajib diisi"
-                placeholderTextColor={theme.textSecondary}
-                style={[styles.textarea, { color: theme.text, borderColor: theme.border }]}
               />
-            </>
-          ) : null}
-          {keputusanGuard.error ? (
-            <ThemedText selectable type="small" themeColor="danger">
-              {keputusanGuard.error}
+            ) : null}
+            {keputusanGuard.error ? (
+              <ThemedText selectable type="caption" themeColor="danger">
+                {keputusanGuard.error}
+              </ThemedText>
+            ) : null}
+            <ThemedText selectable type="caption" themeColor="textMuted">
+              Tombol Setujui dan Tolak berada di bawah layar.
             </ThemedText>
-          ) : null}
-          <View style={styles.buttonRow}>
-            <View style={styles.buttonCell}>
-              <AppButton
-                label="Setujui"
-                loading={keputusanGuard.isBusy}
-                disabled={sedangMutasi}
-                onPress={() => void putuskan('Disetujui')}
-              />
-            </View>
-            <View style={styles.buttonCell}>
-              <AppButton
-                label="Tolak"
-                variant="danger"
-                loading={keputusanGuard.isBusy}
-                disabled={sedangMutasi}
-                onPress={() => void putuskan('Ditolak')}
-              />
-            </View>
-          </View>
-        </View>
-      ) : null}
+          </Panel>
+        ) : null}
 
-      {aksi.tetapkan_murobi ? (
-        <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <ThemedText selectable style={styles.panelTitle}>
-            Penetapan / perbaikan routing murobi
-          </ThemedText>
-          {routing ? (
-            <ThemedText selectable type="small" themeColor="textSecondary">
-              {routing.routing.catatan ?? 'Belum ada catatan routing.'}
+        {aksi.tetapkan_murobi ? (
+          <Panel>
+            <Overline>Penetapan / perbaikan routing murobi</Overline>
+            {routing ? (
+              <ThemedText selectable type="caption" themeColor="textSecondary">
+                {routing.routing.catatan ?? 'Belum ada catatan routing.'}
+              </ThemedText>
+            ) : null}
+            <View accessibilityRole="radiogroup" accessibilityLabel="Pilih murobi tujuan">
+              <ChipRow>
+                {daftarMurobi.map((guru) => (
+                  <Chip
+                    key={guru.guru_id}
+                    accessibilityRole="radio"
+                    label={guru.nama}
+                    selected={guru.guru_id === murobiTerpilih}
+                    disabled={sedangMutasi}
+                    onPress={() => setMurobiTerpilih(guru.guru_id)}
+                  />
+                ))}
+              </ChipRow>
+            </View>
+            {daftarMurobi.length === 0 ? (
+              <ThemedText selectable type="caption" themeColor="warning">
+                Belum ada guru dengan penugasan murobi aktif pada tahun ajaran ini.
+              </ThemedText>
+            ) : null}
+            <Field
+              label="Alasan penetapan"
+              value={alasanTetapkan}
+              onChangeText={setAlasanTetapkan}
+              editable={!sedangMutasi}
+              multiline
+              placeholder="Wajib diisi"
+            />
+            {tetapkanGuard.error ? (
+              <ThemedText selectable type="caption" themeColor="danger">
+                {tetapkanGuard.error}
+              </ThemedText>
+            ) : null}
+            <AppButton
+              label="Tetapkan murobi"
+              icon="users"
+              loading={tetapkanGuard.isBusy}
+              disabled={sedangMutasi || murobiTerpilih === null}
+              onPress={() => void tetapkanMurobi()}
+            />
+          </Panel>
+        ) : null}
+
+        {aksi.batalkan ? (
+          <Panel>
+            <Overline>Pembatalan</Overline>
+            <ThemedText selectable type="caption" themeColor="textSecondary">
+              Pembatalan hanya dapat dilakukan sebelum ada keputusan dan wajib memuat alasan.
             </ThemedText>
-          ) : null}
-          <View style={styles.chipRow} accessibilityRole="radiogroup" accessibilityLabel="Pilih murobi tujuan">
-            {daftarMurobi.map((guru) => {
-              const dipilih = guru.guru_id === murobiTerpilih;
-              return (
-                <Pressable
-                  key={guru.guru_id}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: dipilih, disabled: sedangMutasi }}
-                  disabled={sedangMutasi}
-                  onPress={() => setMurobiTerpilih(guru.guru_id)}
-                  style={({ pressed }) => [
-                    styles.chip,
-                    {
-                      backgroundColor: dipilih ? theme.primary : theme.backgroundElement,
-                      borderColor: dipilih ? theme.primary : theme.border,
-                      opacity: sedangMutasi ? 0.55 : pressed ? 0.8 : 1,
-                    },
-                  ]}>
-                  <ThemedText selectable type="smallBold" style={{ color: dipilih ? theme.onPrimary : theme.text }}>
-                    {guru.nama}
+            <Field
+              value={alasanBatal}
+              onChangeText={setAlasanBatal}
+              editable={!sedangMutasi}
+              multiline
+              placeholder="Alasan pembatalan"
+            />
+            {batalGuard.error ? (
+              <ThemedText selectable type="caption" themeColor="danger">
+                {batalGuard.error}
+              </ThemedText>
+            ) : null}
+            <AppButton
+              label="Batalkan pengajuan"
+              variant="danger"
+              loading={batalGuard.isBusy}
+              disabled={sedangMutasi}
+              onPress={() => void batalkan()}
+            />
+          </Panel>
+        ) : null}
+
+        <Panel>
+          <View style={styles.timelineHeader}>
+            <Overline>Riwayat perubahan</Overline>
+            <ThemedText selectable type="caption" themeColor="textMuted">
+              {riwayat.length} peristiwa
+            </ThemedText>
+          </View>
+          {riwayat.length === 0 ? (
+            <ThemedText selectable type="caption" themeColor="textSecondary">
+              Belum ada riwayat tercatat.
+            </ThemedText>
+          ) : (
+            riwayat.map((baris, index) => (
+              <View key={baris.id} style={styles.timelineRow}>
+                <View style={styles.timelineRail}>
+                  <View
+                    style={[
+                      styles.timelineDot,
+                      { backgroundColor: index === 0 ? theme.primary : theme.border },
+                    ]}
+                  />
+                  {index < riwayat.length - 1 ? (
+                    <View style={[styles.timelineLine, { backgroundColor: theme.divider }]} />
+                  ) : null}
+                </View>
+                <View style={styles.timelineBody}>
+                  <ThemedText selectable type="label">
+                    {baris.peristiwa}
+                    {baris.status_sesudah ? ` → ${baris.status_sesudah}` : ''}
                   </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-          {daftarMurobi.length === 0 ? (
-            <ThemedText selectable type="small" themeColor="warning">
-              Belum ada guru dengan penugasan murobi aktif pada tahun ajaran ini.
-            </ThemedText>
-          ) : null}
-          <ThemedText selectable type="smallBold">Alasan penetapan</ThemedText>
-          <KeyboardAwareTextInput
-            value={alasanTetapkan}
-            onChangeText={setAlasanTetapkan}
-            editable={!sedangMutasi}
-            multiline
-            placeholder="Wajib diisi"
-            placeholderTextColor={theme.textSecondary}
-            style={[styles.textarea, { color: theme.text, borderColor: theme.border }]}
-          />
-          {tetapkanGuard.error ? (
-            <ThemedText selectable type="small" themeColor="danger">
-              {tetapkanGuard.error}
-            </ThemedText>
-          ) : null}
-          <AppButton
-            label="Tetapkan murobi"
-            loading={tetapkanGuard.isBusy}
-            disabled={sedangMutasi || murobiTerpilih === null}
-            onPress={() => void tetapkanMurobi()}
-          />
-        </View>
-      ) : null}
+                  <ThemedText selectable type="caption" themeColor="textMuted">
+                    {baris.pelaku_nama ?? 'Data warisan'}
+                    {baris.pelaku_kapasitas ? ` (${baris.pelaku_kapasitas})` : ''} · {baris.waktu}
+                  </ThemedText>
+                  {baris.alasan ? (
+                    <ThemedText selectable type="caption" themeColor="textSecondary">
+                      {baris.alasan}
+                    </ThemedText>
+                  ) : null}
+                </View>
+              </View>
+            ))
+          )}
+        </Panel>
 
-      {aksi.batalkan ? (
-        <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <ThemedText selectable style={styles.panelTitle}>
-            Pembatalan
-          </ThemedText>
-          <ThemedText selectable type="small" themeColor="textSecondary">
-            Pembatalan hanya dapat dilakukan sebelum ada keputusan dan wajib memuat alasan.
-          </ThemedText>
-          <KeyboardAwareTextInput
-            value={alasanBatal}
-            onChangeText={setAlasanBatal}
-            editable={!sedangMutasi}
-            multiline
-            placeholder="Alasan pembatalan"
-            placeholderTextColor={theme.textSecondary}
-            style={[styles.textarea, { color: theme.text, borderColor: theme.border }]}
-          />
-          {batalGuard.error ? (
-            <ThemedText selectable type="small" themeColor="danger">
-              {batalGuard.error}
-            </ThemedText>
-          ) : null}
-          <AppButton
-            label="Batalkan pengajuan"
-            variant="danger"
-            loading={batalGuard.isBusy}
-            disabled={sedangMutasi}
-            onPress={() => void batalkan()}
-          />
-        </View>
-      ) : null}
+        {koreksi.length > 0 ? (
+          <Panel>
+            <Overline>Koreksi keputusan</Overline>
+            {koreksi.map((baris) => (
+              <View key={baris.id} style={[styles.koreksiItem, { borderTopColor: theme.divider }]}>
+                <ThemedText selectable type="label">
+                  {baris.hasil_sebelum} → {baris.hasil_sesudah}
+                </ThemedText>
+                <ThemedText selectable type="caption" themeColor="textMuted">
+                  {baris.pelaku_nama ?? 'Data warisan'} · {baris.waktu}
+                </ThemedText>
+                <ThemedText selectable type="caption" themeColor="textSecondary">
+                  {baris.alasan_koreksi}
+                </ThemedText>
+              </View>
+            ))}
+          </Panel>
+        ) : null}
 
-      <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <ThemedText selectable style={styles.panelTitle}>
-          Riwayat perubahan
-        </ThemedText>
-        {riwayat.length === 0 ? (
-          <ThemedText selectable type="small" themeColor="textSecondary">
-            Belum ada riwayat tercatat.
-          </ThemedText>
-        ) : (
-          riwayat.map((baris) => (
-            <View key={baris.id} style={[styles.timelineItem, { borderColor: theme.border }]}>
-              <ThemedText selectable type="smallBold">
-                {baris.peristiwa}
-                {baris.status_sesudah ? ` → ${baris.status_sesudah}` : ''}
-              </ThemedText>
-              <ThemedText selectable type="small" themeColor="textSecondary">
-                {baris.pelaku_nama ?? 'Data warisan'}
-                {baris.pelaku_kapasitas ? ` (${baris.pelaku_kapasitas})` : ''} · {baris.waktu}
-              </ThemedText>
-              {baris.alasan ? <ThemedText selectable type="small">{baris.alasan}</ThemedText> : null}
-            </View>
-          ))
+        {dapatMemutuskan ? null : (
+          <AppButton label="Kembali ke daftar" variant="secondary" onPress={() => router.back()} />
         )}
-      </View>
+      </KeyboardAwareScrollView>
 
-      {koreksi.length > 0 ? (
-        <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <ThemedText selectable style={styles.panelTitle}>
-            Koreksi keputusan
-          </ThemedText>
-          {koreksi.map((baris) => (
-            <View key={baris.id} style={[styles.timelineItem, { borderColor: theme.border }]}>
-              <ThemedText selectable type="smallBold">
-                {baris.hasil_sebelum} → {baris.hasil_sesudah}
-              </ThemedText>
-              <ThemedText selectable type="small" themeColor="textSecondary">
-                {baris.pelaku_nama ?? 'Data warisan'} · {baris.waktu}
-              </ThemedText>
-              <ThemedText selectable type="small">{baris.alasan_koreksi}</ThemedText>
-            </View>
-          ))}
-        </View>
+      {dapatMemutuskan ? (
+        <ActionBar>
+          <AppButton
+            label="Tolak"
+            variant="outline"
+            icon="close"
+            style={styles.barButton}
+            loading={keputusanGuard.isBusy}
+            disabled={sedangMutasi}
+            onPress={() => void putuskan('Ditolak')}
+          />
+          <AppButton
+            label="Setujui"
+            icon="check"
+            style={styles.barButtonWide}
+            loading={keputusanGuard.isBusy}
+            disabled={sedangMutasi}
+            onPress={() => void putuskan('Disetujui')}
+          />
+        </ActionBar>
       ) : null}
-
-      <AppButton label="Kembali ke daftar" variant="secondary" onPress={() => router.back()} />
-    </KeyboardAwareScrollView>
+    </View>
   );
 }
 
@@ -435,10 +506,17 @@ function Baris({ label, nilai }: { label: string; nilai: string }) {
   const teksBesar = fontScale >= 1.6;
   return (
     <View style={[styles.baris, teksBesar && styles.barisLarge]}>
-      <ThemedText selectable type="small" themeColor="textSecondary" style={[styles.barisLabel, teksBesar && styles.barisLabelLarge]}>
+      <ThemedText
+        selectable
+        type="caption"
+        themeColor="textMuted"
+        style={[styles.barisLabel, teksBesar && styles.barisLabelLarge]}>
         {label}
       </ThemedText>
-      <ThemedText selectable style={[styles.barisNilai, teksBesar && styles.barisNilaiLarge]}>
+      <ThemedText
+        selectable
+        type="caption"
+        style={[styles.barisNilai, teksBesar && styles.barisNilaiLarge]}>
         {nilai}
       </ThemedText>
     </View>
@@ -446,23 +524,50 @@ function Baris({ label, nilai }: { label: string; nilai: string }) {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 18, paddingBottom: 60, gap: 14, maxWidth: 760, width: '100%', alignSelf: 'center' },
-  panel: { borderWidth: 1, borderRadius: 18, borderCurve: 'continuous', padding: 16, gap: 9 },
-  panelTitle: { fontSize: 17, fontWeight: '800' },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  headerRowLarge: { alignItems: 'flex-start', flexDirection: 'column' },
-  title: { fontSize: 19, fontWeight: '900', flexShrink: 1 },
-  baris: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  barisLarge: { flexDirection: 'column' },
-  barisLabel: { width: 132 },
+  screen: { flex: 1 },
+  content: {
+    padding: 16,
+    paddingBottom: 60,
+    gap: 14,
+    maxWidth: 760,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  contentWithBar: { paddingBottom: 24 },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  statusIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.md,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusText: { flex: 1, gap: 2 },
+  santriRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.md,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rangeRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 9 },
+  baris: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  barisLarge: { flexDirection: 'column', gap: 2 },
+  barisLabel: { width: 116 },
   barisLabelLarge: { width: 'auto' },
-  barisNilai: { flex: 1, minWidth: 140 },
+  barisNilai: { flex: 1, minWidth: 140, fontWeight: '600' },
   barisNilaiLarge: { flex: 0, minWidth: 0, width: '100%' },
-  textarea: { minHeight: 76, borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 15, textAlignVertical: 'top' },
-  buttonRow: { flexDirection: 'row', gap: 10 },
-  buttonCell: { flex: 1 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 13, paddingVertical: 8 },
-  notice: { borderWidth: 1, borderRadius: 14, padding: 12 },
-  timelineItem: { borderTopWidth: 1, paddingTop: 9, gap: 2 },
+  notice: { borderWidth: 1, borderRadius: Radius.md, borderCurve: 'continuous', padding: 12 },
+  timelineHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  timelineRow: { flexDirection: 'row', gap: 12 },
+  timelineRail: { width: 10, alignItems: 'center' },
+  timelineDot: { width: 9, height: 9, borderRadius: 999, marginTop: 5 },
+  timelineLine: { flex: 1, width: 2, marginTop: 3 },
+  timelineBody: { flex: 1, gap: 2, paddingBottom: 12 },
+  koreksiItem: { borderTopWidth: 1, paddingTop: 9, gap: 2 },
+  barButton: { flex: 1 },
+  barButtonWide: { flex: 1.35 },
 });

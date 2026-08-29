@@ -1,16 +1,24 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { actionableError, api } from '@/api/client';
 import type { AnakListResponse, IzinCapability, IzinListResponse } from '@/api/types';
 import { useAuth } from '@/auth/auth-context';
-import { AppButton } from '@/components/app-button';
 import { IzinCard } from '@/components/izin-card';
-import { KeyboardAwareScrollView, KeyboardAwareTextInput } from '@/components/keyboard-aware-scroll-view';
+import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { MODE_LABEL, ModeSwitcher } from '@/components/mode-switcher';
+import { ScreenHeader } from '@/components/screen-header';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
+import { SearchField } from '@/components/ui/app-field';
+import { Fab } from '@/components/ui/fab';
+import { IconButton } from '@/components/ui/icon-button';
+import { Segmented } from '@/components/ui/segmented';
+import { StatTile } from '@/components/ui/stat-tile';
+import { Overline, Panel } from '@/components/ui/surface';
+import { AppButton } from '@/components/app-button';
 import { useTheme } from '@/hooks/use-theme';
 
 type Tampilan = 'antrean' | 'semua';
@@ -37,6 +45,7 @@ export default function PerizinanScreen() {
 function PerizinanSession() {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { capabilities } = useAuth();
 
   const modes = capabilities.list;
@@ -93,16 +102,29 @@ function PerizinanSession() {
     if (!data) return [] as { label: string; nilai: number }[];
     return [
       { label: 'Total', nilai: data.summary.total },
-      ...Object.entries(data.summary.per_status).map(([label, nilai]) => ({ label, nilai: Number(nilai) })),
+      ...Object.entries(data.summary.per_status).map(([label, nilai]) => ({
+        label,
+        nilai: Number(nilai),
+      })),
     ];
   }, [data]);
+
+  function terapkanPencarian() {
+    setKataKunci(pencarian.trim());
+    setHalaman(1);
+  }
+
+  const bukaLaporan = useCallback(() => {
+    router.push({ pathname: '/izin/laporan', params: { mode: modeAktif ?? '' } });
+  }, [router, modeAktif]);
 
   if (modes.length === 0) {
     return (
       <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         style={{ backgroundColor: theme.background }}
-        contentContainerStyle={styles.content}>
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}>
+        <ScreenHeader title="Perizinan" />
         <EmptyState
           title="Belum ada kemampuan perizinan"
           message="Akun ini belum terhubung ke pengurus, wali, atau penugasan murobi aktif. Hubungi admin pesantren."
@@ -112,223 +134,210 @@ function PerizinanSession() {
   }
 
   return (
-    <KeyboardAwareScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: theme.background }}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
-      }>
-      <ModeSwitcher
-        modes={modes}
-        value={modeAktif}
-        onChange={(next) => {
-          setMode(next);
-          setHalaman(1);
-        }}
-      />
+    <View style={styles.screen}>
+      <KeyboardAwareScrollView
+        contentInsetAdjustmentBehavior="never"
+        style={{ backgroundColor: theme.background }}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
+        }>
+        <ScreenHeader
+          title="Perizinan"
+          actions={
+            /* V2 Fase 5 — laporan tersedia untuk SELURUH peran perizinan,
+               termasuk orang tua. Isi laporan dibatasi cakupan di server,
+               bukan oleh tombol ini. */
+            <IconButton icon="chart" accessibilityLabel="Laporan perizinan" onPress={bukaLaporan} />
+          }
+        />
 
-      <ThemedText selectable themeColor="textSecondary">
-        {data?.scope.label ?? (modeAktif ? MODE_LABEL[modeAktif] : '')}
-      </ThemedText>
+        <ModeSwitcher
+          modes={modes}
+          value={modeAktif}
+          onChange={(next) => {
+            setMode(next);
+            setHalaman(1);
+          }}
+        />
 
-      {orangTua ? (
-        <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <ThemedText selectable style={styles.panelTitle}>
-            Anak yang terhubung
-          </ThemedText>
-          {anak === null ? (
-            <ThemedText selectable type="small" themeColor="textSecondary">
-              Memuat daftar anak…
-            </ThemedText>
-          ) : anak.items.length === 0 ? (
-            <ThemedText selectable type="small" themeColor="textSecondary">
-              Belum ada santri dengan relasi wali aktif untuk akun ini.
-            </ThemedText>
-          ) : (
-            anak.items.map((baris) => (
-              <ThemedText selectable key={baris.santri.id}>
-                {baris.santri.nama}{' '}
-                <ThemedText selectable type="small" themeColor="textSecondary">
-                  (NIS {baris.santri.nis}
-                  {baris.hubungan ? ` · ${baris.hubungan}` : ''})
-                </ThemedText>
+        <ThemedText selectable type="caption" themeColor="textSecondary">
+          {data?.scope.label ?? (modeAktif ? MODE_LABEL[modeAktif] : '')}
+        </ThemedText>
+
+        {orangTua ? (
+          <Panel>
+            <Overline>Anak yang terhubung</Overline>
+            {anak === null ? (
+              <ThemedText selectable type="caption" themeColor="textSecondary">
+                Memuat daftar anak…
               </ThemedText>
-            ))
-          )}
-          <ThemedText selectable type="small" themeColor="textSecondary">
-            Akun orang tua bersifat baca-saja: tidak tersedia tombol pengajuan, keputusan, atau pembatalan.
-          </ThemedText>
-        </View>
-      ) : (
-        <View style={styles.tabRow}>
-          {(['antrean', 'semua'] as Tampilan[]).map((pilihan) => {
-            const dipilih = pilihan === tampilanAktif;
-            return (
+            ) : anak.items.length === 0 ? (
+              <ThemedText selectable type="caption" themeColor="textSecondary">
+                Belum ada santri dengan relasi wali aktif untuk akun ini.
+              </ThemedText>
+            ) : (
+              anak.items.map((baris) => (
+                <ThemedText selectable type="body" key={baris.santri.id}>
+                  {baris.santri.nama}{' '}
+                  <ThemedText selectable type="caption" themeColor="textSecondary">
+                    (NIS {baris.santri.nis}
+                    {baris.hubungan ? ` · ${baris.hubungan}` : ''})
+                  </ThemedText>
+                </ThemedText>
+              ))
+            )}
+            <ThemedText selectable type="caption" themeColor="textMuted">
+              Akun orang tua bersifat baca-saja: tidak tersedia tombol pengajuan, keputusan, atau
+              pembatalan.
+            </ThemedText>
+          </Panel>
+        ) : (
+          <Segmented
+            accessibilityLabel="Tampilan daftar pengajuan"
+            value={tampilanAktif}
+            onChange={(next) => {
+              setTampilan(next);
+              setHalaman(1);
+            }}
+            options={[
+              { value: 'antrean', label: 'Antrean tindakan', count: data?.antrean_admin },
+              { value: 'semua', label: 'Semua pengajuan' },
+            ]}
+          />
+        )}
+
+        <SearchField
+          value={pencarian}
+          onChangeText={setPencarian}
+          placeholder="Cari santri, NIS, atau alasan"
+          onSubmitEditing={terapkanPencarian}
+          trailing={
+            pencarian.trim() !== kataKunci ? (
               <Pressable
-                key={pilihan}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: dipilih }}
-                onPress={() => {
-                  setTampilan(pilihan);
-                  setHalaman(1);
-                }}
-                style={({ pressed }) => [
-                  styles.tabButton,
-                  {
-                    backgroundColor: dipilih ? theme.backgroundSelected : theme.backgroundElement,
-                    borderColor: dipilih ? theme.primary : theme.border,
-                    opacity: pressed ? 0.8 : 1,
-                  },
-                ]}>
-                <ThemedText selectable type="smallBold">
-                  {pilihan === 'antrean' ? 'Antrean tindakan' : 'Semua pengajuan'}
+                accessibilityRole="button"
+                accessibilityLabel="Terapkan pencarian"
+                onPress={terapkanPencarian}
+                hitSlop={8}>
+                <ThemedText selectable type="label" themeColor="primary">
+                  Terapkan
                 </ThemedText>
               </Pressable>
-            );
-          })}
-        </View>
-      )}
+            ) : null
+          }
+        />
+
+        {loading && !data ? (
+          <LoadingState label="Memuat pengajuan izin…" />
+        ) : error && !data ? (
+          <ErrorState message={error} onRetry={() => void load()} />
+        ) : data ? (
+          <>
+            {error ? (
+              <ThemedText selectable type="caption" themeColor="danger">
+                {error}
+              </ThemedText>
+            ) : null}
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.summaryRow}>
+              {ringkasan.map((baris, index) => (
+                <View key={baris.label} style={styles.summaryItem}>
+                  <StatTile
+                    compact
+                    label={baris.label}
+                    value={baris.nilai}
+                    tone={index === 0 ? 'primary' : 'neutral'}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+
+            {data.items.length === 0 ? (
+              <EmptyState
+                title={tampilanAktif === 'antrean' ? 'Tidak ada antrean tindakan' : 'Belum ada pengajuan'}
+                message={
+                  tampilanAktif === 'antrean'
+                    ? 'Tidak ada pengajuan yang menunggu tindakan Anda saat ini. Tarik ke bawah untuk memuat ulang.'
+                    : 'Belum ada pengajuan dalam cakupan Anda, atau filter terlalu sempit.'
+                }
+              />
+            ) : (
+              data.items.map((item) => (
+                <IzinCard
+                  key={item.id}
+                  item={item}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/izin/[id]',
+                      params: { id: String(item.id), mode: modeAktif ?? '' },
+                    })
+                  }
+                />
+              ))
+            )}
+
+            {data.pagination.total_pages > 1 ? (
+              <View style={styles.pagerRow}>
+                <View style={styles.pagerButton}>
+                  <AppButton
+                    label="Sebelumnya"
+                    variant="secondary"
+                    size="sm"
+                    disabled={data.pagination.current_page <= 1}
+                    onPress={() => setHalaman((current) => Math.max(1, current - 1))}
+                  />
+                </View>
+                <ThemedText selectable type="caption" themeColor="textSecondary">
+                  Halaman {data.pagination.current_page} dari {data.pagination.total_pages}
+                </ThemedText>
+                <View style={styles.pagerButton}>
+                  <AppButton
+                    label="Berikutnya"
+                    variant="secondary"
+                    size="sm"
+                    disabled={data.pagination.current_page >= data.pagination.total_pages}
+                    onPress={() => setHalaman((current) => current + 1)}
+                  />
+                </View>
+              </View>
+            ) : null}
+          </>
+        ) : null}
+      </KeyboardAwareScrollView>
 
       {capabilities.aksi.dapat_membuat_pengajuan && !orangTua ? (
-        <AppButton
-          label="Buat pengajuan izin"
+        <Fab
+          label="Buat izin"
           onPress={() =>
-            router.push({
-              pathname: '/izin/buat',
-              params: { mode: modeAktif ?? 'pengurus' },
-            })
+            router.push({ pathname: '/izin/buat', params: { mode: modeAktif ?? 'pengurus' } })
           }
         />
       ) : null}
-
-      {/* V2 Fase 5 — laporan tersedia untuk SELURUH peran perizinan, termasuk
-          orang tua (riwayat santri yang terhubung dengannya). Isi laporan
-          dibatasi cakupan di server, bukan oleh tombol ini. */}
-      <AppButton
-        label="Laporan perizinan"
-        variant="secondary"
-        onPress={() =>
-          router.push({
-            pathname: '/izin/laporan',
-            params: { mode: modeAktif ?? '' },
-          })
-        }
-      />
-
-
-      <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <ThemedText selectable type="smallBold">
-          Cari santri, NIS, atau alasan
-        </ThemedText>
-        <KeyboardAwareTextInput
-          value={pencarian}
-          onChangeText={setPencarian}
-          placeholder="Ketik lalu tekan Terapkan"
-          placeholderTextColor={theme.textSecondary}
-          style={[styles.input, { color: theme.text, borderColor: theme.border }]}
-          returnKeyType="search"
-          onSubmitEditing={() => {
-            setKataKunci(pencarian.trim());
-            setHalaman(1);
-          }}
-        />
-        <AppButton
-          label="Terapkan pencarian"
-          variant="secondary"
-          onPress={() => {
-            setKataKunci(pencarian.trim());
-            setHalaman(1);
-          }}
-        />
-      </View>
-
-      {loading && !data ? (
-        <LoadingState label="Memuat pengajuan izin…" />
-      ) : error && !data ? (
-        <ErrorState message={error} onRetry={() => void load()} />
-      ) : data ? (
-        <>
-          {error ? (
-            <ThemedText selectable themeColor="danger" type="small">
-              {error}
-            </ThemedText>
-          ) : null}
-
-          <View style={styles.summaryRow}>
-            {ringkasan.map((baris) => (
-              <View
-                key={baris.label}
-                style={[styles.summaryChip, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-                <ThemedText selectable type="small" themeColor="textSecondary">
-                  {baris.label}
-                </ThemedText>
-                <ThemedText selectable type="smallBold">
-                  {baris.nilai}
-                </ThemedText>
-              </View>
-            ))}
-          </View>
-
-          {data.items.length === 0 ? (
-            <EmptyState
-              title={tampilanAktif === 'antrean' ? 'Tidak ada antrean tindakan' : 'Belum ada pengajuan'}
-              message={
-                tampilanAktif === 'antrean'
-                  ? 'Tidak ada pengajuan yang menunggu tindakan Anda saat ini. Tarik ke bawah untuk memuat ulang.'
-                  : 'Belum ada pengajuan dalam cakupan Anda, atau filter terlalu sempit.'
-              }
-            />
-          ) : (
-            data.items.map((item) => (
-              <IzinCard
-                key={item.id}
-                item={item}
-                onPress={() =>
-                  router.push({ pathname: '/izin/[id]', params: { id: String(item.id), mode: modeAktif ?? '' } })
-                }
-              />
-            ))
-          )}
-
-          {data.pagination.total_pages > 1 ? (
-            <View style={styles.pagerRow}>
-              <View style={styles.pagerButton}>
-                <AppButton
-                  label="Sebelumnya"
-                  variant="secondary"
-                  disabled={data.pagination.current_page <= 1}
-                  onPress={() => setHalaman((current) => Math.max(1, current - 1))}
-                />
-              </View>
-              <ThemedText selectable type="small" themeColor="textSecondary">
-                Halaman {data.pagination.current_page} dari {data.pagination.total_pages}
-              </ThemedText>
-              <View style={styles.pagerButton}>
-                <AppButton
-                  label="Berikutnya"
-                  variant="secondary"
-                  disabled={data.pagination.current_page >= data.pagination.total_pages}
-                  onPress={() => setHalaman((current) => current + 1)}
-                />
-              </View>
-            </View>
-          ) : null}
-        </>
-      ) : null}
-    </KeyboardAwareScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 18, paddingBottom: 120, gap: 14, maxWidth: 760, width: '100%', alignSelf: 'center' },
-  panel: { borderWidth: 1, borderRadius: 18, borderCurve: 'continuous', padding: 16, gap: 10 },
-  panelTitle: { fontSize: 17, fontWeight: '800' },
-  input: { minHeight: 46, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, fontSize: 15 },
-  tabRow: { flexDirection: 'row', gap: 8 },
-  tabButton: { flex: 1, borderWidth: 1, borderRadius: 14, paddingVertical: 11, alignItems: 'center' },
-  summaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  summaryChip: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 11, paddingVertical: 7, minWidth: 92 },
-  pagerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 6 },
-  pagerButton: { flexShrink: 1, minWidth: 128 },
+  screen: { flex: 1 },
+  content: {
+    padding: 16,
+    paddingBottom: 130,
+    gap: 12,
+    maxWidth: 760,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  summaryRow: { gap: 8, paddingVertical: 2 },
+  summaryItem: { width: 104 },
+  pagerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingTop: 6,
+  },
+  pagerButton: { flexShrink: 1, minWidth: 124 },
 });

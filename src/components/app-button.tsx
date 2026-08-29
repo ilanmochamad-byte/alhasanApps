@@ -1,33 +1,93 @@
-import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { AppIcon, type IconName } from '@/components/app-icon';
 import { ThemedText } from '@/components/themed-text';
+import { Elevation, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+
+type Variant = 'primary' | 'secondary' | 'danger' | 'outline';
 
 type Props = {
   label: string;
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
-  variant?: 'primary' | 'secondary' | 'danger';
+  variant?: Variant;
+  /** Ikon opsional di kiri label. */
+  icon?: IconName;
+  /** `md` = 48 (baku), `sm` = 40 untuk tombol sekunder yang berdampingan. */
+  size?: 'md' | 'sm';
+  style?: StyleProp<ViewStyle>;
 };
 
-export function AppButton({ label, onPress, disabled, loading, variant = 'primary' }: Props) {
+export function AppButton({
+  label,
+  onPress,
+  disabled,
+  loading,
+  variant = 'primary',
+  icon,
+  size = 'md',
+  style,
+}: Props) {
   const theme = useTheme();
-  const backgroundColor = variant === 'primary' ? theme.primary : variant === 'danger' ? theme.danger : theme.backgroundElement;
-  const color = variant === 'secondary' ? theme.text : theme.onPrimary;
+
+  const background =
+    variant === 'primary'
+      ? theme.primary
+      : variant === 'danger'
+        ? theme.danger
+        : variant === 'outline'
+          ? theme.card
+          : theme.backgroundElement;
+  const foreground =
+    variant === 'secondary' ? theme.text : variant === 'outline' ? theme.danger : theme.onPrimary;
+  const borderColor = variant === 'outline' ? theme.danger : 'transparent';
+  const busy = Boolean(disabled || loading);
+
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled: Boolean(disabled || loading), busy: Boolean(loading) }}
-      disabled={disabled || loading}
+      accessibilityState={{ disabled: busy, busy: Boolean(loading) }}
+      disabled={busy}
       onPress={onPress}
-      style={({ pressed }) => [styles.button, { backgroundColor, opacity: disabled || loading ? 0.55 : pressed ? 0.78 : 1 }]}>
-      {loading ? <ActivityIndicator color={color} /> : <ThemedText selectable style={[styles.label, { color }]}>{label}</ThemedText>}
+      style={({ pressed }) => [
+        styles.button,
+        size === 'sm' && styles.buttonSm,
+        variant === 'primary' && !busy && { boxShadow: Elevation.brand },
+        {
+          backgroundColor: pressed && variant === 'primary' ? theme.primaryPressed : background,
+          borderWidth: variant === 'outline' ? 1.5 : 0,
+          borderColor,
+          opacity: busy ? 0.55 : pressed ? 0.9 : 1,
+        },
+        style,
+      ]}>
+      {loading ? (
+        <ActivityIndicator color={foreground} />
+      ) : (
+        <View style={styles.content}>
+          {icon ? <AppIcon name={icon} size={18} color={foreground} /> : null}
+          <ThemedText type="bodyBold" style={[styles.label, { color: foreground }]}>
+            {label}
+          </ThemedText>
+        </View>
+      )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  button: { minHeight: 48, borderRadius: 14, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18, paddingVertical: 12 },
-  label: { fontWeight: '700', textAlign: 'center' },
+  button: {
+    minHeight: 48,
+    borderRadius: Radius.md,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  buttonSm: { minHeight: 44, paddingHorizontal: 14 },
+  content: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  label: { fontWeight: '800', textAlign: 'center' },
 });

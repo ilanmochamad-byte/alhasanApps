@@ -37,14 +37,6 @@ export default function AppTabs() {
               <TabButton>Perizinan</TabButton>
             </TabTrigger>
           ) : null}
-          {/* V2 Fase 4 — pusat notifikasi in-app. Ditampilkan dengan syarat
-              yang sama seperti versi native agar permukaan uji web tetap
-              sepadan dengan aplikasi perangkat. */}
-          {adaPerizinan ? (
-            <TabTrigger name="notifikasi" href="/notifikasi" asChild>
-              <TabButton>Notifikasi</TabButton>
-            </TabTrigger>
-          ) : null}
           {aksesJadwal ? (
             <TabTrigger name="schedules" href="/schedules" asChild>
               <TabButton>Jadwal</TabButton>
@@ -55,6 +47,12 @@ export default function AppTabs() {
               <TabButton>Laporan</TabButton>
             </TabTrigger>
           ) : null}
+          {/* V2: tab Profil menampung identitas, cakupan, perangkat, dan
+              tombol Keluar. Pusat notifikasi tidak lagi menjadi tab — ia
+              dibuka lewat lonceng di bilah judul, sama seperti versi native. */}
+          <TabTrigger name="profil" href="/profil" asChild>
+            <TabButton>Profil</TabButton>
+          </TabTrigger>
         </CustomTabList>
       </TabList>
     </Tabs>

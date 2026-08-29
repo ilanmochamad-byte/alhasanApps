@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { actionableError, api } from '@/api/client';
 import type { Notifikasi, NotifikasiListResponse } from '@/api/types';
@@ -8,6 +8,10 @@ import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
+import { IconButton } from '@/components/ui/icon-button';
+import { Segmented } from '@/components/ui/segmented';
+import { Card } from '@/components/ui/surface';
+import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useNotifications } from '@/notifications/notification-context';
 
@@ -106,13 +110,20 @@ function NotifikasiSession() {
         <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
       }>
       <View style={styles.header}>
-        <ThemedText selectable themeColor="textSecondary">
-          {data === null
-            ? 'Memuat notifikasi…'
-            : `${data.jumlah_belum_dibaca} belum dibaca dari ${pagination?.total ?? 0} notifikasi.`}
-        </ThemedText>
+        <View style={styles.headerRow}>
+          <ThemedText selectable type="caption" themeColor="textSecondary" style={styles.headerText}>
+            {data === null
+              ? 'Memuat notifikasi…'
+              : `${data.jumlah_belum_dibaca} belum dibaca dari ${pagination?.total ?? 0} notifikasi.`}
+          </ThemedText>
+          <IconButton
+            icon="device"
+            accessibilityLabel="Perangkat & push"
+            onPress={() => router.push('/notifikasi/perangkat')}
+          />
+        </View>
         {pushState.status !== 'aktif' ? (
-          <ThemedText selectable type="small" themeColor="textSecondary">
+          <ThemedText selectable type="caption" themeColor="textMuted">
             {pushState.status === 'memeriksa'
               ? 'Memeriksa status push…'
               : `Push tidak aktif di perangkat ini. ${pushState.alasan} Notifikasi tetap tersedia di layar ini.`}
@@ -120,48 +131,30 @@ function NotifikasiSession() {
         ) : null}
       </View>
 
-      <View style={styles.filters} accessibilityRole="radiogroup" accessibilityLabel="Saring notifikasi">
-        {(Object.keys(FILTER_LABEL) as Filter[]).map((nilai) => {
-          const dipilih = nilai === filter;
-          return (
-            <Pressable
-              key={nilai}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: dipilih }}
-              onPress={() => {
-                setFilter(nilai);
-                setHalaman(1);
-              }}
-              style={({ pressed }) => [
-                styles.filterChip,
-                {
-                  backgroundColor: dipilih ? theme.primary : theme.backgroundElement,
-                  borderColor: dipilih ? theme.primary : theme.border,
-                  opacity: pressed ? 0.75 : 1,
-                },
-              ]}>
-              <ThemedText selectable type="smallBold" style={{ color: dipilih ? theme.onPrimary : theme.text }}>
-                {FILTER_LABEL[nilai]}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
-      </View>
+      <Segmented
+        variant="radio"
+        accessibilityLabel="Saring notifikasi"
+        value={filter}
+        onChange={(nilai) => {
+          setFilter(nilai);
+          setHalaman(1);
+        }}
+        options={[
+          { value: 'semua', label: FILTER_LABEL.semua },
+          { value: 'belum_dibaca', label: FILTER_LABEL.belum_dibaca, count: data?.jumlah_belum_dibaca },
+          { value: 'sudah_dibaca', label: FILTER_LABEL.sudah_dibaca },
+        ]}
+      />
 
-      <View style={styles.actions}>
-        <AppButton
-          label="Tandai semua dibaca"
-          variant="secondary"
-          disabled={sibuk || (data?.jumlah_belum_dibaca ?? 0) === 0}
-          loading={sibuk}
-          onPress={() => void tandaiSemua()}
-        />
-        <AppButton
-          label="Perangkat & push"
-          variant="secondary"
-          onPress={() => router.push('/notifikasi/perangkat')}
-        />
-      </View>
+      <AppButton
+        label="Tandai semua dibaca"
+        icon="check"
+        variant="secondary"
+        size="sm"
+        disabled={sibuk || (data?.jumlah_belum_dibaca ?? 0) === 0}
+        loading={sibuk}
+        onPress={() => void tandaiSemua()}
+      />
 
       {loading && data === null ? (
         <LoadingState label="Memuat notifikasi…" />
@@ -179,43 +172,63 @@ function NotifikasiSession() {
       ) : (
         <View style={styles.list}>
           {error ? (
-            <ThemedText selectable themeColor="danger" type="small">
+            <ThemedText selectable themeColor="danger" type="caption">
               {error}
             </ThemedText>
           ) : null}
           {data?.items.map((item) => (
-            <Pressable
+            <Card
               key={item.id}
-              accessibilityRole="button"
               accessibilityLabel={`${item.judul}. ${item.dibaca ? 'Sudah dibaca' : 'Belum dibaca'}`}
               onPress={() => buka(item)}
-              style={({ pressed }) => [
+              style={[
                 styles.card,
-                {
-                  backgroundColor: theme.backgroundElement,
-                  borderColor: item.dibaca ? theme.border : theme.primary,
-                  borderLeftWidth: item.dibaca ? 1 : 4,
-                  opacity: pressed ? 0.8 : 1,
-                },
+                { borderColor: item.dibaca ? theme.border : theme.primaryBorder },
               ]}>
-              <View style={styles.cardTop}>
-                <ThemedText selectable type="small" themeColor="textSecondary">
-                  {item.event_label}
-                </ThemedText>
+              <View style={styles.cardRow}>
+                <View
+                  style={[
+                    styles.cardIcon,
+                    { backgroundColor: item.dibaca ? theme.backgroundElement : theme.primarySoft },
+                  ]}>
+                  <ThemedText
+                    selectable
+                    type="overline"
+                    themeColor={item.dibaca ? 'textMuted' : 'primary'}>
+                    {item.event_label.slice(0, 2).toUpperCase()}
+                  </ThemedText>
+                </View>
+                <View style={styles.cardBody}>
+                  <View style={styles.cardTop}>
+                    <ThemedText
+                      selectable
+                      type="label"
+                      themeColor={item.dibaca ? 'textSecondary' : 'text'}
+                      style={styles.cardTitle}>
+                      {item.judul}
+                    </ThemedText>
+                    <ThemedText selectable type="overline" themeColor="textMuted" style={styles.cardTime}>
+                      {item.dibuat_pada}
+                    </ThemedText>
+                  </View>
+                  <ThemedText
+                    selectable
+                    type="caption"
+                    themeColor={item.dibaca ? 'textMuted' : 'textSecondary'}>
+                    {item.isi}
+                  </ThemedText>
+                  <ThemedText selectable type="overline" themeColor="textMuted" style={styles.cardEvent}>
+                    {item.event_label}
+                  </ThemedText>
+                </View>
                 {!item.dibaca ? (
-                  <View style={[styles.dot, { backgroundColor: theme.primary }]} accessibilityLabel="Belum dibaca" />
+                  <View
+                    style={[styles.dot, { backgroundColor: theme.primary }]}
+                    accessibilityLabel="Belum dibaca"
+                  />
                 ) : null}
               </View>
-              <ThemedText selectable type="smallBold">
-                {item.judul}
-              </ThemedText>
-              <ThemedText selectable type="small">
-                {item.isi}
-              </ThemedText>
-              <ThemedText selectable type="small" themeColor="textSecondary">
-                {item.dibuat_pada}
-              </ThemedText>
-            </Pressable>
+            </Card>
           ))}
         </View>
       )}
@@ -225,15 +238,17 @@ function NotifikasiSession() {
           <AppButton
             label="Sebelumnya"
             variant="secondary"
+            size="sm"
             disabled={halaman <= 1}
             onPress={() => setHalaman((n) => Math.max(1, n - 1))}
           />
-          <ThemedText selectable type="small" themeColor="textSecondary">
+          <ThemedText selectable type="caption" themeColor="textSecondary">
             Halaman {pagination?.current_page ?? halaman} dari {totalHalaman}
           </ThemedText>
           <AppButton
             label="Berikutnya"
             variant="secondary"
+            size="sm"
             disabled={halaman >= totalHalaman}
             onPress={() => setHalaman((n) => n + 1)}
           />
@@ -244,14 +259,32 @@ function NotifikasiSession() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 18, paddingBottom: 110, gap: 12, maxWidth: 760, width: '100%', alignSelf: 'center' },
+  content: { padding: 16, paddingBottom: 60, gap: 12, maxWidth: 760, width: '100%', alignSelf: 'center' },
   header: { gap: 4 },
-  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  filterChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 13, paddingVertical: 8 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerText: { flex: 1 },
   list: { gap: 10 },
-  card: { borderWidth: 1, borderRadius: 16, borderCurve: 'continuous', padding: 14, gap: 4 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 8 },
+  card: { padding: 13 },
+  cardRow: { flexDirection: 'row', gap: 12 },
+  cardIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: Radius.sm,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardBody: { flex: 1, gap: 3 },
+  cardTop: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  cardTitle: { flex: 1 },
+  cardTime: { letterSpacing: 0 },
+  cardEvent: { letterSpacing: 0.3 },
+  dot: { width: 8, height: 8, borderRadius: 999, marginTop: 6 },
+  pagination: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingTop: 8,
+  },
 });
