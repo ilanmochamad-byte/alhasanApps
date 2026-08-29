@@ -21,16 +21,22 @@ export function Segmented<T extends string>({
   value,
   onChange,
   accessibilityLabel,
+  /**
+   * `tab` untuk berpindah tampilan, `radio` untuk memilih saringan. Peran yang
+   * tepat menentukan bagaimana pembaca layar mengumumkannya.
+   */
+  variant = 'tab',
 }: {
   options: SegmentOption<T>[];
   value: T;
   onChange: (next: T) => void;
   accessibilityLabel?: string;
+  variant?: 'tab' | 'radio';
 }) {
   const theme = useTheme();
   return (
     <View
-      accessibilityRole="tablist"
+      accessibilityRole={variant === 'radio' ? 'radiogroup' : 'tablist'}
       accessibilityLabel={accessibilityLabel}
       style={[styles.track, { backgroundColor: theme.backgroundElement }]}>
       {options.map((option) => {
@@ -38,9 +44,10 @@ export function Segmented<T extends string>({
         return (
           <Pressable
             key={option.value}
-            accessibilityRole="tab"
+            accessibilityRole={variant === 'radio' ? 'radio' : 'tab'}
             accessibilityState={{ selected }}
             onPress={() => onChange(option.value)}
+            hitSlop={4}
             style={({ pressed }) => [
               styles.segment,
               selected && { backgroundColor: theme.card, boxShadow: '0 1px 3px rgba(18, 42, 25, 0.10)' },

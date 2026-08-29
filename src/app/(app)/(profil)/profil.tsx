@@ -1,11 +1,13 @@
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { Alert, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
 import { ThemedText } from '@/components/themed-text';
 import { MODE_LABEL } from '@/components/mode-switcher';
+import { ScreenHeader } from '@/components/screen-header';
 import { Badge, ChipRow } from '@/components/ui/chip';
 import { ListRow, RowGroup } from '@/components/ui/list-row';
 import { Divider, Overline, Panel } from '@/components/ui/surface';
@@ -33,6 +35,7 @@ function inisial(nama: string) {
 export default function ProfilScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
   const { profile, capabilities, logout } = useAuth();
 
@@ -57,9 +60,11 @@ export default function ProfilScreen() {
 
   return (
     <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
       style={{ backgroundColor: theme.background }}
-      contentContainerStyle={styles.content}>
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}>
+      <ScreenHeader title="Profil" bell={false} />
+
       <Panel style={styles.identity}>
         <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
           <ThemedText selectable style={[styles.avatarText, { color: theme.onPrimary }]}>

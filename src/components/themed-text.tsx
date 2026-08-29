@@ -1,6 +1,6 @@
 import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
 
-import { Fonts, ThemeColor } from '@/constants/theme';
+import { Fonts, ThemeColor, Type } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 /**
@@ -45,17 +45,18 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
 }
 
 const styles = StyleSheet.create({
-  // V2
-  display: { fontSize: 28, lineHeight: 34, fontWeight: '800', letterSpacing: -0.5 },
-  h1: { fontSize: 26, lineHeight: 32, fontWeight: '800', letterSpacing: -0.4 },
-  h2: { fontSize: 17, lineHeight: 22, fontWeight: '800' },
-  h3: { fontSize: 15, lineHeight: 20, fontWeight: '800' },
-  body: { fontSize: 15, lineHeight: 21, fontWeight: '500' },
-  bodyBold: { fontSize: 15, lineHeight: 21, fontWeight: '700' },
-  label: { fontSize: 13, lineHeight: 17, fontWeight: '800' },
-  caption: { fontSize: 12, lineHeight: 16, fontWeight: '600' },
-  overline: { fontSize: 11, lineHeight: 14, fontWeight: '800', letterSpacing: 0.6 },
-  numeral: { fontSize: 30, lineHeight: 34, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  // V2 — nilainya berasal dari `Type` di constants/theme.ts agar hanya ada satu
+  // sumber kebenaran untuk skala tipografi.
+  display: Type.display,
+  h1: Type.h1,
+  h2: Type.h2,
+  h3: Type.h3,
+  body: Type.body,
+  bodyBold: Type.bodyBold,
+  label: Type.label,
+  caption: Type.caption,
+  overline: Type.overline,
+  numeral: { ...Type.numeral, fontVariant: ['tabular-nums'] },
 
   // Warisan V1
   small: { fontSize: 14, fontWeight: '500' },

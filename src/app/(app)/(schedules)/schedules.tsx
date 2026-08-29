@@ -1,6 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { actionableError, api } from '@/api/client';
 import type { ScheduleListResponse, ScheduleOccurrence } from '@/api/types';
@@ -30,6 +31,7 @@ type Preset = 'pekan' | 'bulan' | 'kustom';
 export default function SchedulesScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
   const awal = useMemo(() => ({ from: isoDate(new Date()), to: tambahHari(30) }), []);
   const [preset, setPreset] = useState<Preset>('bulan');
@@ -96,9 +98,9 @@ export default function SchedulesScreen() {
 
   return (
     <KeyboardAwareScrollView
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
       style={{ backgroundColor: theme.background }}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
       }>

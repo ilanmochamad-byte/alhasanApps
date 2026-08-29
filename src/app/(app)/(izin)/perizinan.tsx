@@ -1,6 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { actionableError, api } from '@/api/client';
 import type { AnakListResponse, IzinCapability, IzinListResponse } from '@/api/types';
@@ -44,6 +45,7 @@ export default function PerizinanScreen() {
 function PerizinanSession() {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { capabilities } = useAuth();
 
   const modes = capabilities.list;
@@ -119,9 +121,9 @@ function PerizinanSession() {
   if (modes.length === 0) {
     return (
       <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         style={{ backgroundColor: theme.background }}
-        contentContainerStyle={styles.content}>
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}>
         <ScreenHeader title="Perizinan" />
         <EmptyState
           title="Belum ada kemampuan perizinan"
@@ -134,9 +136,9 @@ function PerizinanSession() {
   return (
     <View style={styles.screen}>
       <KeyboardAwareScrollView
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         style={{ backgroundColor: theme.background }}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
         }>

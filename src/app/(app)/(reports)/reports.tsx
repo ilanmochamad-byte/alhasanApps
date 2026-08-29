@@ -1,6 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { actionableError, api } from '@/api/client';
 import type { AttendanceStatus, ReportFilters, ReportOptions, ReportResponse } from '@/api/types';
@@ -37,6 +38,7 @@ function ringkasTanggal(value: string) {
 export default function ReportsScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const initial = useMemo<ReportFilters>(
     () => ({ date_from: monthStart(), date_to: isoDate(new Date()) }),
     [],
@@ -115,15 +117,17 @@ export default function ReportsScreen() {
   const statusTotal = data
     ? Object.values(data.summary.statuses).reduce((sum, count) => sum + count, 0)
     : 0;
-  const labelJadwal = scheduleId
-    ? (options?.schedules.find((item) => item.id === scheduleId)?.label ?? 'Satu jadwal')
+  // Chip ringkasan HARUS membaca `applied`, bukan state draf: kalau membaca
+  // draf, ia akan mengaku "Sakit" padahal tabel di bawahnya masih hasil lama.
+  const labelJadwalAktif = applied.schedule_id
+    ? (options?.schedules.find((item) => item.id === applied.schedule_id)?.label ?? 'Satu jadwal')
     : 'Semua jadwal';
 
   return (
     <KeyboardAwareScrollView
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
       style={{ backgroundColor: theme.background }}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
       }>
@@ -146,8 +150,8 @@ export default function ReportsScreen() {
           selected
           onPress={() => setBukaFilter(true)}
         />
-        <Chip label={status ?? 'Semua status'} onPress={() => setBukaFilter(true)} />
-        <Chip label={labelJadwal} onPress={() => setBukaFilter(true)} />
+        <Chip label={applied.status ?? 'Semua status'} onPress={() => setBukaFilter(true)} />
+        <Chip label={labelJadwalAktif} onPress={() => setBukaFilter(true)} />
       </ChipRow>
 
       {bukaFilter ? (
@@ -169,6 +173,7 @@ export default function ReportsScreen() {
             <ThemedText selectable type="label">
               Status
             </ThemedText>
+            <View accessibilityRole="radiogroup" accessibilityLabel="Saring menurut status">
             <ChipRow>
               {statusOptions.map((item) => (
                 <Chip
@@ -180,6 +185,7 @@ export default function ReportsScreen() {
                 />
               ))}
             </ChipRow>
+            </View>
           </View>
 
           {options && options.schedules.length > 0 ? (
@@ -187,6 +193,7 @@ export default function ReportsScreen() {
               <ThemedText selectable type="label">
                 Jadwal
               </ThemedText>
+              <View accessibilityRole="radiogroup" accessibilityLabel="Saring menurut jadwal">
               <ChipRow>
                 <Chip
                   accessibilityRole="radio"
@@ -204,6 +211,7 @@ export default function ReportsScreen() {
                   />
                 ))}
               </ChipRow>
+              </View>
             </View>
           ) : null}
 

@@ -132,6 +132,7 @@ function NotifikasiSession() {
       </View>
 
       <Segmented
+        variant="radio"
         accessibilityLabel="Saring notifikasi"
         value={filter}
         onChange={(nilai) => {

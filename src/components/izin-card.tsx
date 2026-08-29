@@ -70,9 +70,12 @@ export function IzinCard({ item, onPress }: { item: Pengajuan; onPress: () => vo
 
   // Kartu antrean memberi tahu tindakan apa yang menunggu. Nilainya berasal
   // dari `aksi` yang dihitung server, bukan dari tebakan di sisi aplikasi.
-  const tindakan = item.aksi.tetapkan_murobi
+  // `aksi` dibaca dengan penjagaan opsional: bila suatu saat muatan daftar
+  // tidak menyertakannya, kartu tetap tampil tanpa petunjuk tindakan alih-alih
+  // menggagalkan seluruh daftar.
+  const tindakan = item.aksi?.tetapkan_murobi
     ? 'Tetapkan murobi'
-    : item.aksi.putuskan_murobi || item.aksi.putuskan_admin
+    : item.aksi?.putuskan_murobi || item.aksi?.putuskan_admin
       ? 'Perlu keputusan'
       : null;
 
@@ -115,8 +118,14 @@ export function IzinCard({ item, onPress }: { item: Pengajuan; onPress: () => vo
         </ThemedText>
 
         <View style={[styles.footer, { borderTopColor: theme.divider }]}>
-          <ThemedText selectable type="overline" themeColor="textMuted" style={[styles.meta, styles.footerText]}>
-            {item.murobi_label ? `Murobi: ${item.murobi_label}` : 'Murobi belum ditetapkan'}
+          <ThemedText
+            selectable
+            type="overline"
+            themeColor="textMuted"
+            numberOfLines={1}
+            style={[styles.meta, styles.footerText]}>
+            {item.pengurus_label ? `${item.pengurus_label} · ` : ''}
+            {item.murobi_label ? `Murobi ${item.murobi_label}` : 'Murobi belum ditetapkan'}
           </ThemedText>
           {tindakan ? (
             <ThemedText selectable type="caption" themeColor="primary" style={styles.action}>

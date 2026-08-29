@@ -1,6 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { actionableError, api } from '@/api/client';
 import type { ScheduleOccurrence, TodayResponse } from '@/api/types';
@@ -26,6 +27,7 @@ function tanggalHariIni() {
 export default function HomeScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { profile, capabilities } = useAuth();
   const [data, setData] = useState<TodayResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +84,12 @@ export default function HomeScreen() {
     data?.next_schedule ??
     null;
   const sorotHariIni = Boolean(sorot && data?.schedules.some((item) => item.id === sorot.id));
+  // Kartu sorot sudah menampilkan satu sesi secara penuh; daftar di bawahnya
+  // menghilangkan sesi itu supaya tidak muncul dua kali di layar yang sama.
+  const sisaHariIni = data
+    ? data.schedules.filter((item) => !(sorotHariIni && sorot && item.id === sorot.id))
+    : [];
+  const tampilkanBerikutnya = Boolean(data?.next_schedule) && sorotHariIni;
 
   const aksiCepat: { icon: IconName; label: string; onPress: () => void }[] = [
     ...(aksesJadwal
@@ -108,9 +116,9 @@ export default function HomeScreen() {
 
   return (
     <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
       style={{ backgroundColor: theme.background }}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
       }>
@@ -172,10 +180,14 @@ export default function HomeScreen() {
           {data.schedules.length === 0 ? (
             <EmptyState
               title="Tidak ada jadwal hari ini"
-              message="Jadwal berikutnya akan ditampilkan di bawah."
+              message="Jadwal berikutnya ditampilkan di kartu atas."
             />
+          ) : sisaHariIni.length === 0 ? (
+            <ThemedText selectable type="caption" themeColor="textMuted">
+              Hanya ada satu sesi hari ini — ada di kartu atas.
+            </ThemedText>
           ) : (
-            data.schedules.map((schedule) => (
+            sisaHariIni.map((schedule) => (
               <ScheduleCard
                 key={`${schedule.id}-${schedule.occurrence_date}`}
                 schedule={schedule}
@@ -185,12 +197,15 @@ export default function HomeScreen() {
             ))
           )}
 
-          <SectionHeader title="Jadwal berikutnya" />
-          {data.next_schedule ? (
-            <ScheduleCard schedule={data.next_schedule} onPress={() => openSchedule(data.next_schedule!)} />
-          ) : (
-            <EmptyState title="Belum ada jadwal mendatang" message="Tarik ke bawah untuk memuat ulang." />
-          )}
+          {tampilkanBerikutnya ? (
+            <>
+              <SectionHeader title="Jadwal berikutnya" />
+              <ScheduleCard
+                schedule={data.next_schedule!}
+                onPress={() => openSchedule(data.next_schedule!)}
+              />
+            </>
+          ) : null}
         </>
       ) : null}
     </ScrollView>

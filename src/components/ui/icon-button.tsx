@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dot: { position: 'absolute', top: 6, right: 6, width: 9, height: 9, borderRadius: 999, borderWidth: 2 },
+  dot: { position: 'absolute', top: 6, right: 6, width: 9, height: 9, borderRadius: Radius.pill, borderWidth: 2 },
   badge: {
     position: 'absolute',
     top: 5,
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     minWidth: 18,
     height: 18,
     paddingHorizontal: 4,
-    borderRadius: 999,
+    borderRadius: Radius.pill,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',

@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { AppIcon } from '@/components/app-icon';
 import { ThemedText } from '@/components/themed-text';
+import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 /**
@@ -80,7 +81,7 @@ const styles = StyleSheet.create({
   dot: {
     width: 26,
     height: 26,
-    borderRadius: 999,
+    borderRadius: Radius.pill,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
