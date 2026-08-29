@@ -4,6 +4,7 @@ import * as Sharing from 'expo-sharing';
 
 import { api } from '@/api/client';
 import type { IzinLaporanFilters } from '@/api/types';
+import { openSystemPrintDialog } from '@/report/print-dialog';
 import { opsiCetakA4Lanskap, opsiPdfA4Lanskap } from '@/report/print-page';
 
 /**
@@ -40,7 +41,7 @@ function namaBerkasAman(nama: string, ekstensiDefault: string): string {
  */
 export async function cetakLaporanIzin(filters: IzinLaporanFilters) {
   const { html } = await api.izinLaporanCetak(filters);
-  await Print.printAsync({ html, ...opsiCetakA4Lanskap });
+  return openSystemPrintDialog({ html, ...opsiCetakA4Lanskap });
 }
 
 /**
@@ -53,7 +54,7 @@ export async function bagikanLaporanIzinPdf(filters: IzinLaporanFilters) {
   const { html } = await api.izinLaporanCetak(filters);
 
   if (process.env.EXPO_OS === 'web') {
-    await Print.printAsync({ html, ...opsiCetakA4Lanskap });
+    await openSystemPrintDialog({ html, ...opsiCetakA4Lanskap });
     return;
   }
 

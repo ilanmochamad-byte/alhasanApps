@@ -137,7 +137,8 @@ function LaporanIzinSession() {
     setInfo(null);
     try {
       if (pilihanAksi === 'cetak') {
-        await cetakLaporanIzin(filterTerkirim);
+        const hasil = await cetakLaporanIzin(filterTerkirim);
+        if (hasil === 'dibatalkan') setInfo('Pencetakan dibatalkan.');
       } else if (pilihanAksi === 'pdf') {
         await bagikanLaporanIzinPdf(filterTerkirim);
       } else {
