@@ -27,6 +27,15 @@ import { Colors } from '@/constants/theme';
  * Bentuk bilah tab digambar oleh sistem operasi — pada iOS 26 ia tampil
  * sebagai bar Liquid Glass yang mengambang. Yang dikendalikan berkas ini
  * hanyalah ikon, label, warna, dan tab mana yang tampil.
+ *
+ * Latar bilah sengaja TIDAK diatur agar material bawaan sistem (Liquid Glass
+ * di iOS 26, Material 3 di Android) tetap bekerja dan mengikuti mode gelap.
+ *
+ * Catatan penting soal ikon: bilah tab memakai ukuran alami berkas gambar.
+ * Berkas ikon karena itu wajib tersedia dalam tiga kerapatan — `nama.png`
+ * 24 px, `nama@2x.png` 48 px, `nama@3x.png` 72 px. Tanpa akhiran kerapatan,
+ * React Native menganggap PNG 96 px sebagai 1x dan ikonnya tampil setinggi
+ * 96 pt, memenuhi seluruh bilah.
  */
 export default function AppTabs() {
   const scheme = useColorScheme();
@@ -39,9 +48,13 @@ export default function AppTabs() {
 
   return (
     <NativeTabs
-      backgroundColor={colors.background}
+      tintColor={colors.primary}
+      iconColor={{ default: colors.textMuted, selected: colors.primary }}
       indicatorColor={colors.backgroundSelected}
-      labelStyle={{ selected: { color: colors.primary } }}>
+      labelStyle={{
+        default: { color: colors.textMuted },
+        selected: { color: colors.primary },
+      }}>
       <NativeTabs.Trigger name="(home)">
         <NativeTabs.Trigger.Label>Beranda</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
