@@ -35,15 +35,35 @@ export const A4_LANSKAP = {
   height: 595,
 } as const;
 
+/**
+ * Margin horizontal native iOS dalam point (72 PPI).
+ *
+ * 1 cm = 72 / 2,54 = 28,35 pt. Nilai 29 dipilih agar jarak nyata tidak
+ * kurang dari 1 cm setelah pembulatan mesin PDF. Atas/bawah tetap nol karena
+ * paginator server sudah menyediakan cadangan vertikal dan penambahan margin
+ * vertikal akan menghidupkan kembali halaman hantu.
+ *
+ * Android mengabaikan opsi `margins` ini dan memakai aturan CSS
+ * `@page { margin: 12mm 10mm }` dari HTML laporan.
+ */
+export const MARGIN_IOS_HORIZONTAL_1CM = {
+  left: 29,
+  right: 29,
+  top: 0,
+  bottom: 0,
+} as const;
+
 /** Opsi `printAsync` untuk laporan: A4 lanskap, plus orientasi iOS. */
 export const opsiCetakA4Lanskap: Print.PrintOptions = {
   ...A4_LANSKAP,
   orientation: Print.Orientation.landscape,
+  margins: MARGIN_IOS_HORIZONTAL_1CM,
 };
 
 /** Opsi `printToFileAsync` untuk laporan: A4 lanskap lintas platform. */
 export const opsiPdfA4Lanskap: Print.FilePrintOptions = {
   ...A4_LANSKAP,
+  margins: MARGIN_IOS_HORIZONTAL_1CM,
   // WebView Android memiliki pengaturan zoom teks sendiri. Menetapkannya
   // eksplisit mencegah konfigurasi perangkat/OEM memperbesar tinggi baris
   // dan memecah satu lembar server menjadi dua halaman fisik. iOS
