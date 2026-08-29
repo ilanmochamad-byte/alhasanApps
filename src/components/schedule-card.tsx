@@ -1,31 +1,94 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import type { ScheduleOccurrence } from '@/api/types';
 import { ThemedText } from '@/components/themed-text';
+import { Badge } from '@/components/ui/chip';
+import { Card } from '@/components/ui/surface';
 import { useTheme } from '@/hooks/use-theme';
 
-export function ScheduleCard({ schedule, onPress }: { schedule: ScheduleOccurrence; onPress: () => void }) {
+/** Nada lencana mengikuti status pertemuan, bukan warna tunggal seperti V1. */
+function meetingTone(status: string | undefined) {
+  if (status === 'Selesai') return 'primary' as const;
+  if (status === 'Dibuka') return 'primary' as const;
+  if (status === 'Draf') return 'warning' as const;
+  return 'neutral' as const;
+}
+
+export function ScheduleCard({
+  schedule,
+  onPress,
+  /** Sembunyikan tanggal bila kartu sudah berada di bawah judul tanggal. */
+  hideDate,
+}: {
+  schedule: ScheduleOccurrence;
+  onPress: () => void;
+  hideDate?: boolean;
+}) {
   const theme = useTheme();
   const meetingLabel = schedule.meeting ? schedule.meeting.status : 'Belum dibuka';
+  const aktif = Boolean(schedule.meeting);
+
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${schedule.subject}, ${schedule.class.name}, ${schedule.start_time}`} onPress={onPress}
-      style={({ pressed }) => [styles.card, { backgroundColor: theme.card, borderColor: theme.border, opacity: pressed ? 0.76 : 1 }]}>
-      <View style={styles.row}><ThemedText selectable style={styles.subject}>{schedule.subject}</ThemedText><View style={[styles.badge, { backgroundColor: theme.backgroundSelected }]}><ThemedText selectable type="smallBold" themeColor="primary">{meetingLabel}</ThemedText></View></View>
-      <ThemedText selectable>{formatDate(schedule.occurrence_date)} · {schedule.start_time}–{schedule.end_time}</ThemedText>
-      <ThemedText selectable themeColor="textSecondary">{schedule.class.name} · {schedule.place}</ThemedText>
-      <ThemedText selectable type="small" themeColor="textSecondary">Kitab: {schedule.book}</ThemedText>
-    </Pressable>
+    <Card
+      onPress={onPress}
+      accessibilityLabel={`${schedule.subject}, ${schedule.class.name}, ${schedule.start_time}`}
+      style={styles.card}>
+      <View style={styles.time}>
+        <ThemedText selectable style={styles.timeStart}>
+          {schedule.start_time}
+        </ThemedText>
+        <ThemedText selectable style={[styles.timeEnd, { color: theme.textMuted }]}>
+          {schedule.end_time}
+        </ThemedText>
+      </View>
+      <View style={[styles.rail, { backgroundColor: aktif ? theme.primary : theme.backgroundSelected }]} />
+      <View style={styles.body}>
+        <View style={styles.titleRow}>
+          <ThemedText selectable type="h3" style={styles.title}>
+            {schedule.subject} · {schedule.class.name}
+          </ThemedText>
+          <Badge label={meetingLabel} tone={meetingTone(schedule.meeting?.status)} />
+        </View>
+        {hideDate ? null : (
+          <ThemedText selectable type="caption" themeColor="textSecondary">
+            {formatDate(schedule.occurrence_date)}
+          </ThemedText>
+        )}
+        <ThemedText selectable type="caption" themeColor="textSecondary">
+          {schedule.place} · {schedule.book}
+        </ThemedText>
+      </View>
+    </Card>
   );
 }
 
 export function formatDate(value: string) {
   const parsed = new Date(`${value}T00:00:00`);
-  return Number.isNaN(parsed.getTime()) ? value : new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(parsed);
+  return Number.isNaN(parsed.getTime())
+    ? value
+    : new Intl.DateTimeFormat('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }).format(parsed);
+}
+
+/** Versi pendek untuk judul kelompok tanggal. */
+export function formatDateShort(value: string) {
+  const parsed = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsed.getTime())
+    ? value
+    : new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long' }).format(parsed);
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderRadius: 18, borderCurve: 'continuous', padding: 16, gap: 6, boxShadow: '0 2px 10px rgba(18, 42, 25, 0.06)' },
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  subject: { fontSize: 18, lineHeight: 24, fontWeight: '800', flex: 1 },
-  badge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  card: { flexDirection: 'row', gap: 13, alignItems: 'stretch' },
+  time: { width: 52, gap: 2 },
+  timeStart: { fontSize: 15, lineHeight: 19, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  timeEnd: { fontSize: 12, lineHeight: 15, fontWeight: '500', fontVariant: ['tabular-nums'] },
+  rail: { width: 2, borderRadius: 2 },
+  body: { flex: 1, gap: 4 },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  title: { flex: 1 },
 });

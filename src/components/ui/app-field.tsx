@@ -58,7 +58,7 @@ export function Field({
 }
 
 /** Kolom cari satu baris. Terapkan pencarian lewat `onSubmitEditing`. */
-export function SearchField(props: TextInputProps) {
+export function SearchField(props: TextInputProps & { label?: string; hint?: string; trailing?: ReactNode }) {
   return <Field icon="search" returnKeyType="search" {...props} />;
 }
 
