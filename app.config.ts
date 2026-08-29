@@ -8,9 +8,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ?? (config.extra?.eas as { projectId?: string } | undefined)?.projectId
     ?? EAS_PROJECT_ID;
   const googleServicesFile = process.env.GOOGLE_SERVICES_JSON;
-  const apsEnvironment = process.env.EAS_BUILD_PROFILE === 'production'
-    ? 'production'
-    : 'development';
 
   return {
     ...config,
@@ -20,7 +17,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...config.ios,
       entitlements: {
         ...config.ios?.entitlements,
-        'aps-environment': apsEnvironment,
+        // Expo menulis `development` pada konfigurasi sumber. Saat arsip
+        // distribusi dibuat, Xcode/provisioning profile menggantinya menjadi
+        // `production`. Nilai ini sengaja tidak bergantung pada env JavaScript
+        // agar setiap build iOS selalu meminta capability APNs.
+        'aps-environment': 'development',
       },
     },
     android: {
