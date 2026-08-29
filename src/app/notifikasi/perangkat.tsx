@@ -77,8 +77,8 @@ export default function PerangkatPushScreen() {
               : pushState.alasan}
         </ThemedText>
         <ThemedText selectable type="small" themeColor="textSecondary">
-          Push jarak jauh memerlukan development build dan perangkat nyata. Expo Go, emulator, dan simulator
-          tidak menerima push.
+          Push jarak jauh hanya bekerja pada perangkat nyata dari build EAS yang ditandatangani dengan
+          credential push. Expo Go, emulator, dan simulator tidak didukung.
         </ThemedText>
         <View style={styles.actions}>
           {pushAktifDiSini ? (

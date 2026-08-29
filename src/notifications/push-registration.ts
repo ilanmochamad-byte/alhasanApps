@@ -73,6 +73,33 @@ function projectId(): string {
   return (fromEas || fromExtra || fromLegacy || '').trim();
 }
 
+function registrationFailure(caught: unknown): Exclude<RegistrationOutcome, { status: 'ok' }> {
+  const pesan = caught instanceof Error ? caught.message : String(caught ?? '');
+
+  // Galat ini berasal dari binary/provisioning profile iOS, bukan dari izin
+  // notifikasi yang dapat diminta ulang oleh JavaScript. Menampilkan exception
+  // Swift mentah hanya membuat pengguna mengira tombolnya rusak.
+  if (Platform.OS === 'ios' && /aps-environment|entitlement/i.test(pesan)) {
+    return {
+      status: 'belum_dikonfigurasi',
+      alasan:
+        'Build iOS ini belum memiliki izin native Push Notifications (APNs). Instal build EAS terbaru yang sudah ditandatangani dengan credential push, lalu buka kembali aplikasi.',
+    };
+  }
+
+  if (/expo go/i.test(pesan)) {
+    return {
+      status: 'tidak_didukung',
+      alasan: 'Push jarak jauh tidak tersedia di Expo Go. Instal development build pada perangkat nyata.',
+    };
+  }
+
+  return {
+    status: 'gagal',
+    alasan: 'Registrasi push gagal. Periksa koneksi internet, lalu coba kembali.',
+  };
+}
+
 /**
  * Meminta izin bila perlu, lalu mengambil Expo push token.
  *
@@ -146,13 +173,7 @@ export async function registerForPushNotificationsAsync(minta = false): Promise<
       platform: Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web',
     };
   } catch (caught) {
-    // Penyebab paling umum: aplikasi berjalan di Expo Go (push jarak jauh tidak
-    // didukung sejak SDK 53) atau credential push belum disiapkan di EAS.
-    const pesan = caught instanceof Error ? caught.message : 'Registrasi push gagal.';
-    return {
-      status: 'gagal',
-      alasan: `${pesan} Pastikan aplikasi dijalankan sebagai development build, bukan Expo Go.`,
-    };
+    return registrationFailure(caught);
   }
 }
 
