@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>frame</title>
+<style>
+@font-face{font-family:Inter;src:url('node_modules/@fontsource/inter/files/inter-latin-500-normal.woff2') format('woff2');font-weight:500;font-display:block}
+@font-face{font-family:Inter;src:url('node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2') format('woff2');font-weight:600;font-display:block}
+@font-face{font-family:Inter;src:url('node_modules/@fontsource/inter/files/inter-latin-700-normal.woff2') format('woff2');font-weight:700;font-display:block}
+@font-face{font-family:Inter;src:url('node_modules/@fontsource/inter/files/inter-latin-800-normal.woff2') format('woff2');font-weight:800;font-display:block}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+body{font-family:Inter,system-ui,sans-serif}
+.stage{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;
+  background:linear-gradient(163deg,#1E7A44 0%,#146034 42%,#0A3A1E 100%)}
+.stage::before{content:'';position:absolute;top:-18%;right:-24%;width:78%;aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle,rgba(201,245,1,.22) 0%,rgba(201,245,1,0) 68%)}
+.stage::after{content:'';position:absolute;bottom:-16%;left:-22%;width:70%;aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle,rgba(98,201,133,.20) 0%,rgba(98,201,133,0) 70%)}
+.cap{position:relative;z-index:2;text-align:center;display:flex;flex-direction:column;align-items:center;
+  gap:var(--capgap,12px)}
+.eyebrow{font-size:var(--eyebrow,13px);font-weight:800;letter-spacing:2.4px;color:#C9F501;text-transform:uppercase;opacity:.92}
+h1{font-size:var(--title,38px);line-height:1.16;font-weight:800;letter-spacing:-.9px;color:#fff}
+.sub{font-size:var(--sub,17px);line-height:1.45;font-weight:500;color:rgba(232,246,236,.80);max-width:var(--subw,86%)}
+.shot{position:relative;z-index:2}
+
+/* device bezel */
+.bezel{position:relative;background:#0A0F0C;border-radius:var(--br,52px);padding:var(--bz,11px);
+  box-shadow:0 40px 90px rgba(3,20,10,.55),0 0 0 1.5px rgba(255,255,255,.14) inset,0 2px 0 rgba(255,255,255,.10) inset}
+.bezel img{display:block;width:100%;height:auto;border-radius:calc(var(--br) - var(--bz));background:#F4F7F4}
+.island{position:absolute;top:calc(var(--bz) + 11px);left:50%;transform:translateX(-50%);
+  width:var(--iw,31%);height:var(--ih,30px);background:#0A0F0C;border-radius:999px;z-index:3}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="cap" id="cap"></div>
+  <div class="shot" id="shot"></div>
+</div>
+<script>
+const P=new URLSearchParams(location.search);
+const n=(k,d)=>P.get(k)!==null?P.get(k):d;
+const stage=document.getElementById('stage');
+const W=+n('w',440), H=+n('h',956);
+stage.style.width=W+'px'; stage.style.height=H+'px';
+stage.style.paddingTop=n('pt',54)+'px';
+stage.style.gap=n('gap',36)+'px';
+for (const [k,v] of [['--title',n('title',38)+'px'],['--sub',n('subsize',17)+'px'],
+  ['--eyebrow',n('eyebrow',13)+'px'],['--subw',n('subw','88%')],['--capgap',n('capgap',12)+'px'],
+  ['--br',n('br',52)+'px'],['--bz',n('bz',11)+'px'],['--ih',n('ih',30)+'px'],['--iw',n('iw','31%')]])
+  stage.style.setProperty(k,v);
+
+document.getElementById('cap').innerHTML =
+  (P.get('eyebrowText')?`<div class="eyebrow">${P.get('eyebrowText')}</div>`:'') +
+  `<h1>${(P.get('t')||'').replace(/\|/g,'<br>')}</h1>` +
+  (P.get('s')?`<div class="sub">${P.get('s')}</div>`:'');
+
+const shot=document.getElementById('shot');
+shot.style.width=n('dw',326)+'px';
+shot.innerHTML=`<div class="bezel"><img src="${P.get('img')}">${n('island','1')==='1'?'<div class="island"></div>':''}</div>`;
+const img=shot.querySelector('img');
+img.onload=()=>document.documentElement.setAttribute('data-ready','1');
+if(img.complete)document.documentElement.setAttribute('data-ready','1');
+</script>
+</body>
+</html>
