@@ -38,6 +38,7 @@ function RootNavigator() {
         <Stack.Screen name="izin/[id]" options={{ title: 'Detail Pengajuan Izin' }} />
         {/* V2 Fase 4 — notifikasi. Redesain V2 memindahkannya dari tab ke
             tumpukan: pintu masuknya adalah lonceng di bilah judul. */}
+        <Stack.Screen name="publikasi/[id]" options={{ title: 'Informasi pembinaan' }} />
         <Stack.Screen name="notifikasi/index" options={{ title: 'Notifikasi' }} />
         <Stack.Screen name="notifikasi/[id]" options={{ title: 'Detail Notifikasi' }} />
         <Stack.Screen name="notifikasi/perangkat" options={{ title: 'Perangkat & Push' }} />

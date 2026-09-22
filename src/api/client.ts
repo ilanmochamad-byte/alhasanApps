@@ -2,6 +2,7 @@ import { fetch } from 'expo/fetch';
 import Constants from 'expo-constants';
 
 import type {
+  PublikasiDetail,
   AnakListResponse,
   AttendancePayload,
   CapabilityPayload,
@@ -305,6 +306,8 @@ export const api = {
       `/notifikasi${query({ ...params, per_page: params.per_page ?? 20 })}`,
     );
   },
+  publikasiDetail: (id: number) => request<PublikasiDetail>(`/v3/publikasi/${id}`),
+  publikasiDibaca: (id: number, version: number) => request<PublikasiDetail>(`/v3/publikasi/${id}/dibaca`, { method: 'POST', body: { version } }),
   notifikasiBelumDibaca: () => request<NotifikasiUnreadResponse>('/notifikasi/belum-dibaca'),
   notifikasiDetail: (id: number) => request<NotifikasiDetailResponse>(`/notifikasi/${id}`),
   notifikasiTandaiDibaca(id: number) {
