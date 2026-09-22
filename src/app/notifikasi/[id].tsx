@@ -100,6 +100,9 @@ export default function NotifikasiDetailScreen() {
             }
           />
         ) : null}
+        {data.tautan.tipe === 'v3_publikasi' && data.tautan.publikasi_id ? (
+          <AppButton label="Buka informasi pembinaan" onPress={() => router.push({ pathname: '/publikasi/[id]', params: { id: String(data.tautan.publikasi_id) } })} />
+        ) : null}
         <AppButton label="Kembali" variant="secondary" onPress={() => router.back()} />
       </View>
     </ScrollView>

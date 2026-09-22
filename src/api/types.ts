@@ -477,7 +477,7 @@ export type Notifikasi = {
    * Penunjuk sumber daya saja. Aplikasi WAJIB tetap memanggil endpoint detail
    * izin, yang memverifikasi hak akses di server.
    */
-  tautan: { tipe: string; pengajuan_id: number | null };
+  tautan: { tipe: string; pengajuan_id: number | null; publikasi_id?: number | null };
 };
 
 export type NotifikasiListResponse = {
@@ -649,4 +649,9 @@ export type IzinLaporanCsvResponse = {
   kriteria: string;
   terpotong: boolean;
   ringkasan: IzinLaporanRingkasan;
+};
+
+export type PublikasiDetail = {
+  publikasi: { id: number; santri_id: number; ringkasan: string; tindak_lanjut: string | null; diterbitkan_pada: string; ditarik_pada: string | null; dibaca_pada: string | null; version: number; status: 'Terbit' | 'Ditarik' };
+  riwayat: { version: number; tindakan: string; created_at: string }[];
 };

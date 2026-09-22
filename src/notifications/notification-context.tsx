@@ -102,7 +102,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   });
 
   const userId = profile?.id ?? null;
-  const tertunda = useRef<number | null>(null);
+  const tertunda = useRef<{ tipe: string; id: number } | null>(null);
   const sudahMendaftar = useRef<number | null>(null);
 
   const jumlahBelumDibaca = cacheJumlah.userId === userId && userId !== null ? cacheJumlah.jumlah : 0;
@@ -139,17 +139,18 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   const buka = useCallback(
     (data: unknown) => {
       if (typeof data !== 'object' || data === null) return;
-      const payload = data as { tipe?: unknown; pengajuan_id?: unknown };
-      if (payload.tipe !== 'izin') return;
-      const id = Number(payload.pengajuan_id);
+      const payload = data as { tipe?: unknown; pengajuan_id?: unknown; publikasi_id?: unknown };
+      if (payload.tipe !== 'izin' && payload.tipe !== 'v3_publikasi') return;
+      const id = Number(payload.tipe === 'izin' ? payload.pengajuan_id : payload.publikasi_id);
       if (!Number.isInteger(id) || id < 1) return;
 
       if (userId === null) {
         // Belum masuk: simpan tujuan dan buka setelah autentikasi berhasil.
-        tertunda.current = id;
+        tertunda.current = { tipe: payload.tipe, id };
         return;
       }
-      router.push({ pathname: '/izin/[id]', params: { id: String(id) } });
+      if (payload.tipe === 'v3_publikasi') router.push({ pathname: '/publikasi/[id]', params: { id: String(id) } });
+      else router.push({ pathname: '/izin/[id]', params: { id: String(id) } });
     },
     [router, userId],
   );
@@ -244,7 +245,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     const menunggu = tertunda.current;
     if (menunggu !== null) {
       tertunda.current = null;
-      router.push({ pathname: '/izin/[id]', params: { id: String(menunggu) } });
+      router.push({ pathname: menunggu.tipe === 'v3_publikasi' ? '/publikasi/[id]' : '/izin/[id]', params: { id: String(menunggu.id) } });
     }
 
     return () => {
