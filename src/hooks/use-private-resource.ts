@@ -16,13 +16,22 @@ export function usePrivateResource<T>(fetcher: () => Promise<T>, onClear?: () =>
     try { const result = await fetcher(); if (active.current && epoch === generation.current) setData(result); }
     catch (e) { if (active.current && epoch === generation.current) setError(actionableError(e)); }
   }, [fetcher]);
+  // Pergantian fetcher (mis. halaman pilihan) hanya memuat ulang data; isian
+  // pengguna dibersihkan hanya saat layar blur, aplikasi ke latar, atau unmount.
+  const loadRef = useRef(load);
+  const firstLoad = useRef(true);
+  useEffect(() => {
+    loadRef.current = load;
+    if (firstLoad.current) { firstLoad.current = false; return; }
+    if (active.current) void load();
+  }, [load]);
   useFocusEffect(useCallback(() => {
-    active.current = true; void load();
+    active.current = true; void loadRef.current();
     const clear = () => { active.current = false; generation.current++; setData(null); clearRef.current?.(); };
     const sub = AppState.addEventListener('change', state => {
-      if (state === 'active') { active.current = true; void load(); } else clear();
+      if (state === 'active') { active.current = true; void loadRef.current(); } else clear();
     });
     return () => { clear(); sub.remove(); };
-  }, [load]));
+  }, []));
   return { data, error, load, active, generation };
 }
