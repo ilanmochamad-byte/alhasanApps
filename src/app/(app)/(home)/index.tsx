@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { PembinaanEntry } from '@/components/pembinaan-entry';
 import { actionableError, api } from '@/api/client';
 import type { ScheduleOccurrence, TodayResponse } from '@/api/types';
 import { useAuth } from '@/auth/auth-context';
@@ -123,6 +124,7 @@ export default function HomeScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
       }>
       <BrandHeader />
+      <PembinaanEntry key={profile?.id} />
       <Greeting name={profile?.guru?.name ?? profile?.name ?? ''} date={tanggalHariIni()} />
 
       {sorot ? (

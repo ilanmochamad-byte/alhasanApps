@@ -100,6 +100,8 @@ export const KeyboardAwareTextInput = forwardRef<TextInput, TextInputProps>(
         ref={ref}
         onFocus={(event) => {
           onFocus?.(event);
+          // React Native Web has no currentlyFocusedInput native method.
+          if (process.env.EXPO_OS === 'web') return;
           const focusedInput = TextInput.State.currentlyFocusedInput() ?? event.target;
           keyboardContext?.revealInput(focusedInput);
         }}
