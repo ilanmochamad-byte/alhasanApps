@@ -94,7 +94,7 @@ async function delay(milliseconds: number) {
   await new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const method = options.method ?? 'GET';
   const authenticated = options.authenticated ?? true;
   const retryCount = options.retryCount ?? (method === 'GET' ? 2 : 0);
@@ -383,7 +383,7 @@ export function actionableError(error: unknown): string {
   if (error.code === 'TIMEOUT') return 'Permintaan melewati batas waktu. Periksa koneksi lalu coba lagi.';
   if (error.code === 'CONFIG_ERROR') return error.message;
   if (error.status === 401) return 'Sesi Anda berakhir. Silakan masuk kembali.';
-  if (error.status === 403) return 'Anda tidak memiliki akses ke tugas ini. Muat ulang jadwal Anda.';
+  if (error.status === 403) return 'Informasi tidak dapat diakses. Muat ulang atau masuk dengan akun yang berhak.';
   if (error.status === 404) return `${error.message} Data mungkin sudah dihapus atau dipindahkan.`;
   if (error.status === 409) return `${error.message} Muat ulang data sebelum mencoba kembali.`;
   if (error.status === 422) return `${error.message} Periksa kembali isian Anda.`;
