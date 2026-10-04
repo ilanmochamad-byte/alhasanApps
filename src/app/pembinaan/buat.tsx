@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { KeyboardAwareScrollView as ScrollView } from '@/components/keyboard-aware-scroll-view';
 import { pembinaan, pembinaanOptions, type Student, type Catalog, type V3Row } from '@/api/pembinaan';
@@ -26,8 +26,16 @@ function CreateSession({ params }: { params: { jenis: string; rekomendasi?: stri
     if (!options.dapat_mencatat) throw new ApiError('Penugasan pembimbing aktif diperlukan.', 403, 'FORBIDDEN');
     return options;
   }, []);
-  const clear = () => { setStudent(null); setCatalog(null); setText(''); setTime(''); setPrivacy(''); guard.reset(); };
+  // Simpan yang berhasil ketika layar di latar diingat (hanya id) sampai akses dimuat ulang,
+  // agar isian yang sudah tersimpan tidak dapat diubah lalu terkirim sebagai catatan kedua.
+  const saved = useRef<number | null>(null); const draft = useRef(0);
+  const clear = () => { draft.current++; saved.current = null; setStudent(null); setCatalog(null); setText(''); setTime(''); setPrivacy(''); guard.reset(); };
   const { data, error, load, active, generation } = usePrivateResource(fetcher, clear, true);
+  const openSaved = useEffectEvent(() => {
+    if (saved.current === null) return;
+    const id = saved.current; clear(); router.replace({ pathname: '/pembinaan/detail', params: { jenis: params.jenis, id: String(id) } });
+  });
+  useEffect(() => { if (data) openSaved(); }, [data]);
   const student = data?.santri.find(s => s.santri_id === studentDraft?.santri_id && s.tahun_ajaran_id === studentDraft?.tahun_ajaran_id) ?? null;
   const catalog = data?.katalog.find(k => k.id === catalogDraft?.id) ?? null;
   const violation = params.jenis === 'pelanggaran';
@@ -37,10 +45,12 @@ function CreateSession({ params }: { params: { jenis: string; rekomendasi?: stri
   const save = async () => {
     if (!student || !text.trim() || (violation && (!catalog || !isLocalDateTime(time))) || (!violation && (!privacy || (time !== '' && !isLocalDateTime(time))))) return;
     const body = violation ? { santri_id: student.santri_id, tahun_ajaran_id: student.tahun_ajaran_id, katalog_id: catalog!.id, waktu_kejadian: time, uraian: text } : { santri_id: student.santri_id, tahun_ajaran_id: student.tahun_ajaran_id, tujuan: text, kerahasiaan: privacy, ...(time ? { dibuka_pada: time } : {}), rekomendasi_ids: params.rekomendasi ? [Number(params.rekomendasi)] : [] };
-    const epoch = generation.current;
+    const epoch = generation.current; const session = draft.current;
     const r = await guard.run(JSON.stringify(body), key => pembinaan.mutate<{ kasus?: V3Row; pelanggaran?: V3Row }>(violation ? 'pelanggaran' : 'konseling/kasus', { ...body, idempotency_key: key }));
     const row = r?.kasus ?? r?.pelanggaran;
-    if (row && active.current && epoch === generation.current) { clear(); router.replace({ pathname: '/pembinaan/detail', params: { jenis: params.jenis, id: String(row.id) } }); }
+    if (!row) return;
+    if (active.current && epoch === generation.current) { clear(); router.replace({ pathname: '/pembinaan/detail', params: { jenis: params.jenis, id: String(row.id) } }); }
+    else if (session === draft.current) { saved.current = row.id; if (active.current) void load(); }
   };
   return <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24, gap: 16 }}>
     <DropdownField label="Santri dalam cakupan aktif" searchable disabled={guard.isBusy}
