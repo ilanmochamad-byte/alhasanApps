@@ -16,7 +16,7 @@ import { ApiError, actionableError, createIdempotencyKey } from '@/api/client';
  *      server menolak request secara definitif, atau ketika fingerprint payload
  *      berubah. Layar tidak perlu mengingat memanggil `reset()` untuk setiap isian.
  */
-export function useMutationGuard(prefix: string) {
+export function useMutationGuard(prefix: string, retainSuccessUntilReset = false) {
   const [isBusy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const keyRef = useRef<string | null>(null);
@@ -56,8 +56,12 @@ export function useMutationGuard(prefix: string) {
         const result = await operation(idempotencyKey());
         // Sukses: kunci berikutnya harus baru agar operasi berikutnya tidak
         // dianggap sebagai pemutaran ulang operasi ini.
-        keyRef.current = null;
-        payloadFingerprintRef.current = null;
+        // Formulir yang tertahan di latar harus dapat mengulang respons sukses
+        // dengan kunci sama sampai layar mengonsumsi hasilnya dan memanggil reset.
+        if (!retainSuccessUntilReset) {
+          keyRef.current = null;
+          payloadFingerprintRef.current = null;
+        }
         return result;
       } catch (caught) {
         setError(actionableError(caught));
@@ -73,7 +77,7 @@ export function useMutationGuard(prefix: string) {
         setBusy(false);
       }
     },
-    [idempotencyKey],
+    [idempotencyKey, retainSuccessUntilReset],
   );
 
   return { isBusy, error, setError, run, reset, idempotencyKey };

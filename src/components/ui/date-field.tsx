@@ -5,35 +5,25 @@ import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 import { AppIcon } from '@/components/app-icon';
 import { AppButton } from '@/components/app-button';
 import { ThemedText } from '@/components/themed-text';
-import { Field } from '@/components/ui/app-field';
+import { WebDateInput } from '@/components/ui/web-date-input';
 import { Radius } from '@/constants/theme';
 import { isoDate, parseIsoDate, formatSedang } from '@/lib/date';
 import { useTheme } from '@/hooks/use-theme';
 
-/**
- * Kolom tanggal dengan pemilih kalender bawaan sistem.
- *
- * Menggantikan kolom ketik `YYYY-MM-DD` yang menuntut pengguna menghafal
- * format. Nilai yang dipegang komponen ini TETAP string `YYYY-MM-DD` dan
- * disusun dari komponen tanggal lokal (lihat `lib/date`), sehingga muatan yang
- * dikirim ke setiap endpoint sama persis seperti sebelumnya — tidak ada
- * perubahan di sisi API maupun basis data.
- *
- * Pemilihnya berasal dari `@expo/ui`, yang sudah menjadi dependensi proyek:
- * SwiftUI DatePicker di iOS dan Jetpack Compose DatePicker di Android. Di web,
- * yang tidak punya pemilih native, kolom ketik lama tetap dipakai.
- */
+/** Kalender/jam native; browser memakai input tanggal/jam bawaan. */
 export function DateField({
   label,
   value,
   onChange,
-  placeholder = 'Pilih tanggal',
+  placeholder,
+  mode = 'date',
   minimumDate,
   maximumDate,
   disabled,
 }: {
   label?: string;
-  /** `YYYY-MM-DD`, atau string kosong bila belum dipilih. */
+  mode?: 'date' | 'time';
+  /** `YYYY-MM-DD` (date), `HH:mm` (time), atau kosong bila belum dipilih. */
   value: string;
   onChange: (next: string) => void;
   placeholder?: string;
@@ -46,22 +36,14 @@ export function DateField({
   const [terbuka, setTerbuka] = useState(false);
   const [draf, setDraf] = useState<Date | null>(null);
 
-  // Web tidak punya pemilih native: pertahankan kolom ketik agar tidak ada
-  // kemampuan yang hilang di sana.
+  const hint = placeholder ?? (mode === 'time' ? 'Pilih jam' : 'Pilih tanggal');
+  const displayValue = mode === 'time' ? value : formatSedang(value);
   if (process.env.EXPO_OS === 'web') {
-    return (
-      <Field
-        label={label}
-        icon="calendar"
-        value={value}
-        onChangeText={onChange}
-        placeholder="YYYY-MM-DD"
-        editable={!disabled}
-      />
-    );
+    return <WebDateInput label={label} type={mode} value={value} onChange={onChange}
+      min={minimumDate} max={maximumDate} disabled={disabled} />;
   }
-
-  const terpilih = parseIsoDate(value) ?? new Date();
+  const terpilih = (mode === 'time' && /^\d{2}:\d{2}$/.test(value)
+    ? new Date(`2000-01-01T${value}:00`) : parseIsoDate(value)) ?? new Date();
   const min = minimumDate ? (parseIsoDate(minimumDate) ?? undefined) : undefined;
   const max = maximumDate ? (parseIsoDate(maximumDate) ?? undefined) : undefined;
 
@@ -72,7 +54,7 @@ export function DateField({
   }
 
   function simpan(date: Date) {
-    onChange(isoDate(date));
+    onChange(mode === 'time' ? `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}` : isoDate(date));
     setTerbuka(false);
   }
 
@@ -87,7 +69,7 @@ export function DateField({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={
-          value ? `${label ?? 'Tanggal'}: ${formatSedang(value)}. Ketuk untuk mengubah.` : `${label ?? 'Tanggal'}: ${placeholder}`
+          value ? `${label ?? 'Tanggal'}: ${displayValue}. Ketuk untuk mengubah.` : `${label ?? 'Tanggal'}: ${hint}`
         }
         accessibilityState={{ disabled: Boolean(disabled) }}
         disabled={disabled}
@@ -101,14 +83,14 @@ export function DateField({
             opacity: disabled ? 0.55 : pressed ? 0.8 : 1,
           },
         ]}>
-        <AppIcon name="calendar" size={18} themeColor={value ? 'primary' : 'textMuted'} />
+        <AppIcon name={mode === 'time' ? 'clock' : 'calendar'} size={18} themeColor={value ? 'primary' : 'textMuted'} />
         <ThemedText
           selectable={false}
           type="bodyBold"
           themeColor={value ? 'text' : 'textMuted'}
           style={styles.value}
           numberOfLines={1}>
-          {value ? formatSedang(value) : placeholder}
+          {value ? displayValue : hint}
         </ThemedText>
         <AppIcon name="chevron-down" size={16} themeColor="textMuted" />
       </Pressable>
@@ -116,7 +98,8 @@ export function DateField({
       {/* Android menampilkan dialog Material begitu komponennya dipasang. */}
       {terbuka && Platform.OS === 'android' ? (
         <DateTimePicker
-          mode="date"
+          mode={mode}
+          is24Hour
           value={terpilih}
           minimumDate={min}
           maximumDate={max}
@@ -139,7 +122,7 @@ export function DateField({
           onRequestClose={() => setTerbuka(false)}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Tutup pemilih tanggal"
+            accessibilityLabel={mode === 'time' ? 'Tutup pemilih jam' : 'Tutup pemilih tanggal'}
             style={styles.backdrop}
             onPress={() => setTerbuka(false)}
           />
@@ -150,12 +133,13 @@ export function DateField({
             ]}>
             <View style={styles.handleRow}>
               <ThemedText selectable type="h3">
-                {label ?? 'Pilih tanggal'}
+                {label ?? hint}
               </ThemedText>
             </View>
             <DateTimePicker
-              mode="date"
-              display="inline"
+              mode={mode}
+              is24Hour
+              display={mode === 'time' ? 'spinner' : 'inline'}
               value={draf ?? terpilih}
               minimumDate={min}
               maximumDate={max}
@@ -173,7 +157,7 @@ export function DateField({
                 onPress={() => setTerbuka(false)}
               />
               <AppButton
-                label="Pilih tanggal"
+                label={mode === 'time' ? 'Pilih jam' : 'Pilih tanggal'}
                 style={styles.sheetButtonWide}
                 onPress={() => simpan(draf ?? terpilih)}
               />
