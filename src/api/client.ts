@@ -382,6 +382,8 @@ export function actionableError(error: unknown): string {
   }
   if (error.code === 'TIMEOUT') return 'Permintaan melewati batas waktu. Periksa koneksi lalu coba lagi.';
   if (error.code === 'CONFIG_ERROR') return error.message;
+  // Galat login membawa petunjuk yang harus dibaca pengguna, bukan pesan sesi/akses generik.
+  if (error.code === 'INVALID_CREDENTIALS' || error.code === 'PASSWORD_CHANGE_REQUIRED') return error.message;
   if (error.status === 401) return 'Sesi Anda berakhir. Silakan masuk kembali.';
   if (error.status === 403) return 'Informasi tidak dapat diakses. Muat ulang atau masuk dengan akun yang berhak.';
   if (error.status === 404) return `${error.message} Data mungkin sudah dihapus atau dipindahkan.`;
