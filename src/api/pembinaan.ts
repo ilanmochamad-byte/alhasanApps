@@ -1,6 +1,6 @@
 import { request } from './client';
 export type V3Caps = { capabilities: Record<string, unknown>; operasional_tersedia: boolean };
-export type Student = { santri_id: number; tahun_ajaran_id: number; nama: string };
+export type Student = { santri_id: number; tahun_ajaran_id: number; nama: string; tahun?: string; semester?: string };
 export type Catalog = { id: number; nama: string; tingkat: string; poin_default: number };
 export type V3Row = { id: number; santri_id: number; santri_nama?: string; tahun_ajaran_id: number; status: string; version: number; kategori?: string; poin?: number; kerahasiaan?: string; tujuan?: string; ringkasan_penutupan?: string };
 export type Session = { id: number; version: number; status: string; jadwal: string; realisasi: string | null; ringkasan_internal?: string; hasil?: string; tindak_lanjut?: string; digantikan_oleh_id: number | null };
@@ -19,3 +19,18 @@ export const pembinaan = {
   violation: (id: number) => request<ViolationDetail>(`/v3/pelanggaran/${id}`),
   mutate: <T>(path: string, body: Body) => request<T>(`/v3/${path}`, { method: 'POST', body }),
 };
+
+/** Transport tetap 25 per halaman; seluruh pilihan disatukan untuk dropdown. */
+export async function pembinaanOptions() {
+  const first = await pembinaan.options(1);
+  const students = new Map(first.santri.map(row => [`${row.santri_id}:${row.tahun_ajaran_id}`, row]));
+  const catalogs = new Map(first.katalog.map(row => [row.id, row]));
+  let batch = first;
+  for (let page = 2; batch.santri.length === 25 || batch.katalog.length === 25; page++) {
+    batch = await pembinaan.options(page);
+    if (!batch.dapat_mencatat) return { santri: [], katalog: [], dapat_mencatat: false };
+    batch.santri.forEach(row => students.set(`${row.santri_id}:${row.tahun_ajaran_id}`, row));
+    batch.katalog.forEach(row => catalogs.set(row.id, row));
+  }
+  return { ...first, santri: [...students.values()], katalog: [...catalogs.values()] };
+}
