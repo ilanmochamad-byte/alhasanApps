@@ -3,15 +3,17 @@ import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { PembinaanEntry } from '@/components/pembinaan-entry';
+import { usePembinaanAkses } from '@/components/pembinaan-entry';
 import { actionableError, api } from '@/api/client';
 import type { ScheduleOccurrence, TodayResponse } from '@/api/types';
 import { useAuth } from '@/auth/auth-context';
-import { AppIcon, type IconName } from '@/components/app-icon';
-import { BrandHeader, Greeting } from '@/components/screen-header';
+import { AppButton } from '@/components/app-button';
+import { AppIcon } from '@/components/app-icon';
+import { NotificationBell } from '@/components/notification-bell';
 import { ScheduleCard, formatDate } from '@/components/schedule-card';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
+import { MenuTileGrid, type MenuTileItem } from '@/components/ui/menu-tile';
 import { SectionHeader } from '@/components/ui/surface';
 import { Elevation, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -30,6 +32,7 @@ export default function HomeScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { profile, capabilities } = useAuth();
+  const aksesPembinaan = usePembinaanAkses();
   const [data, setData] = useState<TodayResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -92,26 +95,41 @@ export default function HomeScreen() {
     : [];
   const tampilkanBerikutnya = Boolean(data?.next_schedule) && sorotHariIni;
 
-  const aksiCepat: { icon: IconName; label: string; onPress: () => void }[] = [
+  // Redesain tampilan (Konsep A): menu ubin besar, tetap tiga kolom. Urutan
+  // tetap; ubin yang tidak berhak tidak ditampilkan. Menyembunyikan ubin
+  // bukan kontrol akses — server tetap memeriksa cakupan.
+  const menu: MenuTileItem[] = [
     ...(aksesJadwal
       ? [
-          { icon: 'calendar' as IconName, label: 'Jadwal', onPress: () => router.push('/schedules') },
-        ]
+          { icon: 'calendar', label: 'Jadwal', onPress: () => router.push('/schedules') },
+          {
+            icon: 'check',
+            label: 'Absensi',
+            // Langsung ke sesi hari ini yang belum selesai; bila tidak ada,
+            // pengguna memilih sendiri dari daftar jadwal.
+            onPress: () => (sorot && sorotHariIni ? openSchedule(sorot) : router.push('/schedules')),
+          },
+        ] satisfies MenuTileItem[]
       : []),
     ...(adaPerizinan
-      ? [{ icon: 'izin' as IconName, label: 'Perizinan', onPress: () => router.push('/perizinan') }]
+      ? [{ icon: 'izin', label: 'Perizinan', tone: 'warning', onPress: () => router.push('/perizinan') }] satisfies MenuTileItem[]
       : []),
     ...(aksesJadwal
-      ? [{ icon: 'chart' as IconName, label: 'Laporan', onPress: () => router.push('/reports') }]
+      ? [{ icon: 'chart', label: 'Laporan', tone: 'info', onPress: () => router.push('/reports') }] satisfies MenuTileItem[]
       : []),
     ...(adaPerizinan
       ? [
           {
-            icon: 'printer' as IconName,
-            label: 'Laporan izin',
-            onPress: () => router.push({ pathname: '/izin/laporan', params: { mode: capabilities.default_mode ?? '' } }),
+            icon: 'printer',
+            label: 'Cetak Izin',
+            tone: 'info',
+            onPress: () =>
+              router.push({ pathname: '/izin/laporan', params: { mode: capabilities.default_mode ?? '' } }),
           },
-        ]
+        ] satisfies MenuTileItem[]
+      : []),
+    ...(aksesPembinaan.tersedia
+      ? [{ icon: 'users', label: 'Pembinaan', tone: 'violet', onPress: () => router.push('/pembinaan') }] satisfies MenuTileItem[]
       : []),
   ];
 
@@ -123,9 +141,23 @@ export default function HomeScreen() {
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
       }>
-      <BrandHeader />
-      <PembinaanEntry key={profile?.id} />
-      <Greeting name={profile?.guru?.name ?? profile?.name ?? ''} date={tanggalHariIni()} />
+      <View style={styles.header}>
+        <View style={styles.greeting}>
+          <ThemedText
+            selectable
+            type="caption"
+            themeColor="textSecondary"
+            style={styles.date}
+            maxFontSizeMultiplier={1.6}>
+            {tanggalHariIni()}
+          </ThemedText>
+          {/* Sapaan dibatasi 1,4× agar "Assalamu'alaikum" tidak terpecah di tengah kata. */}
+          <ThemedText selectable style={styles.greetingName} maxFontSizeMultiplier={1.4}>
+            Assalamu&rsquo;alaikum, {profile?.guru?.name ?? profile?.name ?? ''}
+          </ThemedText>
+        </View>
+        <NotificationBell />
+      </View>
 
       {sorot ? (
         <HeroSession
@@ -140,25 +172,15 @@ export default function HomeScreen() {
         />
       ) : null}
 
-      {aksiCepat.length > 0 ? (
-        <View style={styles.quickRow}>
-          {aksiCepat.map((aksi) => (
-            <Pressable
-              key={aksi.label}
-              accessibilityRole="button"
-              accessibilityLabel={aksi.label}
-              onPress={aksi.onPress}
-              style={({ pressed }) => [
-                styles.quickTile,
-                { backgroundColor: theme.card, borderColor: theme.border, opacity: pressed ? 0.75 : 1 },
-              ]}>
-              <AppIcon name={aksi.icon} size={22} themeColor="primary" />
-              <ThemedText selectable style={styles.quickLabel} numberOfLines={1}>
-                {aksi.label}
-              </ThemedText>
-            </Pressable>
-          ))}
-        </View>
+      {menu.length > 0 ? (
+        <>
+          <SectionHeader title="Menu" />
+          <MenuTileGrid items={menu} />
+        </>
+      ) : null}
+
+      {aksesPembinaan.error ? (
+        <AppButton label="Muat ulang akses pembinaan" variant="secondary" onPress={aksesPembinaan.muatUlang} />
       ) : null}
 
       {!aksesJadwal ? (
@@ -171,14 +193,9 @@ export default function HomeScreen() {
         <ErrorState message={error} onRetry={() => void load()} />
       ) : data ? (
         <>
-          <SectionHeader
-            title="Jadwal hari ini"
-            trailing={
-              <ThemedText selectable type="caption" themeColor="textSecondary">
-                {formatDate(data.date)}
-              </ThemedText>
-            }
-          />
+          {/* Tanggal sudah tampil di sapaan; mengulanginya di sini memeras
+              judul hingga terpecah ketika ukuran teks diperbesar. */}
+          <SectionHeader title="Jadwal hari ini" />
           {data.schedules.length === 0 ? (
             <EmptyState
               title="Tidak ada jadwal hari ini"
@@ -340,17 +357,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  quickRow: { flexDirection: 'row', gap: 9 },
-  quickTile: {
-    flex: 1,
-    minHeight: 76,
-    borderWidth: 1,
-    borderRadius: Radius.lg,
-    borderCurve: 'continuous',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-    paddingHorizontal: 4,
-  },
-  quickLabel: { fontSize: 11, lineHeight: 13, fontWeight: '700' },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: 4 },
+  greeting: { flex: 1, gap: 2 },
+  date: { fontSize: 13, lineHeight: 17 },
+  greetingName: { fontSize: 22, lineHeight: 28, fontWeight: '800', letterSpacing: -0.3 },
 });

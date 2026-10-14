@@ -32,21 +32,17 @@ export default function AppTabs() {
           <TabTrigger name="home" href="/" asChild>
             <TabButton>Beranda</TabButton>
           </TabTrigger>
-          {adaPerizinan ? (
-            <TabTrigger name="izin" href="/perizinan" asChild>
-              <TabButton>Perizinan</TabButton>
-            </TabTrigger>
-          ) : null}
           {aksesJadwal ? (
             <TabTrigger name="schedules" href="/schedules" asChild>
               <TabButton>Jadwal</TabButton>
             </TabTrigger>
           ) : null}
-          {aksesJadwal ? (
-            <TabTrigger name="reports" href="/reports" asChild>
-              <TabButton>Laporan</TabButton>
+          {adaPerizinan ? (
+            <TabTrigger name="izin" href="/perizinan" asChild>
+              <TabButton>Izin</TabButton>
             </TabTrigger>
           ) : null}
+          {/* Redesain tampilan: Laporan bukan tab lagi; dibuka dari ubin Beranda. */}
           {/* V2: tab Profil menampung identitas, cakupan, perangkat, dan
               tombol Keluar. Pusat notifikasi tidak lagi menjadi tab — ia
               dibuka lewat lonceng di bilah judul, sama seperti versi native. */}

@@ -24,10 +24,14 @@ import { Colors } from '@/constants/theme';
  *  - tab Profil menampung identitas, cakupan peran, perangkat, dan tombol
  *    Keluar yang dulu terselip di dasar Beranda.
  *
+ * Redesain tampilan (14 Okt 2026): bilah dipangkas menjadi empat tab —
+ * Beranda, Jadwal, Izin, Profil. Laporan dibuka dari ubin Beranda sebagai
+ * layar tumpukan (`/reports`) agar bilah tidak sesak dan setiap label lega.
+ *
  * Label sengaja dipendekkan ("Izin", bukan "Perizinan") dan ukurannya dikunci
- * 11 pt: lima label berdampingan pada layar 390 pt saling berdempetan bila
- * dibiarkan memakai ukuran bawaan. Judul lengkapnya tetap muncul di kepala
- * layar masing-masing.
+ * 12 pt: dengan empat tab label masih lega pada layar 390 pt, tetapi ukuran
+ * bawaan sistem tetap terlalu besar bersama ikon. Judul lengkapnya tetap
+ * muncul di kepala layar masing-masing.
  *
  * Bentuk bilah tab digambar oleh sistem operasi — pada iOS 26 ia tampil
  * sebagai bar Liquid Glass yang mengambang. Yang dikendalikan berkas ini
@@ -62,8 +66,8 @@ export default function AppTabs() {
       // Android: label selalu tampil, tidak hanya pada tab yang aktif.
       labelVisibilityMode="labeled"
       labelStyle={{
-        default: { fontSize: 11, fontWeight: '600', color: colors.textMuted },
-        selected: { fontSize: 11, fontWeight: '700', color: colors.primary },
+        default: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
+        selected: { fontSize: 12, fontWeight: '700', color: colors.primary },
       }}>
       <NativeTabs.Trigger name="(home)">
         <NativeTabs.Trigger.Label>Beranda</NativeTabs.Trigger.Label>
@@ -89,13 +93,6 @@ export default function AppTabs() {
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="(reports)" hidden={!aksesJadwal}>
-        <NativeTabs.Trigger.Label>Laporan</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/icons/chart.png')}
-          renderingMode="template"
-        />
-      </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="(profil)">
         <NativeTabs.Trigger.Label>Profil</NativeTabs.Trigger.Label>

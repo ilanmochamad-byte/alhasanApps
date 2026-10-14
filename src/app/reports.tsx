@@ -118,6 +118,7 @@ export default function ReportsScreen() {
       }>
       <ScreenHeader
         title="Laporan"
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
         actions={
           <IconButton
             icon="filter"

@@ -8,6 +8,8 @@ import {
   type TextInputProps,
 } from 'react-native';
 
+import { brandFontStyle } from '@/components/themed-text';
+
 type KeyboardAwareScrollViewProps = ScrollViewProps & {
   extraKeyboardOffset?: number;
   keyboardVerticalOffset?: number;
@@ -97,6 +99,7 @@ export const KeyboardAwareTextInput = forwardRef<TextInput, TextInputProps>(
     return (
       <TextInput
         {...props}
+        style={[props.style, brandFontStyle(props.style)]}
         ref={ref}
         onFocus={(event) => {
           onFocus?.(event);

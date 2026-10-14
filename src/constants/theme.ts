@@ -60,6 +60,12 @@ export const Colors = {
     statusTerlambat: '#B07A12',
     statusSakit: '#8A3FBF',
     statusAlpa: '#B42318',
+
+    /** Redesain tampilan: aksen ubin menu Beranda (laporan/cetak, pembinaan). */
+    info: '#1C6A96',
+    infoSoft: '#E6F1F8',
+    violet: '#7A35AB',
+    violetSoft: '#F3EAFA',
   },
   dark: {
     text: '#F2F7F3',
@@ -99,6 +105,11 @@ export const Colors = {
     statusTerlambat: '#E0AE4A',
     statusSakit: '#C08BE8',
     statusAlpa: '#FF8A80',
+
+    info: '#6FC2E8',
+    infoSoft: '#14293A',
+    violet: '#C08BE8',
+    violetSoft: '#2A1C38',
   },
 } as const;
 
@@ -182,6 +193,30 @@ export const Type = {
   overline: { fontSize: 11, lineHeight: 14, fontWeight: '800', letterSpacing: 0.6 },
   numeral: { fontSize: 30, lineHeight: 34, fontWeight: '800' },
 } as const;
+
+/**
+ * Redesain tampilan (14 Okt 2026): huruf merek Plus Jakarta Sans.
+ *
+ * Setiap ketebalan adalah keluarga huruf tersendiri — Android tidak memilih
+ * berkas berdasarkan `fontWeight` untuk huruf yang dimuat saat berjalan, dan
+ * bila dibiarkan ia menebalkan huruf secara tiruan. Karena itu `ThemedText`
+ * menerjemahkan `fontWeight` menjadi nama keluarga lewat `brandFontFamily`.
+ * Ketebalan di bawah 500 sengaja dipetakan ke 500 agar teks tetap mudah dibaca.
+ */
+export const BrandFont = {
+  medium: 'PlusJakartaSans_500Medium',
+  semibold: 'PlusJakartaSans_600SemiBold',
+  bold: 'PlusJakartaSans_700Bold',
+  extrabold: 'PlusJakartaSans_800ExtraBold',
+} as const;
+
+export function brandFontFamily(weight: string | number | undefined) {
+  const value = weight === 'bold' ? 700 : Number(weight);
+  if (!Number.isFinite(value) || value <= 500) return BrandFont.medium;
+  if (value <= 600) return BrandFont.semibold;
+  if (value <= 700) return BrandFont.bold;
+  return BrandFont.extrabold;
+}
 
 /**
  * V2: tinggi sentuh minimum. Chip yang tampil lebih pendek WAJIB memakai
