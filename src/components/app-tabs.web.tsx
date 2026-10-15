@@ -25,8 +25,9 @@ export default function AppTabs() {
   const adaPerizinan = capabilities.list.length > 0;
 
   return (
-    <Tabs>
-      <TabSlot style={{ height: '100%' }} />
+    // Redesain tampilan Fase 3: bilah navigasi web berada di alur tata letak
+    // (di atas konten), bukan lapisan absolut yang menutupi kepala layar.
+    <Tabs style={styles.root}>
       <TabList asChild>
         <CustomTabList>
           <TabTrigger name="home" href="/" asChild>
@@ -51,6 +52,7 @@ export default function AppTabs() {
           </TabTrigger>
         </CustomTabList>
       </TabList>
+      <TabSlot style={styles.slot} />
     </Tabs>
   );
 }
@@ -82,8 +84,9 @@ export function CustomTabList(props: TabListProps) {
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
+  slot: { flex: 1 },
   tabListContainer: {
-    position: 'absolute',
     width: '100%',
     padding: Spacing.three,
     justifyContent: 'center',

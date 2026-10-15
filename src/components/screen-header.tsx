@@ -15,8 +15,11 @@ export function ScreenHeader({
   actions,
   bell = true,
   onBack,
+  subtitle,
 }: {
   title: string;
+  /** Satu kalimat penjelas di bawah judul (redesain tampilan, Konsep C). */
+  subtitle?: string;
   actions?: ReactNode;
   bell?: boolean;
   onBack?: () => void;
@@ -43,6 +46,11 @@ export function ScreenHeader({
         <ThemedText selectable type="h1">
           {title}
         </ThemedText>
+        {subtitle ? (
+          <ThemedText selectable type="caption" themeColor="textSecondary" style={styles.subtitle}>
+            {subtitle}
+          </ThemedText>
+        ) : null}
       </View>
     );
   }
@@ -51,9 +59,16 @@ export function ScreenHeader({
       {onBack ? (
         <IconButton icon="chevron-left" plain accessibilityLabel="Kembali" onPress={onBack} />
       ) : null}
-      <ThemedText selectable type="h1" style={styles.title}>
-        {title}
-      </ThemedText>
+      <View style={styles.title}>
+        <ThemedText selectable type="h1">
+          {title}
+        </ThemedText>
+        {subtitle ? (
+          <ThemedText selectable type="caption" themeColor="textSecondary" style={styles.subtitle}>
+            {subtitle}
+          </ThemedText>
+        ) : null}
+      </View>
       {tombol}
     </View>
   );
@@ -63,5 +78,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 10 },
   title: { flex: 1 },
   stack: { gap: 6, paddingBottom: 10 },
+  subtitle: { fontSize: 14, lineHeight: 19 },
   spacer: { flex: 1 },
 });

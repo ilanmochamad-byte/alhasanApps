@@ -13,8 +13,8 @@ import { ThemedText } from '@/components/themed-text';
 import { DateField } from '@/components/ui/date-field';
 import { Chip, ChipRow } from '@/components/ui/chip';
 import { IconButton } from '@/components/ui/icon-button';
-import { StatTile } from '@/components/ui/stat-tile';
-import { StatusRecap } from '@/components/ui/status-recap';
+import { ListRow, RowGroup } from '@/components/ui/list-row';
+import { StatusRecap, statusPalette } from '@/components/ui/status-recap';
 import { Card, Overline, Panel, SectionHeader } from '@/components/ui/surface';
 import { useTheme } from '@/hooks/use-theme';
 import { formatPendek, isoAwalBulan, isoHariIni } from '@/lib/date';
@@ -117,7 +117,8 @@ export default function ReportsScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
       }>
       <ScreenHeader
-        title="Laporan"
+        title="Laporan kehadiran"
+        subtitle="Rekap absensi dari sesi yang Anda ajar"
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
         actions={
           <IconButton
@@ -211,19 +212,26 @@ export default function ReportsScreen() {
         <LoadingState label="Memuat laporan…" />
       ) : data ? (
         <>
-          <View style={styles.statRow}>
-            <StatTile label="Pertemuan" value={data.summary.meeting_count} tone="primary" />
-            <StatTile label="Baris kehadiran" value={data.summary.detail_count} />
-          </View>
-
+          {/* Redesain tampilan Fase 3: angka ringkasan, rekap status, dan
+              tombol dokumen disatukan dalam satu kartu (Konsep B + C). */}
           <Panel>
-            <View style={styles.recapHeader}>
-              <ThemedText selectable type="h3" style={styles.recapTitle}>
-                Rekap kehadiran
-              </ThemedText>
-              <ThemedText selectable type="caption" themeColor="textMuted">
-                {data.summary.detail_count} baris
-              </ThemedText>
+            <View style={styles.statRow}>
+              <View style={styles.stat}>
+                <ThemedText selectable style={[styles.statValue, { color: theme.primary }]}>
+                  {data.summary.meeting_count}
+                </ThemedText>
+                <ThemedText selectable type="caption" themeColor="textSecondary" style={styles.statLabel}>
+                  Pertemuan
+                </ThemedText>
+              </View>
+              <View style={styles.stat}>
+                <ThemedText selectable style={styles.statValue}>
+                  {data.summary.detail_count}
+                </ThemedText>
+                <ThemedText selectable type="caption" themeColor="textSecondary" style={styles.statLabel}>
+                  Baris kehadiran
+                </ThemedText>
+              </View>
             </View>
             <StatusRecap statuses={data.summary.statuses} total={data.summary.detail_count} />
             <ThemedText
@@ -232,48 +240,44 @@ export default function ReportsScreen() {
               themeColor={statusTotal === data.summary.detail_count ? 'success' : 'danger'}>
               {statusTotal} status = {data.summary.detail_count} baris detail
             </ThemedText>
+            <View style={styles.documentButtons}>
+              <View style={styles.buttonFlex}>
+                <AppButton
+                  label="Cetak PDF"
+                  icon="printer"
+                  loading={documentAction === 'print'}
+                  disabled={documentAction !== null}
+                  onPress={() => void runDocumentAction('print')}
+                />
+              </View>
+              <View style={styles.buttonFlex}>
+                <AppButton
+                  label={process.env.EXPO_OS === 'web' ? 'Simpan PDF' : 'Bagikan'}
+                  icon="share"
+                  variant="secondary"
+                  loading={documentAction === 'share'}
+                  disabled={documentAction !== null}
+                  onPress={() => void runDocumentAction('share')}
+                />
+              </View>
+            </View>
           </Panel>
-
-          <View style={styles.documentButtons}>
-            <View style={styles.buttonFlex}>
-              <AppButton
-                label="Cetak PDF"
-                icon="printer"
-                variant="secondary"
-                loading={documentAction === 'print'}
-                disabled={documentAction !== null}
-                onPress={() => void runDocumentAction('print')}
-              />
-            </View>
-            <View style={styles.buttonFlex}>
-              <AppButton
-                label={process.env.EXPO_OS === 'web' ? 'Simpan PDF' : 'Bagikan'}
-                icon="share"
-                variant="secondary"
-                loading={documentAction === 'share'}
-                disabled={documentAction !== null}
-                onPress={() => void runDocumentAction('share')}
-              />
-            </View>
-          </View>
 
           <SectionHeader title="Ringkasan jadwal" />
           {data.schedules.length === 0 ? (
             <EmptyState title="Laporan kosong" message="Belum ada absensi sesuai filter." />
           ) : (
-            data.schedules.map((row) => (
-              <Card key={row.schedule_id}>
-                <ThemedText selectable type="h3">
-                  {row.subject} · {row.class.name}
-                </ThemedText>
-                <ThemedText selectable type="caption" themeColor="textSecondary">
-                  {row.book} · Jadwal #{row.schedule_id}
-                </ThemedText>
-                <ThemedText selectable type="caption" themeColor="textMuted">
-                  {row.meeting_count} pertemuan · {row.detail_count} baris kehadiran
-                </ThemedText>
-              </Card>
-            ))
+            <RowGroup>
+              {data.schedules.map((row, index) => (
+                <ListRow
+                  key={row.schedule_id}
+                  icon="book"
+                  title={`${row.subject} · ${row.class.name}`}
+                  subtitle={`${row.meeting_count} pertemuan · ${row.detail_count} baris kehadiran · ${row.book}`}
+                  last={index === data.schedules.length - 1}
+                />
+              ))}
+            </RowGroup>
           )}
 
           <SectionHeader title="Detail kehadiran" />
@@ -291,9 +295,12 @@ export default function ReportsScreen() {
                     {row.subject_type} · {row.identity_number || 'Tanpa nomor identitas'}
                   </ThemedText>
                 </View>
-                <ThemedText selectable type="label" themeColor="primary">
-                  {row.attendance_status}
-                </ThemedText>
+                <View style={styles.statusPill}>
+                  <View style={[styles.statusDot, { backgroundColor: statusPalette(theme)[row.attendance_status] ?? theme.primary }]} />
+                  <ThemedText selectable type="label">
+                    {row.attendance_status}
+                  </ThemedText>
+                </View>
               </View>
               <ThemedText selectable type="caption" themeColor="textSecondary">
                 {row.meeting_date} · {row.subject} · {row.class_name}
@@ -347,11 +354,14 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   field: { flex: 1, minWidth: 135 },
   filterGroup: { gap: 8 },
-  statRow: { flexDirection: 'row', gap: 12 },
-  recapHeader: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  recapTitle: { flex: 1 },
-  documentButtons: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  buttonFlex: { flex: 1 },
+  statRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  stat: { flexGrow: 1, flexBasis: 120, gap: 2 },
+  statValue: { fontSize: 28, lineHeight: 34, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  statLabel: { fontSize: 13, fontWeight: '700' },
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statusDot: { width: 10, height: 10, borderRadius: 3 },
+  documentButtons: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 },
+  buttonFlex: { flexGrow: 1, flexBasis: 140 },
   pageNumber: { fontVariant: ['tabular-nums'] },
   detailHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   detailIdentity: { flex: 1, gap: 2 },
