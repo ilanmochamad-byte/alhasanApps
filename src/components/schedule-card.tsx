@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import type { ScheduleOccurrence } from '@/api/types';
 import { AppIcon } from '@/components/app-icon';
@@ -28,6 +28,10 @@ export function ScheduleCard({
   today?: string;
 }) {
   const theme = useTheme();
+  const { fontScale } = useWindowDimensions();
+  // Teks sistem sangat besar: jam, isi, dan penanda Absen ditumpuk agar
+  // judul tidak terperas menjadi kolom sempit di antara jam dan penanda.
+  const bertumpuk = fontScale > 1.35;
   const status = statusSesi(schedule.meeting, schedule.occurrence_date, today);
   const warnaStatus =
     status.nada === 'selesai' ? theme.primary : status.nada === 'menunggu' ? theme.warning : theme.textSecondary;
@@ -43,8 +47,12 @@ export function ScheduleCard({
       ]
         .filter(Boolean)
         .join(', ')}
-      style={[styles.card, status.perluAbsen && { borderColor: theme.primary, borderWidth: 2 }]}>
-      <View style={styles.time}>
+      style={[
+        styles.card,
+        bertumpuk && styles.cardStacked,
+        status.perluAbsen && { borderColor: theme.primary, borderWidth: 2 },
+      ]}>
+      <View style={[styles.time, bertumpuk && styles.timeStacked]}>
         <ThemedText selectable style={styles.timeStart}>
           {schedule.start_time}
         </ThemedText>
@@ -52,7 +60,7 @@ export function ScheduleCard({
           {schedule.end_time}
         </ThemedText>
       </View>
-      <View style={styles.body}>
+      <View style={[styles.body, bertumpuk && styles.bodyStacked]}>
         <ThemedText selectable type="h3" style={styles.title}>
           {schedule.subject} · {schedule.class.name}
         </ThemedText>
@@ -75,7 +83,7 @@ export function ScheduleCard({
         <View style={[styles.absen, { backgroundColor: theme.primary }]}>
           <ThemedText style={[styles.absenText, { color: theme.onPrimary }]}>Absen</ThemedText>
         </View>
-      ) : (
+      ) : bertumpuk ? null : (
         <AppIcon name="chevron-right" size={18} themeColor="textMuted" />
       )}
     </Card>
@@ -104,6 +112,9 @@ export function formatDateShort(value: string) {
 
 const styles = StyleSheet.create({
   card: { flexDirection: 'row', gap: 14, alignItems: 'center' },
+  cardStacked: { flexDirection: 'column', alignItems: 'flex-start', gap: 8 },
+  timeStacked: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  bodyStacked: { flex: 0, alignSelf: 'stretch' },
   time: { minWidth: 52, alignItems: 'center', gap: 2 },
   timeStart: { fontSize: 17, lineHeight: 21, fontWeight: '800', fontVariant: ['tabular-nums'] },
   timeEnd: { fontSize: 12, lineHeight: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },

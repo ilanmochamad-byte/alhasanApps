@@ -115,6 +115,32 @@ function PerizinanSession() {
         ? data.pagination.total
         : null;
 
+  const { fontScale } = useWindowDimensions();
+  // Teks sistem sangat besar: tombol pengajuan ikut mengalir di dalam daftar
+  // (di atas pencarian) agar tidak menutupi separuh layar sebagai tombol tetap.
+  const teksBesar = fontScale > 1.35;
+  const dapatMengajukan = capabilities.aksi.dapat_membuat_pengajuan && !orangTua;
+  const tombolAjukan = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Ajukan izin baru"
+      onPress={() =>
+        router.push({ pathname: '/izin/buat', params: { mode: modeAktif ?? 'pengurus' } })
+      }
+      style={({ pressed }) => [
+        styles.bottomButton,
+        {
+          backgroundColor: pressed ? theme.primaryPressed : theme.primary,
+          boxShadow: '0 10px 24px rgba(23, 107, 58, 0.30)',
+        },
+      ]}>
+      <AppIcon name="plus" size={20} color={theme.onPrimary} />
+      <ThemedText selectable type="bodyBold" style={[styles.bottomButtonText, { color: theme.onPrimary }]}>
+        Ajukan izin baru
+      </ThemedText>
+    </Pressable>
+  );
+
   function terapkanPencarian() {
     setKataKunci(pencarian.trim());
     setHalaman(1);
@@ -226,6 +252,8 @@ function PerizinanSession() {
           ))}
         </ChipRow>
 
+        {dapatMengajukan && teksBesar ? tombolAjukan : null}
+
         <SearchField
           value={pencarian}
           onChangeText={setPencarian}
@@ -315,31 +343,14 @@ function PerizinanSession() {
         ) : null}
       </KeyboardAwareScrollView>
 
-      {capabilities.aksi.dapat_membuat_pengajuan && !orangTua ? (
+      {dapatMengajukan && !teksBesar ? (
         /* Tombol tetap selebar layar di atas bilah tab (Konsep A + C). */
         <View
           style={[
             styles.bottomBar,
             { bottom: BottomTabInset + Math.max(insets.bottom, 8) + 8 },
           ]}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Ajukan izin baru"
-            onPress={() =>
-              router.push({ pathname: '/izin/buat', params: { mode: modeAktif ?? 'pengurus' } })
-            }
-            style={({ pressed }) => [
-              styles.bottomButton,
-              {
-                backgroundColor: pressed ? theme.primaryPressed : theme.primary,
-                boxShadow: '0 10px 24px rgba(23, 107, 58, 0.30)',
-              },
-            ]}>
-            <AppIcon name="plus" size={20} color={theme.onPrimary} />
-            <ThemedText selectable type="bodyBold" style={[styles.bottomButtonText, { color: theme.onPrimary }]}>
-              Ajukan izin baru
-            </ThemedText>
-          </Pressable>
+          {tombolAjukan}
         </View>
       ) : null}
     </View>

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { NotificationBell } from '@/components/notification-bell';
 import { ThemedText } from '@/components/themed-text';
@@ -21,6 +21,31 @@ export function ScreenHeader({
   bell?: boolean;
   onBack?: () => void;
 }) {
+  const { fontScale } = useWindowDimensions();
+  const tombol = (
+    <>
+      {actions}
+      {bell ? <NotificationBell /> : null}
+    </>
+  );
+  // Teks sistem sangat besar: tombol aksi naik ke baris sendiri agar judul
+  // mendapat lebar penuh dan tidak terpecah di tengah kata.
+  if (fontScale > 1.35) {
+    return (
+      <View style={styles.stack}>
+        <View style={styles.row}>
+          {onBack ? (
+            <IconButton icon="chevron-left" plain accessibilityLabel="Kembali" onPress={onBack} />
+          ) : null}
+          <View style={styles.spacer} />
+          {tombol}
+        </View>
+        <ThemedText selectable type="h1">
+          {title}
+        </ThemedText>
+      </View>
+    );
+  }
   return (
     <View style={styles.row}>
       {onBack ? (
@@ -29,8 +54,7 @@ export function ScreenHeader({
       <ThemedText selectable type="h1" style={styles.title}>
         {title}
       </ThemedText>
-      {actions}
-      {bell ? <NotificationBell /> : null}
+      {tombol}
     </View>
   );
 }
@@ -38,4 +62,6 @@ export function ScreenHeader({
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 10 },
   title: { flex: 1 },
+  stack: { gap: 6, paddingBottom: 10 },
+  spacer: { flex: 1 },
 });
