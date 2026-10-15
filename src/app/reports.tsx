@@ -1,11 +1,12 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, StyleSheet, View } from 'react-native';
+import { RefreshControl, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { actionableError, api } from '@/api/client';
 import type { AttendanceStatus, ReportFilters, ReportOptions, ReportResponse } from '@/api/types';
 import { AppButton } from '@/components/app-button';
+import { AppIcon, type IconName } from '@/components/app-icon';
 import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { ScreenHeader } from '@/components/screen-header';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
@@ -20,10 +21,20 @@ import { useTheme } from '@/hooks/use-theme';
 import { formatPendek, isoAwalBulan, isoHariIni } from '@/lib/date';
 import { openPrintDialog, shareReportPdf } from '@/report/report-document';
 
+const STATUS_ICONS: Record<AttendanceStatus, IconName> = {
+  Hadir: 'check',
+  Izin: 'izin',
+  Terlambat: 'clock',
+  Sakit: 'info',
+  Alpa: 'close',
+};
+
 export default function ReportsScreen() {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
+  const teksBesar = fontScale > 1.35;
   const initial = useMemo<ReportFilters>(
     () => ({ date_from: isoAwalBulan(), date_to: isoHariIni() }),
     [],
@@ -215,7 +226,7 @@ export default function ReportsScreen() {
           {/* Redesain tampilan Fase 3: angka ringkasan, rekap status, dan
               tombol dokumen disatukan dalam satu kartu (Konsep B + C). */}
           <Panel>
-            <View style={styles.statRow}>
+            <View style={[styles.statRow, teksBesar && styles.stacked]}>
               <View style={styles.stat}>
                 <ThemedText selectable style={[styles.statValue, { color: theme.primary }]}>
                   {data.summary.meeting_count}
@@ -286,7 +297,7 @@ export default function ReportsScreen() {
               key={`${row.subject_type}-${row.attendance_id}`}
               onPress={() => router.push({ pathname: '/report/[id]', params: { id: String(row.meeting_id) } })}
               accessibilityLabel={`Buka detail pertemuan ${row.subject_name}, ${row.attendance_status}`}>
-              <View style={styles.detailHeader}>
+              <View style={[styles.detailHeader, teksBesar && styles.stacked]}>
                 <View style={styles.detailIdentity}>
                   <ThemedText selectable type="h3">
                     {row.subject_name}
@@ -296,7 +307,11 @@ export default function ReportsScreen() {
                   </ThemedText>
                 </View>
                 <View style={styles.statusPill}>
-                  <View style={[styles.statusDot, { backgroundColor: statusPalette(theme)[row.attendance_status] ?? theme.primary }]} />
+                  <AppIcon
+                    name={STATUS_ICONS[row.attendance_status] ?? 'info'}
+                    size={18}
+                    color={statusPalette(theme)[row.attendance_status] ?? theme.primary}
+                  />
                   <ThemedText selectable type="label">
                     {row.attendance_status}
                   </ThemedText>
@@ -355,11 +370,11 @@ const styles = StyleSheet.create({
   field: { flex: 1, minWidth: 135 },
   filterGroup: { gap: 8 },
   statRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  stat: { flexGrow: 1, flexBasis: 120, gap: 2 },
+  stat: { flexGrow: 1, minWidth: 120, gap: 2 },
+  stacked: { flexDirection: 'column', alignItems: 'stretch' },
   statValue: { fontSize: 28, lineHeight: 34, fontWeight: '800', fontVariant: ['tabular-nums'] },
   statLabel: { fontSize: 13, fontWeight: '700' },
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statusDot: { width: 10, height: 10, borderRadius: 3 },
   documentButtons: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 },
   buttonFlex: { flexGrow: 1, flexBasis: 140 },
   pageNumber: { fontVariant: ['tabular-nums'] },
