@@ -59,16 +59,10 @@ export function MenuTile({ icon, label, tone = 'primary', onPress }: MenuTileIte
       <View style={[styles.iconBox, { backgroundColor: palette.bg }]}>
         <AppIcon name={icon} size={26} color={palette.fg} />
       </View>
-      {/* Ubin hanya selebar sepertiga layar: label dibatasi satu baris dan
-          diperkecil bila perlu, agar teks besar tidak memecah kata di tengah. */}
-      <ThemedText
-        style={styles.label}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.7}
-        maxFontSizeMultiplier={1.4}>
-        {label}
-      </ThemedText>
+      {/* Label mengikuti ukuran teks sistem sepenuhnya. Bila tidak muat, label
+          turun ke baris berikutnya pada batas kata dan ubin memanjang; ubin
+          dalam satu baris kisi tetap sama tinggi. */}
+      <ThemedText style={styles.label}>{label}</ThemedText>
     </Pressable>
   );
 }
@@ -87,7 +81,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
     paddingVertical: 16,
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
   },
   iconBox: {
     width: 52,

@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { usePembinaanAkses } from '@/components/pembinaan-entry';
@@ -18,6 +18,10 @@ import { SectionHeader } from '@/components/ui/surface';
 import { Elevation, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { attendanceShortcut } from '@/lib/attendance-shortcut';
+import { keadaanMenuBeranda } from '@/lib/home-menu';
+
+/** Skala teks sistem di atas ini dianggap "sangat besar" untuk tata letak berkolom. */
+const TEKS_BESAR = 1.35;
 
 function tanggalHariIni() {
   return new Intl.DateTimeFormat('id-ID', {
@@ -135,6 +139,8 @@ export default function HomeScreen() {
       : []),
   ];
 
+  const keadaanMenu = keadaanMenuBeranda(menu.length, aksesPembinaan.status);
+
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="never"
@@ -143,22 +149,18 @@ export default function HomeScreen() {
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
       }>
-      <View style={styles.header}>
-        <View style={styles.greeting}>
-          <ThemedText
-            selectable
-            type="caption"
-            themeColor="textSecondary"
-            style={styles.date}
-            maxFontSizeMultiplier={1.6}>
+      {/* Lonceng sebaris dengan tanggal agar sapaan mendapat lebar penuh dan
+          tetap terbaca ketika ukuran teks sistem diperbesar. */}
+      <View style={styles.greeting}>
+        <View style={styles.header}>
+          <ThemedText selectable type="caption" themeColor="textSecondary" style={styles.date}>
             {tanggalHariIni()}
           </ThemedText>
-          {/* Sapaan dibatasi 1,4× agar "Assalamu'alaikum" tidak terpecah di tengah kata. */}
-          <ThemedText selectable style={styles.greetingName} maxFontSizeMultiplier={1.4}>
-            Assalamu&rsquo;alaikum, {profile?.guru?.name ?? profile?.name ?? ''}
-          </ThemedText>
+          <NotificationBell />
         </View>
-        <NotificationBell />
+        <ThemedText selectable style={styles.greetingName}>
+          Assalamu&rsquo;alaikum, {profile?.guru?.name ?? profile?.name ?? ''}
+        </ThemedText>
       </View>
 
       {sorot ? (
@@ -174,11 +176,18 @@ export default function HomeScreen() {
         />
       ) : null}
 
-      {menu.length > 0 ? (
+      {keadaanMenu === 'ada' ? (
         <>
           <SectionHeader title="Menu" />
           <MenuTileGrid items={menu} />
         </>
+      ) : keadaanMenu === 'memuat' ? (
+        <LoadingState label="Memeriksa menu akun…" />
+      ) : keadaanMenu === 'kosong' ? (
+        <EmptyState
+          title="Akun ini belum memiliki menu"
+          message="Belum ada jadwal, perizinan, atau pembinaan untuk akun ini. Hubungi admin pesantren bila seharusnya ada."
+        />
       ) : null}
 
       {aksesPembinaan.error ? (
@@ -186,9 +195,11 @@ export default function HomeScreen() {
       ) : null}
 
       {!aksesJadwal ? (
-        <ThemedText selectable type="caption" themeColor="textSecondary">
-          Akun ini tidak memiliki jadwal mengajar, sehingga menu jadwal dan laporan tidak ditampilkan.
-        </ThemedText>
+        keadaanMenu === 'ada' ? (
+          <ThemedText selectable type="caption" themeColor="textSecondary">
+            Akun ini tidak memiliki jadwal mengajar, sehingga menu jadwal dan laporan tidak ditampilkan.
+          </ThemedText>
+        ) : null
       ) : loading && !data ? (
         <LoadingState label="Memuat jadwal hari ini…" />
       ) : error && !data ? (
@@ -244,6 +255,10 @@ function HeroSession({
   onPress: () => void;
 }) {
   const theme = useTheme();
+  const { fontScale } = useWindowDimensions();
+  // Pada teks sistem yang sangat besar, kolom jam menyisakan terlalu sedikit
+  // ruang bagi judul; jam lalu ditaruh di atas judul.
+  const bertumpuk = fontScale > TEKS_BESAR;
   const sudahDibuka = Boolean(schedule.meeting);
   return (
     <View
@@ -255,8 +270,12 @@ function HeroSession({
         {hariIni ? 'SESI HARI INI' : 'JADWAL BERIKUTNYA'}
       </ThemedText>
 
-      <View style={styles.heroBody}>
-        <View style={[styles.heroTime, { borderRightColor: theme.heroAccent }]}>
+      <View style={[styles.heroBody, bertumpuk && styles.heroBodyStacked]}>
+        <View
+          style={[
+            styles.heroTime,
+            bertumpuk ? styles.heroTimeStacked : { borderRightColor: theme.heroAccent },
+          ]}>
           <ThemedText selectable style={[styles.heroStart, { color: theme.heroText }]}>
             {schedule.start_time}
           </ThemedText>
@@ -283,7 +302,7 @@ function HeroSession({
           { backgroundColor: theme.card, opacity: pressed ? 0.85 : 1 },
         ]}>
         <AppIcon name={sudahDibuka ? 'check' : 'arrow-right'} size={19} themeColor="primary" />
-        <ThemedText selectable type="bodyBold" themeColor="primary">
+        <ThemedText selectable type="bodyBold" themeColor="primary" style={styles.heroButtonText}>
           {sudahDibuka ? 'Buka absensi' : 'Buka detail tugas'}
         </ThemedText>
       </Pressable>
@@ -320,7 +339,7 @@ function HeroPerizinan({ jumlahCakupan, onPress }: { jumlahCakupan: number; onPr
           { backgroundColor: theme.card, opacity: pressed ? 0.85 : 1 },
         ]}>
         <AppIcon name="izin" size={19} themeColor="primary" />
-        <ThemedText selectable type="bodyBold" themeColor="primary">
+        <ThemedText selectable type="bodyBold" themeColor="primary" style={styles.heroButtonText}>
           Buka menu perizinan
         </ThemedText>
       </Pressable>
@@ -345,7 +364,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   heroBody: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
+  heroBodyStacked: { flexDirection: 'column', gap: 8 },
   heroTime: { borderRightWidth: 1, paddingRight: 14, gap: 1 },
+  heroTimeStacked: { borderRightWidth: 0, paddingRight: 0, flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   heroStart: { fontSize: 23, lineHeight: 26, fontWeight: '800', fontVariant: ['tabular-nums'] },
   heroEnd: { fontSize: 12, lineHeight: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
   heroText: { flex: 1, gap: 4 },
@@ -358,9 +379,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: 4 },
-  greeting: { flex: 1, gap: 2 },
-  date: { fontSize: 13, lineHeight: 17 },
+  // Boleh membungkus agar teks tombol tidak terpotong pada teks sistem besar.
+  heroButtonText: { flexShrink: 1, textAlign: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  greeting: { gap: 2, paddingBottom: 4 },
+  date: { flex: 1, fontSize: 13, lineHeight: 17 },
   greetingName: { fontSize: 22, lineHeight: 28, fontWeight: '800', letterSpacing: -0.3 },
 });
