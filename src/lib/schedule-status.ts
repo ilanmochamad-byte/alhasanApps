@@ -11,7 +11,7 @@ export function statusSesi(
   meeting: { status: string } | null,
   tanggal: string,
   hariIni: string,
-): { label: string; nada: NadaStatus; ikon: 'check' | 'clock' | null; perluAbsen: boolean } {
+): { label: string; nada: NadaStatus; ikon: 'check' | 'clock'; perluAbsen: boolean } {
   const sesiHariIni = tanggal === hariIni;
   if (meeting?.status === 'Selesai') {
     return { label: 'Absensi selesai', nada: 'selesai', ikon: 'check', perluAbsen: false };
@@ -26,7 +26,7 @@ export function statusSesi(
     return { label: 'Belum diabsen', nada: 'menunggu', ikon: 'clock', perluAbsen: true };
   }
   if (tanggal > hariIni) {
-    return { label: 'Belum dimulai', nada: 'netral', ikon: null, perluAbsen: false };
+    return { label: 'Belum dimulai', nada: 'netral', ikon: 'clock', perluAbsen: false };
   }
-  return { label: 'Belum dibuka', nada: 'netral', ikon: null, perluAbsen: false };
+  return { label: 'Belum dibuka', nada: 'netral', ikon: 'clock', perluAbsen: false };
 }

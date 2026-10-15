@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -53,18 +53,24 @@ export default function SchedulesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const requestId = useRef(0);
+
   const load = useCallback(
     async (refresh = false) => {
+      const currentRequest = ++requestId.current;
       if (refresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
       try {
-        setData(await api.schedules(applied.from, applied.to));
+        const result = await api.schedules(applied.from, applied.to);
+        if (currentRequest === requestId.current) setData(result);
       } catch (caught) {
-        setError(actionableError(caught));
+        if (currentRequest === requestId.current) setError(actionableError(caught));
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (currentRequest === requestId.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
     [applied],
@@ -73,6 +79,7 @@ export default function SchedulesScreen() {
   useFocusEffect(
     useCallback(() => {
       void load();
+      return () => { requestId.current += 1; };
     }, [load]),
   );
 

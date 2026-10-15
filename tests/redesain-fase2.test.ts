@@ -22,7 +22,7 @@ test('sesi selesai tidak pernah meminta absen, kapan pun tanggalnya', () => {
 
 test('sesi hari lain tidak diberi penanda absen dan dibedakan masa depan/lampau', () => {
   assert.deepEqual(statusSesi(null, '2026-10-18', HARI_INI), {
-    label: 'Belum dimulai', nada: 'netral', ikon: null, perluAbsen: false,
+    label: 'Belum dimulai', nada: 'netral', ikon: 'clock', perluAbsen: false,
   });
   assert.equal(statusSesi(null, '2026-10-01', HARI_INI).label, 'Belum dibuka');
   assert.equal(statusSesi({ status: 'Dibuka' }, '2026-10-14', HARI_INI).perluAbsen, false);
