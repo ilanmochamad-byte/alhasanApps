@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { Alert, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View, useColorScheme, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/auth/auth-context';
@@ -8,9 +8,8 @@ import { AppButton } from '@/components/app-button';
 import { ThemedText } from '@/components/themed-text';
 import { MODE_LABEL } from '@/components/mode-switcher';
 import { ScreenHeader } from '@/components/screen-header';
-import { Badge, ChipRow } from '@/components/ui/chip';
 import { ListRow, RowGroup } from '@/components/ui/list-row';
-import { Divider, Overline, Panel } from '@/components/ui/surface';
+import { Overline } from '@/components/ui/surface';
 import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -37,6 +36,11 @@ export default function ProfilScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
+  const { fontScale } = useWindowDimensions();
+  // Teks sistem sangat besar: avatar ikut membesar dan ditaruh di atas nama
+  // agar inisial tidak meluber dan nama mendapat lebar penuh.
+  const bertumpuk = fontScale > 1.35;
+  const ukuranAvatar = Math.round(56 * Math.min(fontScale, 2));
   const { profile, capabilities, logout } = useAuth();
 
   const nama = profile?.guru?.name ?? profile?.name ?? '';
@@ -65,76 +69,75 @@ export default function ProfilScreen() {
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}>
       <ScreenHeader title="Profil" bell={false} />
 
-      <Panel style={styles.identity}>
-        <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
-          <ThemedText selectable style={[styles.avatarText, { color: theme.onPrimary }]}>
+      {/* Redesain tampilan Fase 3 (Konsep C): kartu identitas hijau memuat
+          nama dan peran; cakupan perizinan menjadi baris menu berketerangan. */}
+      <View
+        style={[
+          styles.identity,
+          bertumpuk && styles.identityStacked,
+          { backgroundColor: theme.heroSurface, borderColor: theme.heroBorder },
+        ]}>
+        <View
+          style={[
+            styles.avatar,
+            { backgroundColor: theme.card, width: ukuranAvatar, height: ukuranAvatar },
+          ]}>
+          <ThemedText selectable style={[styles.avatarText, { color: theme.primary }]}>
             {inisial(nama)}
           </ThemedText>
         </View>
         <View style={styles.identityText}>
-          <ThemedText selectable type="h2">
+          <ThemedText selectable type="h2" style={{ color: theme.heroText }}>
             {nama}
           </ThemedText>
-          <ThemedText selectable type="caption" themeColor="textSecondary">
+          <ThemedText selectable type="caption" style={{ color: theme.heroTextSecondary }}>
             @{profile?.username}
             {profile?.guru?.nip ? ` · NIP ${profile.guru.nip}` : ''}
           </ThemedText>
+          <View style={styles.roles}>
+            {roles.length === 0 ? (
+              <ThemedText selectable type="caption" style={{ color: theme.heroTextSecondary }}>
+                Server belum melaporkan peran untuk akun ini.
+              </ThemedText>
+            ) : (
+              roles.map((role) => (
+                <View key={role} style={[styles.role, { borderColor: theme.heroAccent }]}>
+                  <ThemedText selectable style={[styles.roleText, { color: theme.heroText }]}>
+                    {role}
+                  </ThemedText>
+                </View>
+              ))
+            )}
+          </View>
         </View>
-      </Panel>
-
-      <Panel>
-        <Overline>Peran &amp; cakupan</Overline>
-        <ChipRow>
-          {roles.length === 0 ? (
-            <ThemedText selectable type="caption" themeColor="textSecondary">
-              Server belum melaporkan peran untuk akun ini.
-            </ThemedText>
-          ) : (
-            roles.map((role) => <Badge key={role} label={role} tone="primary" />)
-          )}
-        </ChipRow>
-        {cakupan.length > 0 ? (
-          <>
-            <Divider />
-            <View style={styles.scopeRow}>
-              <View style={styles.scopeText}>
-                <ThemedText selectable type="caption" themeColor="textSecondary">
-                  Cakupan perizinan
-                </ThemedText>
-                <ThemedText selectable type="bodyBold">
-                  {cakupan.map((mode) => MODE_LABEL[mode]).join(' · ')}
-                </ThemedText>
-              </View>
-              {cakupan.length > 1 ? (
-                <AppButton
-                  label="Ganti"
-                  variant="secondary"
-                  size="sm"
-                  style={styles.scopeButton}
-                  onPress={() => router.push('/perizinan')}
-                />
-              ) : null}
-            </View>
-            <ThemedText selectable type="caption" themeColor="textMuted">
-              {cakupan.length > 1
-                ? `Cakupan aktif saat ini: ${modeAktif ? MODE_LABEL[modeAktif] : '—'}. Menggantinya dilakukan dari layar Perizinan.`
-                : 'Akun ini memiliki satu cakupan perizinan.'}
-            </ThemedText>
-          </>
-        ) : null}
-      </Panel>
+      </View>
 
       <View style={styles.group}>
-        <Overline>Akun</Overline>
+        <Overline>Akun &amp; pemberitahuan</Overline>
         <RowGroup>
+          {cakupan.length > 0 ? (
+            <ListRow
+              icon="users"
+              title="Cakupan perizinan"
+              subtitle={
+                cakupan.length > 1
+                  ? `${cakupan.map((mode) => MODE_LABEL[mode]).join(' · ')} — bawaan: ${modeAktif ? MODE_LABEL[modeAktif] : '—'}. Ganti dari layar Perizinan.`
+                  : `${MODE_LABEL[cakupan[0]]} — satu cakupan perizinan`
+              }
+              value={cakupan.length > 1 ? 'Ganti' : undefined}
+              onPress={cakupan.length > 1 ? () => router.push('/perizinan') : undefined}
+            />
+          ) : null}
           <ListRow
             icon="device"
             title="Perangkat & push"
+            subtitle="Atur pemberitahuan di perangkat ini"
             onPress={() => router.push('/notifikasi/perangkat')}
           />
           <ListRow
             icon="bell"
             title="Riwayat notifikasi"
+            subtitle="Semua pemberitahuan yang masuk"
             onPress={() => router.push('/notifikasi')}
             last
           />
@@ -142,7 +145,7 @@ export default function ProfilScreen() {
       </View>
 
       <View style={styles.group}>
-        <Overline>Aplikasi</Overline>
+        <Overline>Tampilan</Overline>
         <RowGroup>
           <ListRow icon="moon" title="Tema tampilan" value={scheme === 'dark' ? 'Gelap' : 'Terang'} />
           <ListRow icon="text-size" title="Ukuran teks" value="Ikuti sistem" />
@@ -161,25 +164,34 @@ export default function ProfilScreen() {
 const styles = StyleSheet.create({
   content: {
     padding: 16,
-    paddingBottom: 120,
+    // Bilah tab iOS 26 mengambang di atas konten; ruang ekstra memastikan
+    // tombol Keluar dapat digulir sepenuhnya ke atas bilah itu.
+    paddingBottom: 150,
     gap: 16,
     maxWidth: 760,
     width: '100%',
     alignSelf: 'center',
   },
-  identity: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  identity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderRadius: Radius.hero,
+    borderCurve: 'continuous',
+  },
+  identityStacked: { flexDirection: 'column', alignItems: 'flex-start' },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: Radius.xl,
+    borderRadius: Radius.pill,
     borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: { fontSize: 20, fontWeight: '800' },
-  identityText: { flex: 1, gap: 3 },
-  scopeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  scopeText: { flex: 1, gap: 2 },
-  scopeButton: { paddingHorizontal: 16 },
+  identityText: { flexGrow: 1, flexShrink: 1, gap: 3 },
+  roles: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingTop: 4 },
+  role: { borderWidth: 1, borderRadius: Radius.pill, paddingHorizontal: 10, paddingVertical: 2 },
+  roleText: { fontSize: 12, lineHeight: 16, fontWeight: '800' },
   group: { gap: 8 },
 });

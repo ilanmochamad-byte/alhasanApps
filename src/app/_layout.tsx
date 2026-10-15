@@ -1,3 +1,10 @@
+import {
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+  useFonts,
+} from '@expo-google-fonts/plus-jakarta-sans';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import { Stack } from 'expo-router/stack';
 import * as SplashScreen from 'expo-splash-screen';
@@ -14,12 +21,23 @@ SplashScreen.preventAutoHideAsync();
 function RootNavigator() {
   const { profile, isLoading } = useAuth();
   const theme = useTheme();
+  // Redesain tampilan: huruf merek dimuat sebelum navigator digambar agar teks
+  // tidak berganti huruf di depan pengguna. Bila gagal (mis. berkas rusak),
+  // aplikasi tetap jalan dengan huruf sistem — `ThemedText` memeriksa sendiri
+  // apakah huruf sudah termuat.
+  const [fontsLoaded, fontError] = useFonts({
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+  });
+  const fontsReady = fontsLoaded || Boolean(fontError);
 
   useEffect(() => {
-    if (!isLoading) void SplashScreen.hideAsync();
-  }, [isLoading]);
+    if (!isLoading && fontsReady) void SplashScreen.hideAsync();
+  }, [isLoading, fontsReady]);
 
-  if (isLoading) {
+  if (isLoading || !fontsReady) {
     return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.background }}><ActivityIndicator size="large" color={theme.primary} /></View>;
   }
 
@@ -32,6 +50,9 @@ function RootNavigator() {
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
         <Stack.Screen name="schedule/[id]" options={{ title: 'Detail Tugas' }} />
         <Stack.Screen name="meeting/[id]" options={{ title: 'Absensi Pertemuan' }} />
+        {/* Redesain tampilan: Laporan keluar dari bilah tab (4 tab) dan dibuka
+            dari ubin Beranda. Rutenya tetap `/reports`. */}
+        <Stack.Screen name="reports" options={{ headerShown: false }} />
         <Stack.Screen name="report/[id]" options={{ title: 'Detail Pertemuan' }} />
         {/* V2 Fase 3 — perizinan */}
         <Stack.Screen name="izin/buat" options={{ title: 'Buat Pengajuan Izin' }} />

@@ -97,5 +97,6 @@ const styles = StyleSheet.create({
   swatch: { width: 11, height: 11, borderRadius: 3 },
   legendLabel: { flex: 1, fontSize: 13 },
   legendValue: { fontVariant: ['tabular-nums'] },
-  legendPercent: { width: 38, textAlign: 'right', fontVariant: ['tabular-nums'] },
+  // Lebar minimum (bukan tetap) agar "100%" pada teks besar tidak terpecah.
+  legendPercent: { minWidth: 38, flexShrink: 0, textAlign: 'right', fontVariant: ['tabular-nums'] },
 });

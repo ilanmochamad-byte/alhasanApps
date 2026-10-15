@@ -1,53 +1,74 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import type { ScheduleOccurrence } from '@/api/types';
+import { AppIcon } from '@/components/app-icon';
 import { ThemedText } from '@/components/themed-text';
-import { Badge } from '@/components/ui/chip';
 import { Card } from '@/components/ui/surface';
+import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { isoHariIni } from '@/lib/date';
+import { statusSesi } from '@/lib/schedule-status';
 
-/** Nada lencana mengikuti status pertemuan, bukan warna tunggal seperti V1. */
-function meetingTone(status: string | undefined) {
-  if (status === 'Selesai') return 'primary' as const;
-  if (status === 'Dibuka') return 'primary' as const;
-  if (status === 'Draf') return 'warning' as const;
-  return 'neutral' as const;
-}
-
+/**
+ * Kartu sesi (redesain tampilan Fase 2, gabungan Konsep B + C): jam di kiri,
+ * judul, status absensi berupa ikon + teks, dan penanda "Absen" untuk sesi
+ * hari ini yang belum selesai. Seluruh kartu adalah satu tombol menuju detail
+ * tugas; penanda "Absen" hanya petunjuk visual, bukan tombol kedua.
+ */
 export function ScheduleCard({
   schedule,
   onPress,
   /** Sembunyikan tanggal bila kartu sudah berada di bawah judul tanggal. */
   hideDate,
+  today = isoHariIni(),
 }: {
   schedule: ScheduleOccurrence;
   onPress: () => void;
   hideDate?: boolean;
+  today?: string;
 }) {
   const theme = useTheme();
-  const meetingLabel = schedule.meeting ? schedule.meeting.status : 'Belum dibuka';
-  const aktif = Boolean(schedule.meeting);
+  const { fontScale } = useWindowDimensions();
+  // Teks sistem sangat besar: jam, isi, dan penanda Absen ditumpuk agar
+  // judul tidak terperas menjadi kolom sempit di antara jam dan penanda.
+  const bertumpuk = fontScale > 1.35;
+  const status = statusSesi(schedule.meeting, schedule.occurrence_date, today);
+  const warnaStatus =
+    status.nada === 'selesai' ? theme.primary : status.nada === 'menunggu' ? theme.warning : theme.textSecondary;
 
   return (
     <Card
       onPress={onPress}
-      accessibilityLabel={`${schedule.subject}, ${schedule.class.name}, ${schedule.start_time}`}
-      style={styles.card}>
-      <View style={styles.time}>
+      accessibilityLabel={[
+        `${schedule.subject}, ${schedule.class.name}`,
+        `${schedule.start_time} sampai ${schedule.end_time}`,
+        status.label,
+        status.perluAbsen ? 'ketuk untuk absen' : null,
+      ]
+        .filter(Boolean)
+        .join(', ')}
+      style={[
+        styles.card,
+        bertumpuk && styles.cardStacked,
+        status.perluAbsen && { borderColor: theme.primary, borderWidth: 2 },
+      ]}>
+      <View style={[styles.time, bertumpuk && styles.timeStacked]}>
         <ThemedText selectable style={styles.timeStart}>
           {schedule.start_time}
         </ThemedText>
-        <ThemedText selectable style={[styles.timeEnd, { color: theme.textMuted }]}>
+        <ThemedText selectable style={[styles.timeEnd, { color: theme.textSecondary }]}>
           {schedule.end_time}
         </ThemedText>
       </View>
-      <View style={[styles.rail, { backgroundColor: aktif ? theme.primary : theme.backgroundSelected }]} />
-      <View style={styles.body}>
-        <View style={styles.titleRow}>
-          <ThemedText selectable type="h3" style={styles.title}>
-            {schedule.subject} · {schedule.class.name}
+      <View style={[styles.body, bertumpuk && styles.bodyStacked]}>
+        <ThemedText selectable type="h3" style={styles.title}>
+          {schedule.subject} · {schedule.class.name}
+        </ThemedText>
+        <View style={styles.statusRow}>
+          {status.ikon ? <AppIcon name={status.ikon} size={15} color={warnaStatus} /> : null}
+          <ThemedText selectable style={[styles.statusText, { color: warnaStatus }]}>
+            {status.label}
           </ThemedText>
-          <Badge label={meetingLabel} tone={meetingTone(schedule.meeting?.status)} />
         </View>
         {hideDate ? null : (
           <ThemedText selectable type="caption" themeColor="textSecondary">
@@ -58,6 +79,13 @@ export function ScheduleCard({
           {schedule.place} · {schedule.book}
         </ThemedText>
       </View>
+      {status.perluAbsen ? (
+        <View style={[styles.absen, { backgroundColor: theme.primary }]}>
+          <ThemedText style={[styles.absenText, { color: theme.onPrimary }]}>Absen</ThemedText>
+        </View>
+      ) : bertumpuk ? null : (
+        <AppIcon name="chevron-right" size={18} themeColor="textMuted" />
+      )}
     </Card>
   );
 }
@@ -83,12 +111,24 @@ export function formatDateShort(value: string) {
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', gap: 13, alignItems: 'stretch' },
-  time: { width: 52, gap: 2 },
-  timeStart: { fontSize: 15, lineHeight: 19, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  timeEnd: { fontSize: 12, lineHeight: 15, fontWeight: '500', fontVariant: ['tabular-nums'] },
-  rail: { width: 2, borderRadius: 2 },
-  body: { flex: 1, gap: 4 },
-  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  title: { flex: 1 },
+  card: { flexDirection: 'row', gap: 14, alignItems: 'center' },
+  cardStacked: { flexDirection: 'column', alignItems: 'flex-start', gap: 8 },
+  timeStacked: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  bodyStacked: { flex: 0, alignSelf: 'stretch' },
+  time: { minWidth: 52, alignItems: 'center', gap: 2 },
+  timeStart: { fontSize: 17, lineHeight: 21, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  timeEnd: { fontSize: 12, lineHeight: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  body: { flex: 1, gap: 3 },
+  title: { fontSize: 16, lineHeight: 21 },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  statusText: { fontSize: 13, lineHeight: 17, fontWeight: '700' },
+  absen: {
+    minHeight: 40,
+    paddingHorizontal: 14,
+    borderRadius: Radius.sm,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  absenText: { fontSize: 14, lineHeight: 18, fontWeight: '800' },
 });

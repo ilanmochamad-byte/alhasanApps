@@ -6,10 +6,17 @@ import { ThemedText } from '@/components/themed-text';
 import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-/** Satu baris menu di dalam `RowGroup`. */
+/**
+ * Satu baris menu di dalam `RowGroup`.
+ *
+ * Redesain tampilan: `subtitle` menjadikannya baris menu berketerangan —
+ * keterangan singkat di bawah judul dan ikon dalam kotak lunak — agar
+ * pengguna tahu isi menu sebelum membukanya.
+ */
 export function ListRow({
   icon,
   title,
+  subtitle,
   value,
   onPress,
   danger,
@@ -17,6 +24,8 @@ export function ListRow({
 }: {
   icon?: IconName;
   title: string;
+  /** Keterangan satu kalimat di bawah judul. */
+  subtitle?: string;
   /** Teks kecil di kanan, sebelum tanda panah. */
   value?: string;
   onPress?: () => void;
@@ -29,7 +38,7 @@ export function ListRow({
   return (
     <Pressable
       accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={value ? `${title}, ${value}` : title}
+      accessibilityLabel={[title, subtitle, value].filter(Boolean).join(', ')}
       disabled={!onPress}
       onPress={onPress}
       style={({ pressed }) => [
@@ -37,10 +46,23 @@ export function ListRow({
         !last && { borderBottomWidth: 1, borderBottomColor: theme.divider },
         { opacity: pressed ? 0.65 : 1 },
       ]}>
-      {icon ? <AppIcon name={icon} size={20} color={tint} /> : null}
-      <ThemedText selectable type="bodyBold" style={[styles.title, danger && { color: theme.danger }]}>
-        {title}
-      </ThemedText>
+      {icon && subtitle ? (
+        <View style={[styles.iconBox, { backgroundColor: danger ? theme.dangerSoft : theme.primarySoft }]}>
+          <AppIcon name={icon} size={20} color={tint} />
+        </View>
+      ) : icon ? (
+        <AppIcon name={icon} size={20} color={tint} />
+      ) : null}
+      <View style={styles.text}>
+        <ThemedText selectable type="bodyBold" style={[styles.title, danger && { color: theme.danger }]}>
+          {title}
+        </ThemedText>
+        {subtitle ? (
+          <ThemedText selectable type="caption" themeColor="textSecondary" style={styles.subtitle}>
+            {subtitle}
+          </ThemedText>
+        ) : null}
+      </View>
       {value ? (
         <ThemedText selectable type="caption" themeColor="textMuted">
           {value}
@@ -69,5 +91,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   row: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 14 },
-  title: { flex: 1, fontSize: 14 },
+  text: { flex: 1, gap: 2 },
+  title: { fontSize: 14 },
+  subtitle: { fontSize: 13, lineHeight: 17 },
+  iconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.sm,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,38 +14,63 @@ import { ThemedText } from '@/components/themed-text';
 import { DateField } from '@/components/ui/date-field';
 import { Chip, ChipRow } from '@/components/ui/chip';
 import { Overline, Panel } from '@/components/ui/surface';
+import { WeekStrip } from '@/components/ui/week-strip';
 import { useTheme } from '@/hooks/use-theme';
 import { isoHariIni, isoTambahHari } from '@/lib/date';
+import { hariPekan } from '@/lib/week';
 
-type Preset = 'pekan' | 'bulan' | 'kustom';
+/**
+ * Redesain tampilan Fase 2: tampilan utama adalah satu pekan (deretan tanggal
+ * dari Konsep B) dengan daftar sesi tanggal terpilih. Rentang kustom tetap
+ * tersedia untuk melihat banyak hari sekaligus; parameter API tidak berubah.
+ */
+type Tampilan = 'pekan' | 'kustom';
 
 export default function SchedulesScreen() {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
-  const awal = useMemo(() => ({ from: isoHariIni(), to: isoTambahHari(30) }), []);
-  const [preset, setPreset] = useState<Preset>('bulan');
-  const [from, setFrom] = useState(awal.from);
-  const [to, setTo] = useState(awal.to);
-  const [applied, setApplied] = useState(awal);
+  const hariIni = useMemo(() => isoHariIni(), []);
+  const [tampilan, setTampilan] = useState<Tampilan>('pekan');
+  const [tanggal, setTanggal] = useState(hariIni);
+  const [from, setFrom] = useState(hariIni);
+  const [to, setTo] = useState(() => isoTambahHari(30));
+  const [kustom, setKustom] = useState({ from: hariIni, to: isoTambahHari(30) });
+  const pekan = hariPekan(tanggal);
+  const awalPekan = pekan[0];
+  const akhirPekan = pekan[6];
+  // Rentang yang dimuat: satu pekan penuh (Senin–Minggu) dari tanggal
+  // terpilih, atau rentang kustom yang sudah diterapkan. Bergantung pada
+  // string batas pekan, sehingga memilih tanggal lain dalam pekan yang sama
+  // tidak memuat ulang dari server.
+  const applied = useMemo(
+    () => (tampilan === 'pekan' ? { from: awalPekan, to: akhirPekan } : kustom),
+    [tampilan, awalPekan, akhirPekan, kustom],
+  );
   const [data, setData] = useState<ScheduleListResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const requestId = useRef(0);
+
   const load = useCallback(
     async (refresh = false) => {
+      const currentRequest = ++requestId.current;
       if (refresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
       try {
-        setData(await api.schedules(applied.from, applied.to));
+        const result = await api.schedules(applied.from, applied.to);
+        if (currentRequest === requestId.current) setData(result);
       } catch (caught) {
-        setError(actionableError(caught));
+        if (currentRequest === requestId.current) setError(actionableError(caught));
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (currentRequest === requestId.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
     [applied],
@@ -54,23 +79,15 @@ export default function SchedulesScreen() {
   useFocusEffect(
     useCallback(() => {
       void load();
+      return () => { requestId.current += 1; };
     }, [load]),
   );
 
-  /**
-   * Pratinjau rentang menggantikan dua kolom teks YYYY-MM-DD sebagai jalan
-   * utama. Kolom teksnya tetap ada di bawah "Kustom" — parameter yang dikirim
-   * ke server persis sama.
-   */
-  function pilihPreset(next: Preset) {
-    setPreset(next);
-    if (next === 'kustom') return;
-    const rentang = next === 'pekan'
-      ? { from: isoHariIni(), to: isoTambahHari(7) }
-      : { from: isoHariIni(), to: isoTambahHari(30) };
-    setFrom(rentang.from);
-    setTo(rentang.to);
-    setApplied(rentang);
+  function bukaJadwal(schedule: ScheduleOccurrence) {
+    router.push({
+      pathname: '/schedule/[id]',
+      params: { id: String(schedule.id), date: schedule.occurrence_date },
+    });
   }
 
   // Mengelompokkan hasil per tanggal supaya daftar panjang tetap terbaca.
@@ -87,6 +104,15 @@ export default function SchedulesScreen() {
       .map(([tanggal, items]) => ({ tanggal, items }));
   }, [data]);
 
+  const sesiTerpilih = useMemo(
+    () => data?.items.filter((item) => item.occurrence_date === tanggal) ?? [],
+    [data, tanggal],
+  );
+  // Hasil pekan lama tetap tampil selama pekan baru dimuat; jangan sampai
+  // daftar tanggal terpilih diisi data pekan sebelumnya.
+  const dataSesuai =
+    data?.filters.date_from === applied.from && data?.filters.date_to === applied.to ? data : null;
+
   return (
     <KeyboardAwareScrollView
       contentInsetAdjustmentBehavior="never"
@@ -98,17 +124,24 @@ export default function SchedulesScreen() {
       <ScreenHeader title="Jadwal" />
 
       <ChipRow>
-        <Chip label="7 hari" selected={preset === 'pekan'} onPress={() => pilihPreset('pekan')} />
-        <Chip label="30 hari" selected={preset === 'bulan'} onPress={() => pilihPreset('bulan')} />
         <Chip
-          label="Kustom"
+          label="Per pekan"
+          accessibilityRole="radio"
+          selected={tampilan === 'pekan'}
+          onPress={() => setTampilan('pekan')}
+        />
+        <Chip
+          label="Rentang kustom"
           icon="calendar"
-          selected={preset === 'kustom'}
-          onPress={() => pilihPreset('kustom')}
+          accessibilityRole="radio"
+          selected={tampilan === 'kustom'}
+          onPress={() => setTampilan('kustom')}
         />
       </ChipRow>
 
-      {preset === 'kustom' ? (
+      {tampilan === 'pekan' ? <WeekStrip value={tanggal} onChange={setTanggal} today={hariIni} /> : null}
+
+      {tampilan === 'kustom' ? (
         <Panel>
           <Overline>Rentang tanggal</Overline>
           <View style={styles.filterRow}>
@@ -121,24 +154,52 @@ export default function SchedulesScreen() {
           </View>
           <AppButton
             label="Terapkan filter"
-            onPress={() => setApplied({ from: from.trim(), to: to.trim() })}
+            onPress={() => setKustom({ from: from.trim(), to: to.trim() })}
           />
         </Panel>
       ) : null}
 
-      {loading && !data ? (
+      {loading && !dataSesuai ? (
         <LoadingState label="Memuat daftar jadwal…" />
-      ) : error && !data ? (
+      ) : error && !dataSesuai ? (
         <ErrorState message={error} onRetry={() => void load()} />
-      ) : data?.items.length === 0 ? (
+      ) : !dataSesuai ? null : tampilan === 'pekan' ? (
+        <View style={styles.group}>
+          <ThemedText selectable type="overline" themeColor="textSecondary">
+            {formatDateShort(tanggal).toUpperCase()} · {sesiTerpilih.length} SESI
+          </ThemedText>
+          {sesiTerpilih.length === 0 ? (
+            <EmptyState
+              title="Tidak ada sesi"
+              message="Pilih tanggal lain atau geser ke pekan berikutnya."
+            />
+          ) : (
+            sesiTerpilih.map((schedule) => (
+              <ScheduleCard
+                key={`${schedule.id}-${schedule.occurrence_date}`}
+                schedule={schedule}
+                hideDate
+                today={hariIni}
+                onPress={() => bukaJadwal(schedule)}
+              />
+            ))
+          )}
+          {dataSesuai.pagination.total > dataSesuai.items.length ? (
+            <ThemedText selectable type="caption" themeColor="warning">
+              Pekan ini memuat lebih dari {dataSesuai.items.length} sesi; sebagian tidak ditampilkan.
+              Gunakan rentang kustom yang lebih pendek.
+            </ThemedText>
+          ) : null}
+        </View>
+      ) : dataSesuai.items.length === 0 ? (
         <EmptyState
           title="Jadwal tidak ditemukan"
           message="Ubah rentang tanggal atau tarik ke bawah untuk memuat ulang."
         />
-      ) : data ? (
+      ) : (
         <>
           <ThemedText selectable type="caption" themeColor="textSecondary">
-            {data.pagination.total} tugas ditemukan
+            {dataSesuai.pagination.total} tugas ditemukan
           </ThemedText>
           {kelompok.map((grup) => (
             <View key={grup.tanggal} style={styles.group}>
@@ -153,18 +214,14 @@ export default function SchedulesScreen() {
                   key={`${schedule.id}-${schedule.occurrence_date}`}
                   schedule={schedule}
                   hideDate
-                  onPress={() =>
-                    router.push({
-                      pathname: '/schedule/[id]',
-                      params: { id: String(schedule.id), date: schedule.occurrence_date },
-                    })
-                  }
+                  today={hariIni}
+                  onPress={() => bukaJadwal(schedule)}
                 />
               ))}
             </View>
           ))}
         </>
-      ) : null}
+      )}
     </KeyboardAwareScrollView>
   );
 }

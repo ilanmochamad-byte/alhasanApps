@@ -1,6 +1,7 @@
-import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
+import { isLoaded } from 'expo-font';
+import { Platform, StyleSheet, Text, type StyleProp, type TextProps, type TextStyle } from 'react-native';
 
-import { Fonts, ThemeColor, Type } from '@/constants/theme';
+import { brandFontFamily, Fonts, ThemeColor, Type } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 /**
@@ -35,13 +36,22 @@ export type ThemedTextProps = TextProps & {
 
 export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {
   const theme = useTheme();
+  const merged = [{ color: theme[themeColor ?? 'text'] }, styles[type], style];
 
-  return (
-    <Text
-      style={[{ color: theme[themeColor ?? 'text'] }, styles[type], style]}
-      {...rest}
-    />
-  );
+  return <Text style={[merged, brandFontStyle(merged)]} {...rest} />;
+}
+
+/**
+ * Menerapkan huruf merek sesuai ketebalan akhir teks. Teks yang sudah memilih
+ * keluarga sendiri (mis. `code`) dibiarkan; bila berkas huruf gagal dimuat,
+ * teks tetap memakai huruf sistem dengan ketebalan aslinya.
+ */
+export function brandFontStyle(style: StyleProp<TextStyle>): TextStyle | null {
+  const flat = StyleSheet.flatten(style) ?? {};
+  if (flat.fontFamily) return null;
+  const family = brandFontFamily(flat.fontWeight);
+  if (!isLoaded(family)) return null;
+  return { fontFamily: family, fontWeight: 'normal' };
 }
 
 const styles = StyleSheet.create({

@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,15 +13,20 @@ import { ScreenHeader } from '@/components/screen-header';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { SearchField } from '@/components/ui/app-field';
-import { Fab } from '@/components/ui/fab';
+import { Chip, ChipRow } from '@/components/ui/chip';
 import { IconButton } from '@/components/ui/icon-button';
-import { Segmented } from '@/components/ui/segmented';
-import { StatTile } from '@/components/ui/stat-tile';
 import { Overline, Panel } from '@/components/ui/surface';
 import { AppButton } from '@/components/app-button';
+import { AppIcon } from '@/components/app-icon';
+import { BottomTabInset, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-type Tampilan = 'antrean' | 'semua';
+/**
+ * Redesain tampilan Fase 2: segmen antrean/semua dan deret ringkasan angka
+ * diganti pil filter (Konsep B). "Disetujui" dan "Ditolak" memakai parameter
+ * `status` yang sudah didukung API daftar; tidak ada perubahan server.
+ */
+type Tampilan = 'antrean' | 'semua' | 'Disetujui' | 'Ditolak';
 
 /**
  * Layar perizinan multi-peran (PRD V2 Fase 3 §4–§8).
@@ -64,7 +69,7 @@ function PerizinanSession() {
   const modeAktif = mode ?? capabilities.default_mode;
   const orangTua = modeAktif === 'orang_tua';
   // Orang tua tidak memiliki antrean tindakan; layarnya selalu berupa daftar.
-  const tampilanAktif: Tampilan = orangTua ? 'semua' : tampilan;
+  const tampilanAktif: Tampilan = orangTua && tampilan === 'antrean' ? 'semua' : tampilan;
 
   const load = useCallback(
     async (refresh = false) => {
@@ -79,7 +84,9 @@ function PerizinanSession() {
         }
         const query = { mode: modeAktif, q: kataKunci, page: halaman, per_page: 20 };
         const hasil =
-          tampilanAktif === 'antrean' ? await api.izinAntrean(query) : await api.izinList(query);
+          tampilanAktif === 'antrean'
+            ? await api.izinAntrean(query)
+            : await api.izinList(tampilanAktif === 'semua' ? query : { ...query, status: tampilanAktif });
         setData(hasil);
         setAnak(modeAktif === 'orang_tua' ? await api.izinAnak() : null);
       } catch (caught) {
@@ -98,16 +105,41 @@ function PerizinanSession() {
     }, [load]),
   );
 
-  const ringkasan = useMemo(() => {
-    if (!data) return [] as { label: string; nilai: number }[];
-    return [
-      { label: 'Total', nilai: data.summary.total },
-      ...Object.entries(data.summary.per_status).map(([label, nilai]) => ({
-        label,
-        nilai: Number(nilai),
-      })),
-    ];
-  }, [data]);
+  // Jumlah antrean hanya diketahui pasti saat daftar antrean sedang dimuat
+  // (total paginasinya); `antrean_admin` dipakai bila server mengirimkannya.
+  // `summary` adalah ringkasan seluruh cakupan, bukan jumlah hasil filter.
+  const jumlahAntrean =
+    typeof data?.antrean_admin === 'number'
+      ? data.antrean_admin
+      : tampilanAktif === 'antrean' && data && !kataKunci
+        ? data.pagination.total
+        : null;
+
+  const { fontScale } = useWindowDimensions();
+  // Teks sistem sangat besar: tombol pengajuan ikut mengalir di dalam daftar
+  // (di atas pencarian) agar tidak menutupi separuh layar sebagai tombol tetap.
+  const teksBesar = fontScale > 1.35;
+  const dapatMengajukan = capabilities.aksi.dapat_membuat_pengajuan && !orangTua;
+  const tombolAjukan = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Ajukan izin baru"
+      onPress={() =>
+        router.push({ pathname: '/izin/buat', params: { mode: modeAktif ?? 'pengurus' } })
+      }
+      style={({ pressed }) => [
+        styles.bottomButton,
+        {
+          backgroundColor: pressed ? theme.primaryPressed : theme.primary,
+          boxShadow: '0 10px 24px rgba(23, 107, 58, 0.30)',
+        },
+      ]}>
+      <AppIcon name="plus" size={20} color={theme.onPrimary} />
+      <ThemedText selectable type="bodyBold" style={[styles.bottomButtonText, { color: theme.onPrimary }]}>
+        Ajukan izin baru
+      </ThemedText>
+    </Pressable>
+  );
 
   function terapkanPencarian() {
     setKataKunci(pencarian.trim());
@@ -192,20 +224,35 @@ function PerizinanSession() {
               pembatalan.
             </ThemedText>
           </Panel>
-        ) : (
-          <Segmented
-            accessibilityLabel="Tampilan daftar pengajuan"
-            value={tampilanAktif}
-            onChange={(next) => {
-              setTampilan(next);
-              setHalaman(1);
-            }}
-            options={[
-              { value: 'antrean', label: 'Antrean tindakan', count: data?.antrean_admin },
-              { value: 'semua', label: 'Semua pengajuan' },
-            ]}
-          />
-        )}
+        ) : null}
+
+        <ChipRow>
+          {(
+            [
+              ...(orangTua ? [] : [{ value: 'antrean', label: 'Perlu tindakan' }]),
+              { value: 'semua', label: 'Semua' },
+              { value: 'Disetujui', label: 'Disetujui' },
+              { value: 'Ditolak', label: 'Ditolak' },
+            ] as { value: Tampilan; label: string }[]
+          ).map((pilihan) => (
+            <Chip
+              key={pilihan.value}
+              accessibilityRole="radio"
+              label={
+                pilihan.value === 'antrean' && jumlahAntrean !== null
+                  ? `${pilihan.label} · ${jumlahAntrean}`
+                  : pilihan.label
+              }
+              selected={tampilanAktif === pilihan.value}
+              onPress={() => {
+                setTampilan(pilihan.value);
+                setHalaman(1);
+              }}
+            />
+          ))}
+        </ChipRow>
+
+        {dapatMengajukan && teksBesar ? tombolAjukan : null}
 
         <SearchField
           value={pencarian}
@@ -239,25 +286,13 @@ function PerizinanSession() {
               </ThemedText>
             ) : null}
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.summaryRow}>
-              {ringkasan.map((baris, index) => (
-                <View key={baris.label} style={styles.summaryItem}>
-                  <StatTile
-                    compact
-                    label={baris.label}
-                    value={baris.nilai}
-                    tone={index === 0 ? 'primary' : 'neutral'}
-                  />
-                </View>
-              ))}
-            </ScrollView>
+            <ThemedText selectable type="caption" themeColor="textSecondary">
+              {data.pagination.total} pengajuan
+            </ThemedText>
 
             {data.items.length === 0 ? (
               <EmptyState
-                title={tampilanAktif === 'antrean' ? 'Tidak ada antrean tindakan' : 'Belum ada pengajuan'}
+                title={tampilanAktif === 'antrean' ? 'Tidak ada antrean tindakan' : 'Tidak ada pengajuan'}
                 message={
                   tampilanAktif === 'antrean'
                     ? 'Tidak ada pengajuan yang menunggu tindakan Anda saat ini. Tarik ke bawah untuk memuat ulang.'
@@ -308,13 +343,15 @@ function PerizinanSession() {
         ) : null}
       </KeyboardAwareScrollView>
 
-      {capabilities.aksi.dapat_membuat_pengajuan && !orangTua ? (
-        <Fab
-          label="Buat izin"
-          onPress={() =>
-            router.push({ pathname: '/izin/buat', params: { mode: modeAktif ?? 'pengurus' } })
-          }
-        />
+      {dapatMengajukan && !teksBesar ? (
+        /* Tombol tetap selebar layar di atas bilah tab (Konsep A + C). */
+        <View
+          style={[
+            styles.bottomBar,
+            { bottom: BottomTabInset + Math.max(insets.bottom, 8) + 8 },
+          ]}>
+          {tombolAjukan}
+        </View>
       ) : null}
     </View>
   );
@@ -324,14 +361,27 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: {
     padding: 16,
-    paddingBottom: 130,
+    paddingBottom: 170,
     gap: 12,
     maxWidth: 760,
     width: '100%',
     alignSelf: 'center',
   },
-  summaryRow: { gap: 8, paddingVertical: 2 },
-  summaryItem: { width: 104 },
+  bottomBar: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
+  bottomButton: {
+    width: '100%',
+    maxWidth: 728,
+    minHeight: 54,
+    borderRadius: Radius.lg,
+    borderCurve: 'continuous',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  bottomButtonText: { fontSize: 16, flexShrink: 1, textAlign: 'center' },
   pagerRow: {
     flexDirection: 'row',
     alignItems: 'center',
