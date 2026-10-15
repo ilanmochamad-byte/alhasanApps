@@ -17,6 +17,7 @@ import { MenuTileGrid, type MenuTileItem } from '@/components/ui/menu-tile';
 import { SectionHeader } from '@/components/ui/surface';
 import { Elevation, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { attendanceShortcut } from '@/lib/attendance-shortcut';
 
 function tanggalHariIni() {
   return new Intl.DateTimeFormat('id-ID', {
@@ -94,6 +95,7 @@ export default function HomeScreen() {
     ? data.schedules.filter((item) => !(sorotHariIni && sorot && item.id === sorot.id))
     : [];
   const tampilkanBerikutnya = Boolean(data?.next_schedule) && sorotHariIni;
+  const tujuanAbsensi = attendanceShortcut(data?.schedules ?? []);
 
   // Redesain tampilan (Konsep A): menu ubin besar, tetap tiga kolom. Urutan
   // tetap; ubin yang tidak berhak tidak ditampilkan. Menyembunyikan ubin
@@ -107,7 +109,7 @@ export default function HomeScreen() {
             label: 'Absensi',
             // Langsung ke sesi hari ini yang belum selesai; bila tidak ada,
             // pengguna memilih sendiri dari daftar jadwal.
-            onPress: () => (sorot && sorotHariIni ? openSchedule(sorot) : router.push('/schedules')),
+            onPress: () => (tujuanAbsensi ? openSchedule(tujuanAbsensi) : router.push('/schedules')),
           },
         ] satisfies MenuTileItem[]
       : []),
