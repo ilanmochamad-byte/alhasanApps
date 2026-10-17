@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
 import {
@@ -106,6 +106,11 @@ export function NotificationProvider({ children }: PropsWithChildren) {
 
   const userId = profile?.id ?? null;
   const tertunda = useRef<{ tipe: string; id: number } | null>(null);
+  const pathname = usePathname();
+  const lokasi = useRef(pathname);
+  useEffect(() => {
+    lokasi.current = pathname;
+  }, [pathname]);
   const sudahMendaftar = useRef<number | null>(null);
 
   const jumlahBelumDibaca = cacheJumlah.userId === userId && userId !== null ? cacheJumlah.jumlah : 0;
@@ -158,16 +163,21 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     [router, userId],
   );
 
+  // expo-router sendiri sudah menavigasi URI skema aplikasi. Saat sesi aktif,
+  // listener ini hanya menyimpan penunjuk (bertahan bila 401/login ulang);
+  // push kedua akan menumpuk layar rapor yang sama.
   const initialLink = useRef(false);
   useEffect(() => {
     const receive = (url: string | null) => {
       const id = reportLinkTarget(url);
-      if (id !== null) buka({ tipe: 'rapor', rapor_id: id });
+      if (id === null) return;
+      if (userId !== null) tertunda.current = { tipe: 'rapor', id };
+      else buka({ tipe: 'rapor', rapor_id: id });
     };
     if (!initialLink.current) { initialLink.current = true; void Linking.getInitialURL().then(receive).catch(() => {}); }
     const sub = Linking.addEventListener('url', event => receive(event.url));
     return () => sub.remove();
-  }, [buka]);
+  }, [buka, userId]);
 
   const daftarkanPerangkat = useCallback(
     async (minta: boolean): Promise<RegistrationOutcome> => {
@@ -257,7 +267,8 @@ export function NotificationProvider({ children }: PropsWithChildren) {
 
     // Tujuan yang tertunda dari notifikasi yang dibuka sebelum login.
     const menunggu = tertunda.current;
-    if (menunggu !== null) {
+    // Cold start dengan sesi tersimpan: expo-router mungkin sudah membuka URI-nya.
+    if (menunggu !== null && !(menunggu.tipe === 'rapor' && lokasi.current === `/rapor/${menunggu.id}`)) {
       if (menunggu.tipe !== 'rapor') tertunda.current = null;
       router.push({ pathname: menunggu.tipe === 'rapor' ? '/rapor/[id]' : menunggu.tipe === 'v3_publikasi' ? '/publikasi/[id]' : '/izin/[id]', params: { id: String(menunggu.id) } });
     }
