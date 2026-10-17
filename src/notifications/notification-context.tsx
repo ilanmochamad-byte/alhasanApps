@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
+import * as Linking from 'expo-linking';
 import {
   createContext,
   type PropsWithChildren,
@@ -11,6 +12,7 @@ import {
 } from 'react';
 
 import { api } from '@/api/client';
+import { notificationTarget, reportLinkTarget } from '@/rapor/forms';
 import { useAuth } from '@/auth/auth-context';
 import {
   appVersion,
@@ -62,6 +64,7 @@ type PushState =
 
 type NotificationContextValue = {
   jumlahBelumDibaca: number;
+  tujuanDibuka: (tipe: string, id: number) => void;
   segarkanJumlah: () => Promise<void>;
   kurangiJumlah: (banyak?: number) => void;
   pushState: PushState;
@@ -138,22 +141,33 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   /** Membuka layar tujuan sebuah notifikasi. */
   const buka = useCallback(
     (data: unknown) => {
-      if (typeof data !== 'object' || data === null) return;
-      const payload = data as { tipe?: unknown; pengajuan_id?: unknown; publikasi_id?: unknown };
-      if (payload.tipe !== 'izin' && payload.tipe !== 'v3_publikasi') return;
-      const id = Number(payload.tipe === 'izin' ? payload.pengajuan_id : payload.publikasi_id);
-      if (!Number.isInteger(id) || id < 1) return;
+      const target = notificationTarget(data);
+      if (!target) return;
+      const { tipe, id } = target;
+      if (tipe === 'rapor') tertunda.current = target;
 
       if (userId === null) {
         // Belum masuk: simpan tujuan dan buka setelah autentikasi berhasil.
-        tertunda.current = { tipe: payload.tipe, id };
+        tertunda.current = { tipe, id };
         return;
       }
-      if (payload.tipe === 'v3_publikasi') router.push({ pathname: '/publikasi/[id]', params: { id: String(id) } });
+      if (tipe === 'rapor') router.push({ pathname: '/rapor/[id]', params: { id: String(id) } });
+      else if (tipe === 'v3_publikasi') router.push({ pathname: '/publikasi/[id]', params: { id: String(id) } });
       else router.push({ pathname: '/izin/[id]', params: { id: String(id) } });
     },
     [router, userId],
   );
+
+  const initialLink = useRef(false);
+  useEffect(() => {
+    const receive = (url: string | null) => {
+      const id = reportLinkTarget(url);
+      if (id !== null) buka({ tipe: 'rapor', rapor_id: id });
+    };
+    if (!initialLink.current) { initialLink.current = true; void Linking.getInitialURL().then(receive).catch(() => {}); }
+    const sub = Linking.addEventListener('url', event => receive(event.url));
+    return () => sub.remove();
+  }, [buka]);
 
   const daftarkanPerangkat = useCallback(
     async (minta: boolean): Promise<RegistrationOutcome> => {
@@ -244,8 +258,8 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     // Tujuan yang tertunda dari notifikasi yang dibuka sebelum login.
     const menunggu = tertunda.current;
     if (menunggu !== null) {
-      tertunda.current = null;
-      router.push({ pathname: menunggu.tipe === 'v3_publikasi' ? '/publikasi/[id]' : '/izin/[id]', params: { id: String(menunggu.id) } });
+      if (menunggu.tipe !== 'rapor') tertunda.current = null;
+      router.push({ pathname: menunggu.tipe === 'rapor' ? '/rapor/[id]' : menunggu.tipe === 'v3_publikasi' ? '/publikasi/[id]' : '/izin/[id]', params: { id: String(menunggu.id) } });
     }
 
     return () => {
@@ -283,9 +297,13 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     buka(tanggapanTerakhir.notification.request.content.data);
   }, [tanggapanTerakhir, buka]);
 
+  const tujuanDibuka = useCallback((tipe: string, id: number) => {
+    if (tertunda.current?.tipe === tipe && tertunda.current.id === id) tertunda.current = null;
+  }, []);
+
   return (
     <NotificationContext.Provider
-      value={{ jumlahBelumDibaca, segarkanJumlah, kurangiJumlah, pushState, nyalakanPush, matikanPush }}>
+      value={{ tujuanDibuka, jumlahBelumDibaca, segarkanJumlah, kurangiJumlah, pushState, nyalakanPush, matikanPush }}>
       {children}
     </NotificationContext.Provider>
   );

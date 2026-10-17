@@ -151,6 +151,29 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   throw new ApiError('Permintaan gagal.', 0, 'NETWORK_ERROR');
 }
 
+/** Canonical PDF bytes in memory; authenticated endpoint rechecks ownership. No automatic retry. */
+export async function requestPdf(path: string): Promise<ArrayBuffer> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
+  try {
+    const token = await tokenStorage.get();
+    const response = await fetch(`${apiBaseUrl()}${path}`, {
+      headers: { Accept: 'application/pdf', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, signal: controller.signal,
+    });
+    if (!response.ok) {
+      if (response.status === 401) { await tokenStorage.clear(); await unauthorizedHandler?.(); }
+      throw new ApiError('PDF tidak dapat diunduh. Muat ulang untuk memeriksa status dan akses.', response.status, 'PDF_ERROR');
+    }
+    if (!response.headers.get('content-type')?.includes('application/pdf')) throw new ApiError('Respons PDF tidak valid.', 503, 'PDF_ERROR');
+    const bytes = await response.arrayBuffer();
+    if (new TextDecoder().decode(bytes.slice(0, 5)) !== '%PDF-') throw new ApiError('Berkas PDF tidak valid.', 503, 'PDF_ERROR');
+    return bytes;
+  } catch (e) {
+    if (e instanceof ApiError) throw e;
+    throw new ApiError('Unduhan gagal. Periksa koneksi dan coba kembali.', 0, e instanceof Error && e.name === 'AbortError' ? 'TIMEOUT' : 'NETWORK_ERROR');
+  } finally { clearTimeout(timeout); }
+}
+
 function query(values: Record<string, string | number | boolean | undefined>) {
   const params = new URLSearchParams();
   Object.entries(values).forEach(([key, value]) => {

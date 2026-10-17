@@ -63,6 +63,11 @@ function RootNavigator() {
         <Stack.Screen name="pembinaan/daftar" options={{ title: 'Daftar pembinaan' }} />
         <Stack.Screen name="pembinaan/buat" options={{ title: 'Catat pembinaan' }} />
         <Stack.Screen name="pembinaan/detail" options={{ title: 'Detail pembinaan' }} />
+        <Stack.Screen name="rapor/index" options={{ title: 'Rapor semester' }} />
+        <Stack.Screen name="rapor/nilai" options={{ title: 'Nilai mata pelajaran' }} />
+        <Stack.Screen name="rapor/sikap" options={{ title: 'Sikap semester' }} />
+        <Stack.Screen name="rapor/verifikasi" options={{ title: 'Verifikasi & penerbitan' }} />
+        <Stack.Screen name="rapor/[id]" options={{ title: 'Rapor keluarga' }} />
         <Stack.Screen name="publikasi/[id]" options={{ title: 'Informasi pembinaan' }} />
         <Stack.Screen name="notifikasi/index" options={{ title: 'Notifikasi' }} />
         <Stack.Screen name="notifikasi/[id]" options={{ title: 'Detail Notifikasi' }} />
