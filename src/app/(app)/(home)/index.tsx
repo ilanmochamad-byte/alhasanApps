@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useRaporAkses } from '@/components/rapor-entry';
 import { usePembinaanAkses } from '@/components/pembinaan-entry';
 import { actionableError, api } from '@/api/client';
 import type { ScheduleOccurrence, TodayResponse } from '@/api/types';
@@ -38,6 +39,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { profile, capabilities } = useAuth();
   const aksesPembinaan = usePembinaanAkses();
+  const aksesRapor = useRaporAkses();
   const [data, setData] = useState<TodayResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,6 +107,7 @@ export default function HomeScreen() {
   // tetap; ubin yang tidak berhak tidak ditampilkan. Menyembunyikan ubin
   // bukan kontrol akses — server tetap memeriksa cakupan.
   const menu: MenuTileItem[] = [
+    ...(aksesRapor.tersedia ? [{ icon: 'chart', label: 'Rapor', tone: 'info', onPress: () => router.push('/rapor') }] satisfies MenuTileItem[] : []),
     ...(aksesJadwal
       ? [
           { icon: 'calendar', label: 'Jadwal', onPress: () => router.push('/schedules') },
@@ -139,7 +142,7 @@ export default function HomeScreen() {
       : []),
   ];
 
-  const keadaanMenu = keadaanMenuBeranda(menu.length, aksesPembinaan.status);
+  const keadaanMenu = keadaanMenuBeranda(menu.length, aksesPembinaan.status === 'memuat' || aksesRapor.status === 'memuat' ? 'memuat' : aksesPembinaan.error || aksesRapor.error ? 'gagal' : 'siap');
 
   return (
     <ScrollView
@@ -190,6 +193,7 @@ export default function HomeScreen() {
         />
       ) : null}
 
+      {aksesRapor.error && <AppButton label="Muat ulang akses rapor" variant="secondary" onPress={aksesRapor.muatUlang} />}
       {aksesPembinaan.error ? (
         <AppButton label="Muat ulang akses pembinaan" variant="secondary" onPress={aksesPembinaan.muatUlang} />
       ) : null}

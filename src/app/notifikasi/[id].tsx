@@ -87,11 +87,11 @@ export default function NotifikasiDetailScreen() {
       </View>
 
       <ThemedText selectable type="small" themeColor="textSecondary">
-        Alasan izin dan catatan pengurus tidak pernah dikirim melalui notifikasi. Buka detail izin untuk
-        membacanya.
+        Notifikasi hanya memberi pemberitahuan. Buka detail untuk memeriksa informasi dan hak akses terbaru.
       </ThemedText>
 
       <View style={styles.actions}>
+        {data.tautan.tipe === 'rapor' && data.tautan.rapor_id ? <AppButton label="Buka rapor semester" onPress={() => router.push({ pathname: '/rapor/[id]', params: { id: String(data.tautan.rapor_id) } })} /> : null}
         {data.pengajuan_id !== null ? (
           <AppButton
             label="Buka detail izin"

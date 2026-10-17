@@ -4,6 +4,7 @@ import { createContext, type PropsWithChildren, use, useCallback, useEffect, use
 import { api, setUnauthorizedHandler } from '@/api/client';
 import type { CapabilityPayload, IzinCapability, Profile } from '@/api/types';
 import { tokenStorage } from '@/auth/token-storage';
+import { clearReportCache } from '@/rapor/pdf';
 import { pushTokenStorage } from '@/notifications/push-token-storage';
 
 /**
@@ -43,6 +44,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const clearSession = useCallback(async () => {
     await tokenStorage.clear();
+    try { clearReportCache(); } catch { /* Cache cleanup can be retried on next startup. */ }
     setProfile(null);
   }, []);
 
@@ -52,6 +54,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [clearSession]);
 
   useEffect(() => {
+    try { clearReportCache(); } catch { /* No private cache is read on failure. */ }
     let active = true;
     void (async () => {
       try {
