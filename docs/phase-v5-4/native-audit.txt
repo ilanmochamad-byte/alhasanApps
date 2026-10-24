@@ -1,0 +1,6 @@
+Expo SDK 57.0.15; expo-screen-capture 57.0.4; Android Emulator Medium_Phone Android 16.
+Android dev client Debug rebuild: BUILD SUCCESSFUL, installed emulator only.
+APK SHA-256: f2f443fbeed626360da3821cae8109adb44ad1225246bb559924bd28072fe441
+Hermes export iOS + Android: exit 0; 143 files scanned; API production host occurrences: 0 (host value not printed).
+iOS native: default precompiled Swift 6.3.1 vs compiler 6.4 failed; source pods then JSI interface failed; JSI clean rebuild succeeded but final React Native vtable/typeinfo linker failed.
+iOS runtime latest health screens: NOT PASSED. iOS/Android physical: NOT RUN. Actual provider push/cold start non-dev: NOT RUN.

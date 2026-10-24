@@ -13,3 +13,7 @@
 | 7. Auditor menyatakan wajib terpenuhi; branch bersih sebelum merge | **Menunggu audit independen dan keputusan Human Developer.** Tidak ada izin merge/produksi dalam sesi ini. | handoff-claude.md |
 
 Tidak mengklaim seluruh Fase 5 siap rilis hanya dari lokal. Tidak merge, deploy, migrasi produksi, memasang cron, mengirim rilis aplikasi, mengubah kanal produksi atau mengerjakan PRD berikutnya. Lihat risiko-terbuka.md untuk kegagalan awal yang dikoreksi serta batas yang belum diuji.
+
+## Audit Claude Code — 17 Oktober 2026
+
+Audit independen selesai; laporan lengkap `audit-claude.md` (salinan sama dengan repositori web, yang memuat seluruh bukti regresi web). Koreksi mobile: `src/notifications/notification-context.tsx` — URI `alhasanapps://rapor/ID` saat sesi aktif tidak lagi menumpuk dua layar detail (expo-router sudah menavigasi; listener hanya menyimpan penunjuk), diuji Android emulator (`audit-claude-android.txt`); `src/api/rapor.ts` — `Snapshot.rata_rata` opsional mengikuti koreksi proyeksi wali web. tsc/lint/21 unit dan E2E Expo web 37/37 lulus. iOS/perangkat fisik/Push nyata dan smoke produksi masih menunggu pelaksanaan; belum siap rilis.

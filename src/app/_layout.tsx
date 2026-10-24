@@ -69,6 +69,8 @@ function RootNavigator() {
         <Stack.Screen name="rapor/verifikasi" options={{ title: 'Verifikasi & penerbitan' }} />
         <Stack.Screen name="rapor/[id]" options={{ title: 'Rapor keluarga' }} />
         <Stack.Screen name="publikasi/[id]" options={{ title: 'Informasi pembinaan' }} />
+        {/* V5 Fase 4 — kesehatan santri. Hak tiap layar diperiksa server. */}
+        <Stack.Screen name="kesehatan" options={{ headerShown: false }} />
         <Stack.Screen name="notifikasi/index" options={{ title: 'Notifikasi' }} />
         <Stack.Screen name="notifikasi/[id]" options={{ title: 'Detail Notifikasi' }} />
         <Stack.Screen name="notifikasi/perangkat" options={{ title: 'Perangkat & Push' }} />

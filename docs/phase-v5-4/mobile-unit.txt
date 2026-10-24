@@ -1,0 +1,36 @@
+✔ Absensi kembali ke daftar jadwal saat hari kosong atau seluruh sesi selesai (1.158625ms)
+✔ Absensi memilih sesi pertama yang belum selesai, termasuk yang belum dibuka (0.101625ms)
+✔ tanggal/jam lokal lengkap termasuk tengah malam dan tahun kabisat (1.504542ms)
+✔ tolak bagian kosong, format manual salah dan tanggal yang dinormalisasi JS (0.082709ms)
+✔ Koreksi mengirim keadaan lengkap: rincian lama ber-id dipertahankan, waktu asli tidak bergeser (1.1015ms)
+✔ Baris baru yang seluruhnya kosong diabaikan; baris lama kosong tetap dikirim agar server menolaknya (0.616375ms)
+✔ Alasan wajib minimal lima karakter, maksimal 1000; sidik jari berubah bila isi berubah (0.181ms)
+✔ Penunjuk notifikasi kesehatan hanya ringkasan_id valid; isi/tautan lain diabaikan (0.098375ms)
+✔ Deep-link kesehatan hanya skema aplikasi dan rute ringkasan wali (0.179542ms)
+✔ Teks perubahan versi memakai label manusia (0.082ms)
+✔ Hasil pencarian santri dikelompokkan per kelas; belum ditempatkan paling akhir (0.113ms)
+✔ mengenali exception pembatalan cetak iOS dari nama dan pesan (1.00625ms)
+✔ mengenali bentuk CodedError dari bridge native (0.148333ms)
+✔ tidak menyembunyikan kegagalan cetak yang sebenarnya (2.157584ms)
+✔ mengembalikan hasil normal ketika pencetakan dimulai (0.085541ms)
+✔ mengubah penutupan dialog menjadi hasil dibatalkan (0.087166ms)
+✔ meneruskan kegagalan printer tanpa perubahan (2.028208ms)
+✔ Kosong tetap belum lengkap, nol sah, versi lama tetap dikirim (0.667875ms)
+✔ Validasi angka/reason tidak meloloskan nilai tak sah atau alasan kosong (0.129833ms)
+✔ Push hanya penunjuk valid; data/nilai/tautan lain tidak dipakai (0.386834ms)
+✔ Deep-link native hanya skema/rute rapor sah; ID bertahan sebagai penunjuk (0.144542ms)
+✔ pekan dimulai Senin, termasuk ketika tanggal terpilih hari Minggu (2.27975ms)
+✔ pekan melintasi pergantian bulan, tahun, dan 29 Februari (0.227333ms)
+✔ geser pekan maju dan mundur mempertahankan hari (0.147459ms)
+✔ pesan tanpa menu hanya muncul setelah akses pembinaan selesai diperiksa (0.12725ms)
+✔ sesi hari ini yang belum dibuka atau belum selesai ditandai perlu absen (0.810542ms)
+✔ sesi selesai tidak pernah meminta absen, kapan pun tanggalnya (0.075334ms)
+✔ sesi hari lain tidak diberi penanda absen dan dibedakan masa depan/lampau (0.064792ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 141.08

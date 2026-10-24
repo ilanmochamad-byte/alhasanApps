@@ -1,0 +1,64 @@
+(node:72757) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/ilanmochamad/alhasanApps/tests/attendance-shortcut.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/ilanmochamad/alhasanApps/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Absensi kembali ke daftar jadwal saat hari kosong atau seluruh sesi selesai (0.38175ms)
+✔ Absensi memilih sesi pertama yang belum selesai, termasuk yang belum dibuka (0.882542ms)
+(node:72758) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/ilanmochamad/alhasanApps/tests/date-time.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/ilanmochamad/alhasanApps/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ tanggal/jam lokal lengkap termasuk tengah malam dan tahun kabisat (1.147875ms)
+✔ tolak bagian kosong, format manual salah dan tanggal yang dinormalisasi JS (0.095667ms)
+(node:72759) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/ilanmochamad/alhasanApps/tests/kesehatan.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/ilanmochamad/alhasanApps/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Koreksi mengirim keadaan lengkap: rincian lama ber-id dipertahankan, waktu asli tidak bergeser (0.835708ms)
+✔ Baris baru yang seluruhnya kosong diabaikan; baris lama kosong tetap dikirim agar server menolaknya (0.617709ms)
+✔ Alasan wajib minimal lima karakter, maksimal 1000; sidik jari berubah bila isi berubah (0.178917ms)
+✔ Penunjuk notifikasi kesehatan hanya ringkasan_id valid; isi/tautan lain diabaikan (0.097291ms)
+✔ Deep-link kesehatan hanya skema aplikasi dan rute ringkasan wali (0.167833ms)
+✔ Teks perubahan versi memakai label manusia (0.077334ms)
+✔ Hasil pencarian santri dikelompokkan per kelas; belum ditempatkan paling akhir (0.110917ms)
+(node:72760) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/ilanmochamad/alhasanApps/tests/print-dialog.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/ilanmochamad/alhasanApps/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ mengenali exception pembatalan cetak iOS dari nama dan pesan (0.461209ms)
+✔ mengenali bentuk CodedError dari bridge native (0.090792ms)
+✔ tidak menyembunyikan kegagalan cetak yang sebenarnya (0.0555ms)
+✔ mengembalikan hasil normal ketika pencetakan dimulai (0.06525ms)
+✔ mengubah penutupan dialog menjadi hasil dibatalkan (0.078042ms)
+✔ meneruskan kegagalan printer tanpa perubahan (0.328792ms)
+(node:72761) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/ilanmochamad/alhasanApps/tests/rapor.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/ilanmochamad/alhasanApps/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Kosong tetap belum lengkap, nol sah, versi lama tetap dikirim (1.344459ms)
+✔ Validasi angka/reason tidak meloloskan nilai tak sah atau alasan kosong (0.122541ms)
+✔ Push hanya penunjuk valid; data/nilai/tautan lain tidak dipakai (0.684666ms)
+✔ Deep-link native hanya skema/rute rapor sah; ID bertahan sebagai penunjuk (0.417208ms)
+(node:72762) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/ilanmochamad/alhasanApps/tests/redesain-fase1.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/ilanmochamad/alhasanApps/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ pekan dimulai Senin, termasuk ketika tanggal terpilih hari Minggu (3.972917ms)
+✔ pekan melintasi pergantian bulan, tahun, dan 29 Februari (0.097417ms)
+✔ geser pekan maju dan mundur mempertahankan hari (0.065542ms)
+✔ pesan tanpa menu hanya muncul setelah akses pembinaan selesai diperiksa (0.055417ms)
+(node:72763) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/ilanmochamad/alhasanApps/tests/redesain-fase2.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/ilanmochamad/alhasanApps/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ sesi hari ini yang belum dibuka atau belum selesai ditandai perlu absen (0.693666ms)
+✔ sesi selesai tidak pernah meminta absen, kapan pun tanggalnya (0.066041ms)
+✔ sesi hari lain tidak diberi penanda absen dan dibedakan masa depan/lampau (0.064917ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 123.287459

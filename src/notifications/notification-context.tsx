@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
 import {
@@ -13,6 +13,7 @@ import {
 
 import { api } from '@/api/client';
 import { notificationTarget, reportLinkTarget } from '@/rapor/forms';
+import { kesehatanLinkTarget } from '@/kesehatan/forms';
 import { useAuth } from '@/auth/auth-context';
 import {
   appVersion,
@@ -77,6 +78,25 @@ type NotificationContextValue = {
 const NotificationContext = createContext<NotificationContextValue | null>(null);
 
 /**
+ * Tujuan yang penunjuknya dipertahankan sampai layar tujuan benar-benar
+ * dibuka (bertahan melewati 401/login ulang): rapor V4 dan ringkasan
+ * kesehatan V5. Layar tujuan memanggil `tujuanDibuka` setelah server
+ * mengizinkan, atau menolak.
+ */
+const TUJUAN_BERTAHAN = ['rapor', 'kesehatan_ringkasan'];
+
+function ruteTujuan(tipe: string) {
+  if (tipe === 'rapor') return '/rapor/[id]' as const;
+  if (tipe === 'v3_publikasi') return '/publikasi/[id]' as const;
+  if (tipe === 'kesehatan_ringkasan') return '/kesehatan/wali/[id]' as const;
+  return '/izin/[id]' as const;
+}
+
+function lokasiTujuan(tipe: string, id: number) {
+  return tipe === 'rapor' ? `/rapor/${id}` : tipe === 'kesehatan_ringkasan' ? `/kesehatan/wali/${id}` : null;
+}
+
+/**
  * Penyedia notifikasi V2 Fase 4.
  *
  * Tanggung jawab:
@@ -106,6 +126,11 @@ export function NotificationProvider({ children }: PropsWithChildren) {
 
   const userId = profile?.id ?? null;
   const tertunda = useRef<{ tipe: string; id: number } | null>(null);
+  const pathname = usePathname();
+  const lokasi = useRef(pathname);
+  useEffect(() => {
+    lokasi.current = pathname;
+  }, [pathname]);
   const sudahMendaftar = useRef<number | null>(null);
 
   const jumlahBelumDibaca = cacheJumlah.userId === userId && userId !== null ? cacheJumlah.jumlah : 0;
@@ -144,30 +169,35 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       const target = notificationTarget(data);
       if (!target) return;
       const { tipe, id } = target;
-      if (tipe === 'rapor') tertunda.current = target;
+      if (TUJUAN_BERTAHAN.includes(tipe)) tertunda.current = target;
 
       if (userId === null) {
         // Belum masuk: simpan tujuan dan buka setelah autentikasi berhasil.
         tertunda.current = { tipe, id };
         return;
       }
-      if (tipe === 'rapor') router.push({ pathname: '/rapor/[id]', params: { id: String(id) } });
-      else if (tipe === 'v3_publikasi') router.push({ pathname: '/publikasi/[id]', params: { id: String(id) } });
-      else router.push({ pathname: '/izin/[id]', params: { id: String(id) } });
+      router.push({ pathname: ruteTujuan(tipe), params: { id: String(id) } });
     },
     [router, userId],
   );
 
+  // expo-router sendiri sudah menavigasi URI skema aplikasi. Saat sesi aktif,
+  // listener ini hanya menyimpan penunjuk (bertahan bila 401/login ulang);
+  // push kedua akan menumpuk layar rapor yang sama.
   const initialLink = useRef(false);
   useEffect(() => {
     const receive = (url: string | null) => {
-      const id = reportLinkTarget(url);
-      if (id !== null) buka({ tipe: 'rapor', rapor_id: id });
+      const rapor = reportLinkTarget(url);
+      const ringkasan = rapor === null ? kesehatanLinkTarget(url) : null;
+      const target = rapor !== null ? { tipe: 'rapor', id: rapor } : ringkasan !== null ? { tipe: 'kesehatan_ringkasan', id: ringkasan } : null;
+      if (target === null) return;
+      if (userId !== null) tertunda.current = target;
+      else buka(target.tipe === 'rapor' ? { tipe: 'rapor', rapor_id: target.id } : { tipe: 'kesehatan_ringkasan', ringkasan_id: target.id });
     };
     if (!initialLink.current) { initialLink.current = true; void Linking.getInitialURL().then(receive).catch(() => {}); }
     const sub = Linking.addEventListener('url', event => receive(event.url));
     return () => sub.remove();
-  }, [buka]);
+  }, [buka, userId]);
 
   const daftarkanPerangkat = useCallback(
     async (minta: boolean): Promise<RegistrationOutcome> => {
@@ -257,9 +287,10 @@ export function NotificationProvider({ children }: PropsWithChildren) {
 
     // Tujuan yang tertunda dari notifikasi yang dibuka sebelum login.
     const menunggu = tertunda.current;
-    if (menunggu !== null) {
-      if (menunggu.tipe !== 'rapor') tertunda.current = null;
-      router.push({ pathname: menunggu.tipe === 'rapor' ? '/rapor/[id]' : menunggu.tipe === 'v3_publikasi' ? '/publikasi/[id]' : '/izin/[id]', params: { id: String(menunggu.id) } });
+    // Cold start dengan sesi tersimpan: expo-router mungkin sudah membuka URI-nya.
+    if (menunggu !== null && lokasi.current !== lokasiTujuan(menunggu.tipe, menunggu.id)) {
+      if (!TUJUAN_BERTAHAN.includes(menunggu.tipe)) tertunda.current = null;
+      router.push({ pathname: ruteTujuan(menunggu.tipe), params: { id: String(menunggu.id) } });
     }
 
     return () => {

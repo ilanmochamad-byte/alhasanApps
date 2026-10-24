@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useRaporAkses } from '@/components/rapor-entry';
 import { usePembinaanAkses } from '@/components/pembinaan-entry';
+import { useKesehatanAkses } from '@/components/kesehatan-shared';
 import { actionableError, api } from '@/api/client';
 import type { ScheduleOccurrence, TodayResponse } from '@/api/types';
 import { useAuth } from '@/auth/auth-context';
@@ -40,6 +41,7 @@ export default function HomeScreen() {
   const { profile, capabilities } = useAuth();
   const aksesPembinaan = usePembinaanAkses();
   const aksesRapor = useRaporAkses();
+  const aksesKesehatan = useKesehatanAkses();
   const [data, setData] = useState<TodayResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -140,9 +142,13 @@ export default function HomeScreen() {
     ...(aksesPembinaan.tersedia
       ? [{ icon: 'users', label: 'Pembinaan', tone: 'violet', onPress: () => router.push('/pembinaan') }] satisfies MenuTileItem[]
       : []),
+    // V5: pembaca internal ke pintu kesehatan; wali saja langsung ke "Kesehatan anak".
+    ...(aksesKesehatan.tersedia
+      ? [{ icon: 'info', label: aksesKesehatan.label, tone: 'primary', onPress: () => router.push(aksesKesehatan.internal ? '/kesehatan' : '/kesehatan/wali') }] satisfies MenuTileItem[]
+      : []),
   ];
 
-  const keadaanMenu = keadaanMenuBeranda(menu.length, aksesPembinaan.status === 'memuat' || aksesRapor.status === 'memuat' ? 'memuat' : aksesPembinaan.error || aksesRapor.error ? 'gagal' : 'siap');
+  const keadaanMenu = keadaanMenuBeranda(menu.length, aksesPembinaan.status === 'memuat' || aksesRapor.status === 'memuat' || aksesKesehatan.status === 'memuat' ? 'memuat' : aksesPembinaan.error || aksesRapor.error || aksesKesehatan.error ? 'gagal' : 'siap');
 
   return (
     <ScrollView
@@ -194,6 +200,7 @@ export default function HomeScreen() {
       ) : null}
 
       {aksesRapor.error && <AppButton label="Muat ulang akses rapor" variant="secondary" onPress={aksesRapor.muatUlang} />}
+      {aksesKesehatan.error ? <AppButton label="Muat ulang akses kesehatan" variant="secondary" onPress={aksesKesehatan.muatUlang} /> : null}
       {aksesPembinaan.error ? (
         <AppButton label="Muat ulang akses pembinaan" variant="secondary" onPress={aksesPembinaan.muatUlang} />
       ) : null}
