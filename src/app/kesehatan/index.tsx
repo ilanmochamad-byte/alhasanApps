@@ -46,6 +46,7 @@ function Hub() {
           {akses.catat ? <AppButton label="Catat kunjungan" icon="plus" onPress={() => router.push('/kesehatan/catat')} /> : null}
           <AppButton label={akses.cakupan === 'binaan' ? 'Riwayat kesehatan santri binaan' : 'Daftar kunjungan'} variant={akses.catat ? 'secondary' : 'primary'}
             onPress={() => router.push('/kesehatan/daftar')} />
+          <AppButton label="Laporan layanan klinik" variant="secondary" onPress={() => router.push('/kesehatan/laporan')} />
           {akses.riwayat_akses ? <AppButton label="Penugasan petugas kesehatan" variant="secondary" onPress={() => router.push('/kesehatan/penugasan')} /> : null}
           {!akses.catat ? (
             <ThemedText type="caption" themeColor="textSecondary">
