@@ -100,6 +100,9 @@ export default function NotifikasiDetailScreen() {
             }
           />
         ) : null}
+        {data.tautan.tipe === 'kesehatan_ringkasan' && data.tautan.ringkasan_id ? (
+          <AppButton label="Buka informasi kesehatan" onPress={() => router.push({ pathname: '/kesehatan/wali/[id]', params: { id: String(data.tautan.ringkasan_id) } })} />
+        ) : null}
         {data.tautan.tipe === 'v3_publikasi' && data.tautan.publikasi_id ? (
           <AppButton label="Buka informasi pembinaan" onPress={() => router.push({ pathname: '/publikasi/[id]', params: { id: String(data.tautan.publikasi_id) } })} />
         ) : null}

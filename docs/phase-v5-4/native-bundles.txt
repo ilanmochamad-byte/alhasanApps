@@ -1,0 +1,5 @@
+› ios bundles (1):
+_expo/static/js/ios/entry-52b24858c5d15c345cea78231467594a.hbc (3.3MB)
+› android bundles (1):
+_expo/static/js/android/entry-fb97b730e306f1bb06b747dbfa3e212e.hbc (3.4MB)
+exit=0; EXPO_NO_DOTENV=1, salinan tanpa .env.local; 0 berkas memuat host produksi
