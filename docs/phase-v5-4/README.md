@@ -23,3 +23,7 @@
 | Expo web + API/DB nyata, Android emulator, iOS simulator | lihat repositori web | `docs/phase-v5-4/bukti/` (web) |
 
 Batas: tanpa perangkat fisik, tanpa Push nyata, cold start dari tautan pada dev client membuka peluncur (perlu build preview/rilis), dan cuplikan pengalih aplikasi Android masih memuat isi (T-1, menunggu keputusan `FLAG_SECURE`). Tidak ada rilis aplikasi.
+
+## Audit independen Codex — 24 Oktober 2026
+
+**Belum lulus seluruh kriteria Fase 4.** Koreksi versi asal draf saat latar dan perlindungan native navigator kesehatan diterapkan; rincian, bukti serta batas build/runtime iOS, perangkat fisik, Push dan cold start ada di [AUDIT-CODEX.md](AUDIT-CODEX.md). Build native baru diperlukan untuk `expo-screen-capture`; binary lama tidak memuat informasi kesehatan bila modul belum tersedia. Fase 5 tetap tidak diizinkan.

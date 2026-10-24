@@ -70,17 +70,7 @@ function RootNavigator() {
         <Stack.Screen name="rapor/[id]" options={{ title: 'Rapor keluarga' }} />
         <Stack.Screen name="publikasi/[id]" options={{ title: 'Informasi pembinaan' }} />
         {/* V5 Fase 4 — kesehatan santri. Hak tiap layar diperiksa server. */}
-        <Stack.Screen name="kesehatan/index" options={{ title: 'Kesehatan' }} />
-        <Stack.Screen name="kesehatan/daftar" options={{ title: 'Kunjungan klinik' }} />
-        <Stack.Screen name="kesehatan/catat" options={{ title: 'Catatan kunjungan' }} />
-        <Stack.Screen name="kesehatan/kunjungan/[id]" options={{ title: 'Detail kunjungan' }} />
-        <Stack.Screen name="kesehatan/hasil-rujukan" options={{ title: 'Hasil rujukan' }} />
-        <Stack.Screen name="kesehatan/versi" options={{ title: 'Riwayat versi' }} />
-        <Stack.Screen name="kesehatan/akses" options={{ title: 'Riwayat akses' }} />
-        <Stack.Screen name="kesehatan/ringkasan" options={{ title: 'Ringkasan untuk wali' }} />
-        <Stack.Screen name="kesehatan/penugasan" options={{ title: 'Penugasan kesehatan' }} />
-        <Stack.Screen name="kesehatan/wali/index" options={{ title: 'Kesehatan anak' }} />
-        <Stack.Screen name="kesehatan/wali/[id]" options={{ title: 'Informasi kesehatan' }} />
+        <Stack.Screen name="kesehatan" options={{ headerShown: false }} />
         <Stack.Screen name="notifikasi/index" options={{ title: 'Notifikasi' }} />
         <Stack.Screen name="notifikasi/[id]" options={{ title: 'Detail Notifikasi' }} />
         <Stack.Screen name="notifikasi/perangkat" options={{ title: 'Perangkat & Push' }} />

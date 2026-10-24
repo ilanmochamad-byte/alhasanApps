@@ -56,11 +56,14 @@ function Baru() {
 function Koreksi({ id }: { id: number }) {
   const router = useRouter();
   const [draf, setDraf] = useState<DrafKunjungan | null>(null);
+  const [versiDraf, setVersiDraf] = useState<number | null>(null);
   const [alasan, setAlasan] = useState('');
-  const bersihkan = useCallback(() => { setDraf(null); setAlasan(''); }, []);
+  const bersihkan = useCallback(() => { setDraf(null); setVersiDraf(null); setAlasan(''); }, []);
   const fetcher = useCallback(async () => {
     const k = await kesehatan.detail(id);
     if (!k.akses.catat) throw new ApiError('Koreksi hanya untuk petugas kesehatan berpenugasan aktif.', 403, 'FORBIDDEN');
+    // Revalidasi akses saat kembali dari latar tidak merebase draf lama.
+    setVersiDraf(v => v ?? k.versi);
     return k;
   }, [id]);
   // Draf koreksi bertahan di memori saat aplikasi ke latar; dibuang saat layar ditinggalkan.
@@ -75,14 +78,15 @@ function Koreksi({ id }: { id: number }) {
     const salah = tercatat ? wajibAlasan(alasan) : alasan.trim().length > 1000 ? 'Alasan maksimal 1000 karakter.' : null;
     if (salah) { guard.setError(salah); return; }
     const isian = { ...payloadKunjungan(aktifDraf), status };
-    const hasil = await guard.run(sidikJari('koreksi', id, basis.versi, alasan, isian), key => kesehatan.koreksi(id, basis.versi, alasan, isian, key));
+    const versi = versiDraf ?? basis.versi;
+    const hasil = await guard.run(sidikJari('koreksi', id, versi, alasan, isian), key => kesehatan.koreksi(id, versi, alasan, isian, key));
     if (hasil) { bersihkan(); router.back(); return; }
   }
   const muatUlang = () => { bersihkan(); guard.reset(); void load(); };
   return (
     <Halaman>
       <ThemedText type="h3">{tercatat ? 'Koreksi catatan' : 'Lanjutkan draf'} · {basis.santri.nama}</ThemedText>
-      <ThemedText type="caption" themeColor="textSecondary">Mengoreksi versi {basis.versi}. Versi sebelumnya tetap tersimpan di riwayat.</ThemedText>
+      <ThemedText type="caption" themeColor="textSecondary">Mengoreksi versi {versiDraf ?? basis.versi}. Versi sebelumnya tetap tersimpan di riwayat.</ThemedText>
       <FormKunjungan draf={aktifDraf} setDraf={setDraf} disabled={guard.isBusy} />
       <Panel style={{ gap: 10 }}>
         <PrivateField label={tercatat ? 'Alasan koreksi (wajib)' : 'Alasan (opsional untuk draf)'} value={alasan} onChangeText={setAlasan} multiline maxLength={1000} />

@@ -37,8 +37,13 @@ function Ringkasan({ id }: { id: number }) {
   const [pesan, setPesan] = useState<string | null>(null);
   const [memuatPratinjau, setMemuatPratinjau] = useState(false);
   const [alasanTarik, setAlasanTarik] = useState('');
-  const bersihkan = useCallback(() => { setIsi(KOSONG); setPratinjau(null); setKonfirmasi(false); setAlasanTarik(''); }, []);
-  const fetcher = useCallback(() => kesehatan.ringkasan(id), [id]);
+  const [versiDraf, setVersiDraf] = useState<{ kunjungan_versi: number; revisi_ringkasan: number } | null>(null);
+  const bersihkan = useCallback(() => { setIsi(KOSONG); setPratinjau(null); setKonfirmasi(false); setAlasanTarik(''); setVersiDraf(null); }, []);
+  const fetcher = useCallback(async () => {
+    const hasil = await kesehatan.ringkasan(id);
+    setVersiDraf(v => v ?? { kunjungan_versi: hasil.kunjungan.versi, revisi_ringkasan: hasil.ringkasan?.revisi ?? 0 });
+    return hasil;
+  }, [id]);
   const { data, error, load } = usePrivateResource<RingkasanInternal>(fetcher, bersihkan, true);
   const terbit = useMutationGuard('kesehatan-terbit');
   const tarik = useMutationGuard('kesehatan-tarik');
@@ -47,7 +52,7 @@ function Ringkasan({ id }: { id: number }) {
 
   const kepala = data.ringkasan;
   const penggantian = kepala !== null;
-  const isian = (): IsianRingkasan => ({ kunjungan_versi: data.kunjungan.versi, revisi_ringkasan: kepala?.revisi ?? 0, ...isi });
+  const isian = (): IsianRingkasan => ({ ...(versiDraf ?? { kunjungan_versi: data.kunjungan.versi, revisi_ringkasan: kepala?.revisi ?? 0 }), ...isi });
   const ubah = (ganti: Partial<typeof KOSONG>) => { setIsi({ ...isi, ...ganti }); setPratinjau(null); setKonfirmasi(false); };
 
   async function lihatPratinjau() {
@@ -73,7 +78,8 @@ function Ringkasan({ id }: { id: number }) {
     if (!kepala) return;
     const salah = wajibAlasan(alasanTarik);
     if (salah) { tarik.setError(`Alasan penarikan: ${salah}`); return; }
-    const hasil = await tarik.run(sidikJari('tarik', id, kepala.revisi, alasanTarik), key => kesehatan.tarik(id, kepala.revisi, alasanTarik, key));
+    const revisi = versiDraf?.revisi_ringkasan ?? kepala.revisi;
+    const hasil = await tarik.run(sidikJari('tarik', id, revisi, alasanTarik), key => kesehatan.tarik(id, revisi, alasanTarik, key));
     if (hasil) { bersihkan(); setPesan('Ringkasan ditarik. Wali melihat keterangan bahwa informasi ditarik, tanpa isinya.'); await load(); }
   }
 

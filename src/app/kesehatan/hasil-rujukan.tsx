@@ -27,12 +27,14 @@ function Form({ id, rujukanId }: { id: number; rujukanId: number }) {
   const [hasil, setHasil] = useState('');
   const [tanggal, setTanggal] = useState('');
   const [alasan, setAlasan] = useState('');
-  const bersihkan = useCallback(() => { setHasil(''); setTanggal(''); setAlasan(''); }, []);
+  const [versiDraf, setVersiDraf] = useState<number | null>(null);
+  const bersihkan = useCallback(() => { setHasil(''); setTanggal(''); setAlasan(''); setVersiDraf(null); }, []);
   const fetcher = useCallback(async () => {
     const k = await kesehatan.detail(id);
     if (!k.akses.catat) throw new ApiError('Hasil rujukan hanya dicatat petugas kesehatan berpenugasan aktif.', 403, 'FORBIDDEN');
     const r = k.rujukan.find(x => x.id === rujukanId);
     if (!r) throw new ApiError('Rujukan tidak ditemukan pada kunjungan ini.', 404, 'NOT_FOUND');
+    setVersiDraf(v => v ?? k.versi);
     return { k, r };
   }, [id, rujukanId]);
   const { data, error, load } = usePrivateResource(fetcher, bersihkan, true);
@@ -44,7 +46,7 @@ function Form({ id, rujukanId }: { id: number; rujukanId: number }) {
     const salah = k.status === 'Tercatat' ? wajibAlasan(alasan) : null;
     if (salah) { guard.setError(salah); return; }
     if (!hasil.trim()) { guard.setError('Hasil rujukan wajib diisi.'); return; }
-    const body = { versi: k.versi, alasan, hasil, tanggal_hasil: tanggal };
+    const body = { versi: versiDraf ?? k.versi, alasan, hasil, tanggal_hasil: tanggal };
     const ok = await guard.run(sidikJari('hasil', id, rujukanId, body), key => kesehatan.hasilRujukan(id, rujukanId, body, key));
     if (ok) { bersihkan(); router.back(); }
   }
