@@ -49,6 +49,7 @@ export default function KesehatanLayout() {
       <Stack.Screen name="akses" options={{ title: 'Riwayat akses' }} />
       <Stack.Screen name="ringkasan" options={{ title: 'Ringkasan untuk wali' }} />
       <Stack.Screen name="penugasan" options={{ title: 'Penugasan kesehatan' }} />
+      <Stack.Screen name="laporan" options={{ title: 'Laporan klinik' }} />
       <Stack.Screen name="wali/index" options={{ title: 'Kesehatan anak' }} />
       <Stack.Screen name="wali/[id]" options={{ title: 'Informasi kesehatan' }} />
     </Stack>

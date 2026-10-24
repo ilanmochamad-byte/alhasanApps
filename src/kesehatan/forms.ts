@@ -121,3 +121,25 @@ export function kelompokKelas(rows: SantriPilihan[]): [string, SantriPilihan[]][
   grup.delete('Belum ditempatkan di kelas');
   return [...grup.entries(), ...(tanpa ? [['Belum ditempatkan di kelas', tanpa] as [string, SantriPilihan[]]] : [])];
 }
+
+export type PresetPeriode = 'bulan_ini' | 'bulan_lalu' | '30_hari';
+
+/** Periode laporan siap pakai (tanggal lokal perangkat, `YYYY-MM-DD`); batas dan validasi tetap milik server. */
+export function periodeLaporan(preset: PresetPeriode, now = new Date()): { dari: string; sampai: string } {
+  const iso = (d: Date) => `${d.getFullYear()}-${duaDigit(d.getMonth() + 1)}-${duaDigit(d.getDate())}`;
+  if (preset === 'bulan_lalu') {
+    return { dari: iso(new Date(now.getFullYear(), now.getMonth() - 1, 1)), sampai: iso(new Date(now.getFullYear(), now.getMonth(), 0)) };
+  }
+  if (preset === '30_hari') {
+    return { dari: iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29)), sampai: iso(now) };
+  }
+  return { dari: iso(new Date(now.getFullYear(), now.getMonth(), 1)), sampai: iso(now) };
+}
+
+const NAMA_BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+/** `YYYY-MM` → "September 2026". */
+export function namaBulan(bulan: string): string {
+  const m = /^(\d{4})-(\d{2})$/.exec(bulan);
+  return m ? `${NAMA_BULAN[Number(m[2]) - 1] ?? m[2]} ${m[1]}` : bulan;
+}

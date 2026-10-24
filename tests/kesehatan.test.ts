@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { drafDariKunjungan, drafKosong, kelompokKelas, kesehatanLinkTarget, payloadKunjungan, sidikJari, teksPerubahan, waktuLokal, wajibAlasan } from '../src/kesehatan/forms.ts';
+import { drafDariKunjungan, drafKosong, kelompokKelas, kesehatanLinkTarget, namaBulan, payloadKunjungan, periodeLaporan, sidikJari, teksPerubahan, waktuLokal, wajibAlasan } from '../src/kesehatan/forms.ts';
 import { notificationTarget } from '../src/rapor/forms.ts';
 
 const kunjungan = {
@@ -82,4 +82,15 @@ test('Hasil pencarian santri dikelompokkan per kelas; belum ditempatkan paling a
   ];
   const g = kelompokKelas(rows);
   assert.deepEqual(g.map(([n, a]) => [n, a.map(s => s.id)]), [['Kelas 1', [2, 4]], ['Kelas 2', [3]], ['Belum ditempatkan di kelas', [1]]]);
+});
+
+test('Periode laporan: bulan ini, bulan lalu (lintas tahun), dan 30 hari berakhir hari ini', () => {
+  const kini = new Date(2026, 9, 24, 13, 0);
+  assert.deepEqual(periodeLaporan('bulan_ini', kini), { dari: '2026-10-01', sampai: '2026-10-24' });
+  assert.deepEqual(periodeLaporan('bulan_lalu', kini), { dari: '2026-09-01', sampai: '2026-09-30' });
+  assert.deepEqual(periodeLaporan('30_hari', kini), { dari: '2026-09-25', sampai: '2026-10-24' });
+  assert.deepEqual(periodeLaporan('bulan_lalu', new Date(2027, 0, 5)), { dari: '2026-12-01', sampai: '2026-12-31' });
+  assert.deepEqual(periodeLaporan('bulan_lalu', new Date(2028, 2, 10)), { dari: '2028-02-01', sampai: '2028-02-29' });
+  assert.equal(namaBulan('2026-09'), 'September 2026');
+  assert.equal(namaBulan('bukan'), 'bukan');
 });

@@ -98,6 +98,35 @@ export type DaftarPenugasan = {
   opsi: { pengurus: { id: number; nama: string; jabatan: string | null }[]; tahun: { id: number; tahun: string; semester: string; status: string }[] };
 };
 
+/** Laporan layanan klinik (Fase 5): angka saja, tanpa isi klinis; `draf` null bagi pembaca binaan, `pengawasan` hanya admin. */
+export type Tertunda = {
+  total: number;
+  rows: { kunjungan_id: number; santri: SantriRingkas; kelas: string | null; waktu_kunjungan: string; status: StatusKunjungan; jumlah: number; tanggal: string | null; lewat: number }[];
+};
+export type Laporan = {
+  periode: { dari: string; sampai: string; hari: number };
+  filter: { dari: string; sampai: string; kelas_id: string };
+  akses: Akses;
+  kunjungan: { total: number; tercatat: number; draf: number | null; santri: number; dikoreksi: number; dengan_obat: number; dengan_rujukan: number; dengan_tindak_lanjut: number };
+  obat: { pemberian: number };
+  rujukan: { total: number; menunggu: number; diketahui: number };
+  tindak_lanjut: { total: number; terbuka: number; terlambat: number; selesai: number };
+  ringkasan_wali: { terbit: number; ditarik: number; belum: number } | null;
+  per_kelas: { kelas: { id: number; nama: string } | null; kunjungan: number; santri: number }[];
+  per_bulan: { bulan: string; kunjungan: number; santri: number }[];
+  kelas_pilihan: { id: number; nama: string }[];
+  tertunda: { rujukan: Tertunda; tindak_lanjut: Tertunda; batas: number };
+  pengawasan: {
+    koreksi: { total: number; beralasan: number; wajib_alasan: number; tanpa_alasan_wajib: number };
+    koreksi_terbaru: { kunjungan_id: number; santri: SantriRingkas; versi_sebelum: number; versi: number; oleh: string; waktu: string; beralasan: boolean }[];
+    per_petugas: { user_id: number; nama: string; kunjungan: number; koreksi: number }[];
+    akses: { sumber: string; aksi: string; kanal: string; jumlah: number; pengguna: number }[];
+    peristiwa_ringkasan: { jenis: 'Terbit' | 'Ganti' | 'Tarik'; jumlah: number; beralasan: number; penerima: number }[];
+    notifikasi: { kanal: string; status: string; jumlah: number }[];
+  } | null;
+};
+export type PenyaringLaporan = { dari: string; sampai: string; kelas_id: string };
+
 function query(values: Record<string, string | number | undefined>) {
   const params = new URLSearchParams();
   Object.entries(values).forEach(([key, value]) => { if (value !== undefined && value !== '' && value !== 0) params.set(key, String(value)); });
@@ -113,6 +142,7 @@ export const kesehatan = {
   santri: (q: string, kelasId?: number | 'tanpa') => request<{ rows: SantriPilihan[]; total: number }>(`${dasar}/santri${query({ q, kelas_id: kelasId })}`),
   santriKelas: () => request<KelasPilihan>(`${dasar}/santri/kelas`),
   daftar: (filter: Penyaring, page = 1) => request<DaftarKunjungan>(`${dasar}/kunjungan${query({ ...filter, page })}`),
+  laporan: (p: PenyaringLaporan) => request<Laporan>(`${dasar}/laporan${query(p)}`),
   detail: (id: number) => request<Kunjungan>(`${dasar}/kunjungan/${id}`),
   versi: (id: number) => request<RiwayatVersi>(`${dasar}/kunjungan/${id}/versi`),
   riwayatAkses: (id: number, page = 1) => request<RiwayatAkses>(`${dasar}/kunjungan/${id}/akses${query({ page })}`),
