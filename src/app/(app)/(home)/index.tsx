@@ -144,7 +144,7 @@ export default function HomeScreen() {
       : []),
     // V5: pembaca internal ke pintu kesehatan; wali saja langsung ke "Kesehatan anak".
     ...(aksesKesehatan.tersedia
-      ? [{ icon: 'info', label: aksesKesehatan.label, tone: 'primary', onPress: () => router.push(aksesKesehatan.internal ? '/kesehatan' : '/kesehatan/wali') }] satisfies MenuTileItem[]
+      ? [{ icon: 'medical', label: aksesKesehatan.label, tone: 'primary', onPress: () => router.push(aksesKesehatan.internal ? '/kesehatan' : '/kesehatan/wali') }] satisfies MenuTileItem[]
       : []),
   ];
 

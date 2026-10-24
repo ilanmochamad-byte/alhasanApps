@@ -35,6 +35,7 @@ const ICONS = {
   device: require('@/assets/images/icons/device.png'),
   moon: require('@/assets/images/icons/moon.png'),
   info: require('@/assets/images/icons/info.png'),
+  medical: require('@/assets/images/icons/medical.png'),
   'text-size': require('@/assets/images/icons/text-size.png'),
   lock: require('@/assets/images/icons/lock.png'),
   eye: require('@/assets/images/icons/eye.png'),

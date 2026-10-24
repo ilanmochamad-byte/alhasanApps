@@ -1,5 +1,7 @@
 # PRD V5 Fase 5 — Laporan layanan klinik (aplikasi)
 
+**Audit Codex 24 Oktober 2026: BELUM LULUS seluruh kriteria Fase 5/V5.** Tiga koreksi backend dan bukti lokal di laporan web; Expo web 36/0, Android emulator laporan 15/0, tsc/lint/unit 29/0. iOS terbaru, perangkat fisik, Push nyata/cold start non-dev dan cPanel tetap terbuka. Ikon Kesehatan/Kesehatan anak kini tas medis sesuai permintaan Human Developer. Lihat [AUDIT-CODEX.md](AUDIT-CODEX.md). Bukti implementator di bawah dipertahankan sebagai riwayat.
+
 **Status (24 Oktober 2026):** diimplementasikan Claude Code, menunggu audit independen Codex. Belum merge, tanpa rilis aplikasi atau build distribusi. Bukti, batas, dan handoff lengkap ada di repo web: `docs/phase-v5-5/README.md`.
 
 | Butir | Nilai |
