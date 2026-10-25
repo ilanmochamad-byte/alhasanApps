@@ -103,6 +103,15 @@ export default function NotifikasiDetailScreen() {
         {data.tautan.tipe === 'kesehatan_ringkasan' && data.tautan.ringkasan_id ? (
           <AppButton label="Buka informasi kesehatan" onPress={() => router.push({ pathname: '/kesehatan/wali/[id]', params: { id: String(data.tautan.ringkasan_id) } })} />
         ) : null}
+        {data.tautan.tipe === 'bsa_tagihan' && data.tautan.tagihan_id ? (
+          <AppButton label="Buka tagihan" onPress={() => router.push({ pathname: '/keuangan/tagihan/[id]', params: { id: String(data.tautan.tagihan_id) } })} />
+        ) : null}
+        {data.tautan.tipe === 'bsa_pembayaran' && data.tautan.pembayaran_id ? (
+          <AppButton label="Buka kuitansi pembayaran" onPress={() => router.push({ pathname: '/keuangan/pembayaran/[id]', params: { id: String(data.tautan.pembayaran_id) } })} />
+        ) : null}
+        {data.tautan.tipe === 'bsa_tabungan' && data.tautan.transaksi_id ? (
+          <AppButton label="Buka transaksi tabungan" onPress={() => router.push({ pathname: '/keuangan/tabungan/[id]', params: { id: String(data.tautan.transaksi_id) } })} />
+        ) : null}
         {data.tautan.tipe === 'v3_publikasi' && data.tautan.publikasi_id ? (
           <AppButton label="Buka informasi pembinaan" onPress={() => router.push({ pathname: '/publikasi/[id]', params: { id: String(data.tautan.publikasi_id) } })} />
         ) : null}
