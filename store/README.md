@@ -54,6 +54,28 @@ rasio layar iPad yang sebenarnya dan diterima Apple, tetapi Play hanya menerima
 16:9 atau 9:16. Itulah gunanya folder `playstore-tablet-7/` dan
 `playstore-tablet-10/`.
 
+### Header halaman produk dan hasil pencarian
+
+| Folder | Berkas | Ukuran | Slot |
+|---|---|---|---|
+| `appstore-header-search/` | `header-3840x1646.png` | 3840 × 1646 (21:9) | Product page header |
+| `appstore-header-search/` | `search-results-3840x2560.png` | 3840 × 2560 (3:2) | Search results |
+
+Dibuat 25 Oktober 2026 mengikuti
+[App Store asset best practices](https://developer.apple.com/app-store/asset-best-practices/)
+dan [Creative assets specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/creative-assets-specifications):
+PNG RGB tanpa alfa, satu ide yang jelas, titik fokus di tengah, teks pendek
+berbahasa Indonesia, tanpa harga/URL/©/logo platform lain/klaim penghargaan, layak 4+.
+Apple tidak menyebut safe area dalam angka — periksa potongannya dengan tombol
+**Preview** di App Store Connect sebelum dikirim.
+
+Berbeda dari screenshot di atas (mockup UI V2, 6 September 2026), ketiga layar di
+kedua gambar ini adalah **tangkapan aplikasi asli** sesudah redesain tampilan
+14–15 Oktober 2026 — Beranda guru, Jadwal, dan ringkasan Kesehatan anak — dari
+bundel Expo web commit `44ae015` yang tersambung ke API dan DB sandbox lokal.
+Navigasi atas khusus web dipotong; bilah tab bawah iPhone tidak ditambahkan
+secara buatan. Seluruh nama orang fiktif (lihat `_source/header-search/sandbox/`).
+
 ---
 
 ## `_source/` — Berkas sumber
@@ -81,6 +103,56 @@ for f in glob.glob('out/*/*.png'):
         bg.paste(im, mask=im.split()[-1])
         bg.save(f, 'PNG', optimize=True)
 ```
+
+### Header dan hasil pencarian App Store
+
+`header-search.html` menyusun kedua gambar dari tiga tangkapan di `header-search/`
+(`layar-beranda.png`, `layar-jadwal.png`, `layar-kesehatan.png`), logo
+`assets/images/Logo_alhasanApps_dark.png`, dan huruf Plus Jakarta Sans dari
+`node_modules` akar repo (jalankan `npm install` di akar dulu). Ubah teks lalu:
+
+```bash
+node render-header-search.js   # → out/appstore-header-search/
+```
+
+Halaman tanpa transparansi, jadi PNG-nya sudah RGB tanpa alfa; periksa dengan
+`sips -g hasAlpha out/appstore-header-search/*.png`.
+
+Untuk menangkap ulang layar dari aplikasi asli (misalnya setelah UI berubah):
+
+1. Di repo WebAlHasan, bangun DB sandbox lalu ganti nama orang dan isi data demo:
+
+   ```bash
+   V5F5_DB=test_store_aset_test bash tests/v5_phase5_db.sh
+   WEB_REPO=$PWD DB_NAME=test_store_aset_test php /path/ke/alhasanApps/store/_source/header-search/sandbox/anonim.php
+   WEB_REPO=$PWD DB_NAME=test_store_aset_test php /path/ke/alhasanApps/store/_source/header-search/sandbox/demo_seed.php
+   ```
+
+   `anonim.php` wajib: DB sandbox diturunkan dari salinan DB pengembangan yang
+   bisa memuat nama asli. `demo_seed.php` membuat kunjungan klinik dan ringkasan
+   wali lewat layanan aplikasi, bukan INSERT langsung.
+
+2. Ekspor bundel web dari salinan kerja **tanpa** `.env*` (`.env.local` berisi API
+   produksi dan tetap ikut terbundel), lalu pastikan bundel tidak memuat host produksi:
+
+   ```bash
+   EXPO_NO_DOTENV=1 EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8957/api/v1 npx expo export -p web --clear
+   grep -rl alhasan.co.id dist   # harus kosong
+   ```
+
+3. Sajikan bundel dan API pada satu origin dari repo WebAlHasan, lalu tangkap:
+
+   ```bash
+   DB_NAME=test_store_aset_test php -S 127.0.0.1:8957 -t /path/ke/salinan/dist tests/phase5_web_router.php
+   SANDBOX_PASSWORD=... node capture-header-search.js sbx_murobi_a "/,/schedules" murobi
+   SANDBOX_PASSWORD=... node capture-header-search.js sbx_v5_wali_1 "/kesehatan/wali,klik:Ahmad Fauzi" wali
+   ```
+
+   Sandi akun sandbox ada di seed WebAlHasan (`tests/v5_phase1_seed.php`). Skrip
+   hanya menerima `127.0.0.1` dan memblokir permintaan ke host lain. Hasilnya di
+   `header-search/layar/`; salin yang dipakai ke `header-search/layar-*.png`.
+   Layar Beranda dan Jadwal digeser 56 pt di `header-search.html` untuk membuang
+   navigasi atas khusus web.
 
 ---
 
@@ -117,3 +189,9 @@ dan susunannya sama persis dengan tampilan aplikasi. Kedua toko mensyaratkan
 screenshot mewakili aplikasi sungguhan — jadi sebelum unggah, pastikan build yang
 dirilis masih memakai UI V2 ini. Kalau ada layar yang berubah, render ulang dari
 `_source/` supaya gambar tidak mendahului aplikasinya.
+
+**Per 25 Oktober 2026 mockup UI V2 sudah tertinggal.** Redesain tampilan 14–15
+Oktober mengganti Beranda menjadi menu ubin dengan bilah 4 tab (mockup masih 5 tab),
+dan modul pembinaan, rapor, serta kesehatan belum ada di mockup. Screenshot iPhone,
+iPad, dan Play di atas perlu dibuat ulang sebelum dikirim; gambar header dan hasil
+pencarian sudah memakai tangkapan UI terbaru.
