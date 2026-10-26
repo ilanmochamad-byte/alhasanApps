@@ -477,7 +477,11 @@ export type Notifikasi = {
    * Penunjuk sumber daya saja. Aplikasi WAJIB tetap memanggil endpoint detail
    * izin, yang memverifikasi hak akses di server.
    */
-  tautan: { tipe: string; pengajuan_id: number | null; publikasi_id?: number | null; rapor_id?: number | null; ringkasan_id?: number | null };
+  tautan: {
+    tipe: string; pengajuan_id: number | null; publikasi_id?: number | null; rapor_id?: number | null; ringkasan_id?: number | null;
+    // V6 Fase 4: penunjuk keuangan; layar tujuan meminta server yang memeriksa ulang hak.
+    tagihan_id?: number | null; pembayaran_id?: number | null; transaksi_id?: number | null;
+  };
 };
 
 export type NotifikasiListResponse = {

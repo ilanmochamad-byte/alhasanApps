@@ -36,5 +36,13 @@ export function usePrivateResource<T>(fetcher: () => Promise<T>, onClear?: () =>
     });
     return () => { clear(); sub.remove(); };
   }, [preserveDraftOnBackground]));
-  return { data, error, load, active, generation };
+  // Penolakan mutasi harus menutup pembacaan/draf lama segera juga; jangan
+  // menunggu fokus berikutnya atau respons GET lain setelah akses dicabut.
+  const reject = useCallback((cause: unknown) => {
+    generation.current++;
+    setData(null);
+    clearRef.current?.();
+    setError(actionableError(cause));
+  }, []);
+  return { data, error, load, active, generation, reject };
 }

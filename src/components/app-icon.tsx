@@ -43,6 +43,7 @@ const ICONS = {
   book: require('@/assets/images/icons/book.png'),
   pin: require('@/assets/images/icons/pin.png'),
   refresh: require('@/assets/images/icons/refresh.png'),
+  wallet: require('@/assets/images/icons/wallet.png'),
 } as const;
 
 export type IconName = keyof typeof ICONS;
