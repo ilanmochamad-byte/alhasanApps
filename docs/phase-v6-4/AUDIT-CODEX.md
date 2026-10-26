@@ -1,5 +1,7 @@
 # Audit Codex — PRD V6 Fase 4 aplikasi
 
+> Catatan audit pertama. Putusan terbaru ada di [AUDIT-ULANG-CODEX.md](AUDIT-ULANG-CODEX.md); isi historis berikut dipertahankan.
+
 26 Oktober 2026. Branch `claude/prd-v6-fase-4`; baseline mobile `f8ebba0a43493efde50a7a207933e86dc4b941d4`, implementasi `950ca355106600c791c34d977be94debf0174fbc` dan keputusan T-1 `12fb04ae54fe3ae2e86afdd344ddb6f633b48e76`. Web baseline audit Fase 3 `1f2dbca`, implementasi hingga `269298c`.
 
 **BELUM LULUS seluruh validasi lintas platform Fase 4.** Laporan lengkap, kontrol, skrip probe, dan bukti auditor ada di `docs/phase-v6-4/AUDIT-CODEX.md` serta `audit-codex/` repositori WebAlHasan pada branch fase yang sama. Runtime iOS terbaru belum diuji: build Debug simulator gagal linker; perangkat fisik, Push nyata dan cold start non-dev belum dibuktikan. Ini bukan persetujuan rilis.

@@ -1,6 +1,6 @@
 # PRD V6 Fase 4 — aplikasi (keuangan santri/BSA)
 
-Status audit 26 Oktober 2026: lihat [AUDIT-CODEX.md](AUDIT-CODEX.md). F-1 dikoreksi, runtime iOS dan validasi cold start tetap terbuka; belum lulus seluruh validasi lintas platform. Bukti implementator berikut dipertahankan sebagai handoff awal.
+Status terbaru 26 Oktober 2026: **LULUS audit ulang Fase 4 pada lingkungan uji yang tersedia**, lihat [AUDIT-ULANG-CODEX.md](AUDIT-ULANG-CODEX.md). iOS Release dan cold start URI sudah diuji; fisik/Push nyata/cold start Push/Debug iOS/produksi tetap terbuka. Tindak lanjut tetap pada `claude/prd-v6-fase-4-validasi`, belum di-merge; bukan izin rilis atau mulai Fase 5. Bukti implementator awal berikut dipertahankan sebagai riwayat.
 
 25–26 Oktober 2026. Implementator Claude Code; auditor berikutnya Codex. Branch `claude/prd-v6-fase-4` dari `origin/main` **`f8ebba0`** (diverifikasi dengan `git fetch`; tanpa worktree). Laporan lengkap, kriteria → bukti, penafsiran, temuan, bukti Expo web/Android/iOS, dan hash kedua repo ada di repositori web `docs/phase-v6-4/README.md` (branch `claude/prd-v6-fase-4`, dari audit Fase 3 `1f2dbca`).
 
