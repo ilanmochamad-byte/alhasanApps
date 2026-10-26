@@ -1,5 +1,7 @@
 # PRD V6 Fase 5 — aplikasi (laporan keuangan santri/BSA)
 
+**Pembaruan audit 27 Oktober 2026:** aplikasi lulus audit teknis lokal (Expo web 20/0, iOS Release simulator 7/0, tsc/lint/unit 37/0 pada paket lock ter-commit Expo 57.0.15). Gerbang akhir/produksi tetap terbuka; lihat [AUDIT-CODEX.md](AUDIT-CODEX.md). Catatan implementator di bawah dipertahankan sebagai riwayat 26 Oktober, bukan status audit terbaru.
+
 26 Oktober 2026. Implementator Claude Code; auditor berikutnya Codex. Branch `claude/prd-v6-fase-5` dari audit ulang Fase 4 **`16bcdb7`** (diverifikasi: `origin/main` `f1141e0` memuatnya dan `git diff` kosong; tanpa worktree). Laporan lengkap, kriteria → bukti, penafsiran, batas, dan hash kedua repo ada di repositori web `docs/phase-v6-5/README.md` (branch web dengan nama sama, dari audit ulang Fase 4 `75cb144`).
 
 Commit implementasi mobile `18fe095`; web `8108012`. Keduanya sudah di-push ke branch `claude/prd-v6-fase-5`.
