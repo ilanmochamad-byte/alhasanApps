@@ -85,6 +85,49 @@ export type Rekonsiliasi = {
   akses: Akses;
 };
 
+type PerCara = { Tunai: number; Transfer: number };
+type JumlahNominal = { jumlah: number; nominal: number };
+/** Satu baris per santri (PRD V6 Fase 5). Orang tua tanpa `selisih_saldo`/`selisih_akun`. */
+export type LaporanSantri = {
+  santri: Identitas; tagihan_jumlah: number; tagihan: number; terbayar: number; sisa: number; sisa_semua: number; bayar_kas: number; batal_bayar: number;
+  saldo_awal: number; setoran: number; penarikan: number; belanja: number; bayar_tabungan: number; koreksi_masuk: number; koreksi_keluar: number;
+  pengembalian: number; saldo_akhir: number; saldo_akun: number; selisih_saldo?: number; selisih_akun?: number;
+};
+/**
+ * Laporan per periode (`GET /v6/bsa/laporan`). Bagian internal (kas, perpindahan
+ * internal, jejak koreksi, selisih, santri nonaktif) bernilai null bagi orang tua;
+ * daftar santri nonaktif hanya untuk admin.
+ */
+export type LaporanKeuangan = {
+  rentang: { dari: string; sampai: string; tanggal_awal: string; tanggal_akhir: string; hari_ini: string; bulan: string[] };
+  saring: { santri_id: number | null; unit: string | null; q: string };
+  santri: Identitas | null;
+  tagihan: {
+    terbit: JumlahNominal; dibatalkan: JumlahNominal; terbayar: number; sisa: number; lunas: number; belum_lunas: number;
+    lewat_jatuh_tempo: { jumlah: number; sisa: number }; santri: number; pembayaran_sah: PerCara & { Tabungan: number };
+    pembayaran_dibatalkan: PerCara & { Tabungan: number }; menunggu_verifikasi: JumlahNominal | null;
+  };
+  tabungan: {
+    saldo_awal: number; setoran: PerCara; penarikan: PerCara; belanja: PerCara; pembayaran_tagihan: number; koreksi_masuk: PerCara; koreksi_keluar: PerCara;
+    pengembalian: number; mutasi_bersih: number; saldo_akhir: number; setoran_menunggu: JumlahNominal | null;
+  };
+  kas: { Tunai: KasCara; Transfer: KasCara } | null;
+  penerimaan_kas_baru: number | null;
+  internal: Rekonsiliasi['internal'] | null;
+  pembatalan: {
+    pembayaran: PerCara & { Tabungan: number }; koreksi_tabungan: { masuk: number; keluar: number; jumlah: number };
+    tagihan_dibatalkan: JumlahNominal; tagihan_direvisi: number; penolakan_transfer_pembayaran: JumlahNominal | null; setoran_transfer_ditolak: JumlahNominal | null;
+  };
+  koreksi: { rows: { asal: string; id: number; waktu: string; jenis: string; cara: string | null; nominal: number; aktor: string | null; alasan: string | null;
+    rujukan: { id: number; jenis: string; label: string }; santri: { id: number; nis: string; nama: string } }[]; terpotong: boolean } | null;
+  per_bulan: { periode: string; tagihan_jumlah: number; tagihan_terbit: number; terbayar: number; sisa: number; setoran: number; penarikan_belanja: number;
+    bayar_kas: number; bayar_tabungan: number; pembatalan: number; kas_baru: number }[];
+  per_santri: Halaman<LaporanSantri> & { jumlah: Record<string, number> };
+  nonaktif: { jumlah: number; saldo: number; sisa: number; rows: { santri: { id: number; nis: string; nama: string; aktif: boolean }; saldo: number; sisa: number }[] } | null;
+  selisih: { tagihan_terbayar: number; tagihan_baris: number; saldo: number; internal: number; pengembalian: number; santri_saldo: number; santri_akun: number; nol: boolean } | null;
+  akses: Akses;
+};
+
 export type PratinjauBaris = {
   santri_id: number; nis: string; nama: string; kelas: string | null; unit: string | null; hasil: 'Terbit' | 'SudahAda' | 'Dilewati';
   keterangan: string | null; tarif_id: number | null; tagihan_id: number | null; total: number; penyesuaian: { jenis: string; nama: string; nominal: number }[];
@@ -126,6 +169,10 @@ export const keuangan = {
   tunggakan: (f: { periode?: string; unit?: string; lewat?: boolean; q?: string }, page = 1) =>
     request<DaftarTunggakan>(`${dasar}/tunggakan${query({ periode: f.periode, unit: f.unit, lewat: f.lewat ? 1 : undefined, q: f.q, page })}`),
   rekonsiliasi: (tanggal: string) => request<Rekonsiliasi>(`${dasar}/rekonsiliasi${query({ tanggal })}`),
+  // Fase 5: hanya laporan JSON. Ekspor CSV sengaja tidak dipanggil aplikasi (berkas
+  // keuangan tidak disimpan di perangkat); ekspor tersedia di website sesuai hak.
+  laporan: (f: { dari: string; sampai: string; santri?: number; q?: string }, page = 1) =>
+    request<LaporanKeuangan>(`${dasar}/laporan${query({ ...f, page })}`),
   pratinjau: (b: { periode: string; jatuh_tempo: string; unit: string }) =>
     request<Pratinjau>(`${dasar}/penerbitan/pratinjau`, { method: 'POST', body: b }),
 

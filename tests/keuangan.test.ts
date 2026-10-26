@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { galatAlasan, galatNominal, keuanganLinkTarget, labelJenis, labelPeriode, lokasiKeuangan, nominalKirim, periodeKini, ruteKeuangan, rupiah, sidikJari, tanggalKini } from '../src/keuangan/forms.ts';
+import { galatAlasan, galatNominal, keuanganLinkTarget, labelJenis, labelPeriode, lokasiKeuangan, nominalKirim, periodeKini, rentangLaporan, ruteKeuangan, rupiah, sidikJari, tanggalKini } from '../src/keuangan/forms.ts';
 import { notificationTarget } from '../src/rapor/forms.ts';
 
 test('Rupiah ditampilkan bulat dengan titik ribuan tanpa Intl', () => {
@@ -61,4 +61,16 @@ test('Tautan skema keuangan hanya menerima jalur yang dikenal', () => {
   assert.equal(keuanganLinkTarget('alhasanapps://keuangan/santri/15'), null);
   assert.equal(keuanganLinkTarget('alhasanapps://keuangan/tagihan/0'), null);
   assert.equal(keuanganLinkTarget(null), null);
+});
+
+test('Rentang laporan Fase 5: bulan ini, bulan lalu (lintas tahun), 3 bulan, tahun ini — paling panjang 12 bulan', () => {
+  const okt = new Date(2026, 9, 26);
+  assert.deepEqual(rentangLaporan('bulan_ini', okt), { dari: '2026-10', sampai: '2026-10' });
+  assert.deepEqual(rentangLaporan('bulan_lalu', okt), { dari: '2026-09', sampai: '2026-09' });
+  assert.deepEqual(rentangLaporan('tiga_bulan', okt), { dari: '2026-08', sampai: '2026-10' });
+  assert.deepEqual(rentangLaporan('tahun_ini', okt), { dari: '2026-01', sampai: '2026-10' });
+  const jan = new Date(2027, 0, 5);
+  assert.deepEqual(rentangLaporan('bulan_lalu', jan), { dari: '2026-12', sampai: '2026-12' });
+  assert.deepEqual(rentangLaporan('tiga_bulan', jan), { dari: '2026-11', sampai: '2027-01' });
+  assert.deepEqual(rentangLaporan('tahun_ini', new Date(2026, 11, 31)), { dari: '2026-01', sampai: '2026-12' });
 });

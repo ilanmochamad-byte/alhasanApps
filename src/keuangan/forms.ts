@@ -55,6 +55,27 @@ export function periodeKini(now = new Date()): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
+export type PilihanRentang = 'bulan_ini' | 'bulan_lalu' | 'tiga_bulan' | 'tahun_ini';
+export const PILIHAN_RENTANG: { nilai: PilihanRentang; label: string }[] = [
+  { nilai: 'bulan_ini', label: 'Bulan ini' }, { nilai: 'bulan_lalu', label: 'Bulan lalu' },
+  { nilai: 'tiga_bulan', label: '3 bulan' }, { nilai: 'tahun_ini', label: 'Tahun ini' },
+];
+
+/**
+ * Rentang laporan (periode TTTT-BB dari..sampai) menurut pilihan. Hanya
+ * permintaan: server memvalidasi rentang (paling panjang 12 bulan, tidak di
+ * masa depan) dan menghitung seluruh angka.
+ */
+export function rentangLaporan(pilihan: PilihanRentang, now = new Date()): { dari: string; sampai: string } {
+  const bulan = (selisih: number) => periodeKini(new Date(now.getFullYear(), now.getMonth() + selisih, 1));
+  switch (pilihan) {
+    case 'bulan_lalu': return { dari: bulan(-1), sampai: bulan(-1) };
+    case 'tiga_bulan': return { dari: bulan(-2), sampai: bulan(0) };
+    case 'tahun_ini': return { dari: `${now.getFullYear()}-01`, sampai: bulan(0) };
+    default: return { dari: bulan(0), sampai: bulan(0) };
+  }
+}
+
 export function tanggalKini(now = new Date()): string {
   return `${periodeKini(now)}-${String(now.getDate()).padStart(2, '0')}`;
 }
