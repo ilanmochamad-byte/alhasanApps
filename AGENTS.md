@@ -34,3 +34,8 @@ Audit `950ca35`/`12fb04a` dari `f8ebba0`, kedua branch tetap `claude/prd-v6-fase
 # Validasi lanjutan Claude — V6 Fase 4 (26 Oktober 2026)
 
 Branch `claude/prd-v6-fase-4-validasi` dari `main` `6842f13`. Koreksi V-1: `useKeuanganMutation` mengosongkan pesan penjaga sesudah penolakan 401/403/404 agar pesan basi tidak tampil setelah akses dipulihkan. iOS simulator diuji lewat build Release bertanda tangan lokal ad-hoc (Debug masih gagal linker). Bukti di repositori web `docs/phase-v6-4/validasi-claude/`. Belum di-merge; tidak rilis aplikasi atau Fase 5.
+
+
+# Audit ulang Codex V6 Fase 4 — 26 Oktober 2026
+
+Audit `0097f91` dari `6842f13` pada `claude/prd-v6-fase-4-validasi`: **LULUS kriteria Fase 4 pada lingkungan uji tersedia**, tanpa koreksi kode auditor; V-1 diterima, F-1 tetap tertutup. Kontrol V-1 4/1 → 5/0; F-1 16/0, Expo 45/0, HTTP 63/0, statis 22/0, tsc/lint/unit 36/0. iOS Release arm64 simulator dibangun ulang auditor dengan tanda tangan lokal, paket ter-commit dan API fixture: transaksi/akses/cold start 6/0, wali/admin/token/relasi 8/0, privasi/cold start tanpa Metro 4/0; cache snapshot OS hitam dengan kontrol dekoder logo. Android emulator/bundel terbaru 3/0. Bukti lengkap di laporan `AUDIT-ULANG-CODEX.md` repo web; ringkasan pada lokasi sama repo ini. Fisik, Push nyata/cold start Push, Debug iOS, rekaman fisik, MySQL/cPanel/UAT/produksi tetap gerbang rilis, bukan klaim lulus. Paket milik pekerjaan lain dipertahankan. Tidak Fase 5/merge/deploy/rilis; berhenti setelah commit/push kedua branch validasi.
