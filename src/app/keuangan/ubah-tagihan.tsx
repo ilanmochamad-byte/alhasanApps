@@ -13,7 +13,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Chip, ChipRow } from '@/components/ui/chip';
 import { DateField } from '@/components/ui/date-field';
 import { Panel } from '@/components/ui/surface';
-import { useMutationGuard } from '@/hooks/use-mutation-guard';
+import { useKeuanganMutation } from '@/hooks/use-keuangan-mutation';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { galatAlasan, galatNominal, labelPeriode, nominalKirim, rupiah, sidikJari } from '@/keuangan/forms';
 
@@ -47,8 +47,8 @@ function Form({ tagihanId }: { tagihanId: number }) {
     setVersi(v => v ?? t.versi);
     return t;
   }, [tagihanId]);
-  const { data: t, error, load } = usePrivateResource(fetcher, bersihkan, true);
-  const guard = useMutationGuard('bsa-ubah-tagihan');
+  const { data: t, error, load, reject } = usePrivateResource(fetcher, bersihkan, true);
+  const guard = useKeuanganMutation('bsa-ubah-tagihan', reject);
   if (error) return <ErrorState message={error} onRetry={() => void load()} />;
   if (!t) return <LoadingState label="Memuat versi terbaru…" />;
   const v = versi ?? t.versi;

@@ -36,7 +36,7 @@ function Detail({ id }: { id: number }) {
     if (!Number.isSafeInteger(id) || id < 1) throw new Error('Penunjuk santri tidak valid.');
     return keuangan.santri(id, page);
   }, [id, page]);
-  const { data: d, error, load } = usePrivateResource(fetcher);
+  const { data: d, error, load, reject } = usePrivateResource(fetcher);
   if (error) return <ErrorState message={error} onRetry={() => void load()} />;
   if (!d) return <LoadingState label="Memeriksa akses keuangan santri…" />;
   const kelola = d.akses.kelola && d.santri.aktif;
@@ -82,7 +82,7 @@ function Detail({ id }: { id: number }) {
         <Panel style={{ gap: 10 }}>
           <ThemedText type="h3">Setoran transfer ({menunggu.length} menunggu)</ThemedText>
           {d.setoran_transfer.map(s => (
-            <SetoranTransferKartu key={s.id} s={s} kelola={kelola} onSelesai={p => { setPesan(p); void load(); }} />
+            <SetoranTransferKartu onDenied={reject} key={s.id} s={s} kelola={kelola} onSelesai={p => { setPesan(p); void load(); }} />
           ))}
         </Panel>
       ) : null}

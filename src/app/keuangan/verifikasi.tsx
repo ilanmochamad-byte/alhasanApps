@@ -33,7 +33,7 @@ function Antrean() {
     ]);
     return { setoran, bayar };
   }, [halSetoran]);
-  const { data, error, load } = usePrivateResource(fetcher);
+  const { data, error, load, reject } = usePrivateResource(fetcher);
   if (error) return <ErrorState message={error} onRetry={() => void load()} />;
   if (!data) return <LoadingState label="Memuat antrean transfer…" />;
   const kelola = data.setoran.akses.kelola;
@@ -44,7 +44,7 @@ function Antrean() {
         <ThemedText type="h3">Setoran tabungan ({data.setoran.total})</ThemedText>
         {data.setoran.rows.length === 0 ? <EmptyState title="Tidak ada setoran menunggu" message="Semua setoran transfer sudah diputus." /> : null}
         {data.setoran.rows.map(s => (
-          <SetoranTransferKartu key={s.id} s={s} kelola={kelola} santri={`${s.santri.nama} · NIS ${s.santri.nis}`} onSelesai={p => { setPesan(p); void load(); }} />
+          <SetoranTransferKartu onDenied={reject} key={s.id} s={s} kelola={kelola} santri={`${s.santri.nama} · NIS ${s.santri.nis}`} onSelesai={p => { setPesan(p); void load(); }} />
         ))}
         <Penomoran page={data.setoran.page} total={data.setoran.total} perPage={data.setoran.per_page} onPage={setHalSetoran} />
       </Panel>

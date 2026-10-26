@@ -13,7 +13,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Badge, Chip, ChipRow } from '@/components/ui/chip';
 import { DateField } from '@/components/ui/date-field';
 import { Divider, Panel } from '@/components/ui/surface';
-import { useMutationGuard } from '@/hooks/use-mutation-guard';
+import { useKeuanganMutation } from '@/hooks/use-keuangan-mutation';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { labelPeriode, periodeKini, rupiah, sidikJari } from '@/keuangan/forms';
 
@@ -42,8 +42,8 @@ function Form() {
     if (!t.akses.kelola) throw new ApiError('Penerbitan hanya oleh Petugas BSA berpenugasan aktif.', 403, 'FORBIDDEN');
     return t.unit;
   }, []);
-  const { data: units, error, load } = usePrivateResource(fetcher, bersihkan, true);
-  const guard = useMutationGuard('bsa-terbit');
+  const { data: units, error, load, reject } = usePrivateResource(fetcher, bersihkan, true);
+  const guard = useKeuanganMutation('bsa-terbit', reject);
   if (error) return <ErrorState message={error} onRetry={() => void load()} />;
   if (!units) return <LoadingState label="Memeriksa hak penerbitan…" />;
 
@@ -52,7 +52,7 @@ function Form() {
     if (!/^\d{4}-\d{2}$/.test(periode)) { setGalat('Periode berformat TTTT-BB, mis. 2026-11.'); return; }
     if (!jatuhTempo) { setGalat('Jatuh tempo wajib diisi.'); return; }
     setMemuat(true);
-    try { setPratinjau(await keuangan.pratinjau({ periode, jatuh_tempo: jatuhTempo, unit })); } catch (e) { setGalat(actionableError(e)); } finally { setMemuat(false); }
+    try { setPratinjau(await keuangan.pratinjau({ periode, jatuh_tempo: jatuhTempo, unit })); } catch (e) { if (e instanceof ApiError && [401, 403, 404].includes(e.status)) reject(e); else setGalat(actionableError(e)); } finally { setMemuat(false); }
   }
   async function terbitkan() {
     if (!pratinjau) return;

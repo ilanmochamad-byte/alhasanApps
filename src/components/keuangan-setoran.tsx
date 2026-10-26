@@ -9,7 +9,7 @@ import { PrivateField } from '@/components/private-field';
 import { ThemedText } from '@/components/themed-text';
 import { ChipRow } from '@/components/ui/chip';
 import { Card } from '@/components/ui/surface';
-import { useMutationGuard } from '@/hooks/use-mutation-guard';
+import { useKeuanganMutation } from '@/hooks/use-keuangan-mutation';
 import { galatAlasan, rupiah, sidikJari } from '@/keuangan/forms';
 
 /**
@@ -17,12 +17,12 @@ import { galatAlasan, rupiah, sidikJari } from '@/keuangan/forms';
  * memeriksa dana masuk; server menyisipkan baris ledger sah sekali saja.
  * Keputusan kedua (oleh siapa pun) dijawab 409 dan tidak diulang otomatis.
  */
-export function SetoranTransferKartu({ s, kelola, santri, onSelesai }: {
-  s: SetoranTransfer; kelola: boolean; santri?: string; onSelesai: (pesan: string) => void;
+export function SetoranTransferKartu({ s, kelola, santri, onSelesai, onDenied }: {
+  s: SetoranTransfer; kelola: boolean; santri?: string; onSelesai: (pesan: string) => void; onDenied: (error: unknown) => void;
 }) {
   const [tolak, setTolak] = useState(false);
   const [alasan, setAlasan] = useState('');
-  const guard = useMutationGuard('bsa-setoran-putus');
+  const guard = useKeuanganMutation('bsa-setoran-putus', onDenied);
   async function putus(aksi: 'verifikasi' | 'tolak') {
     if (aksi === 'tolak') { const g = galatAlasan(alasan); if (g) { guard.setError(g); return; } }
     const hasil = await guard.run(sidikJari(aksi, s.id, aksi === 'tolak' ? alasan.trim() : ''), key => keuangan.putusSetoran(s.id, aksi, alasan.trim(), key));

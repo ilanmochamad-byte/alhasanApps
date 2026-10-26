@@ -11,7 +11,7 @@ import { PrivateField } from '@/components/private-field';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { Panel } from '@/components/ui/surface';
-import { useMutationGuard } from '@/hooks/use-mutation-guard';
+import { useKeuanganMutation } from '@/hooks/use-keuangan-mutation';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { galatNominal, labelPeriode, nominalKirim, rupiah, sidikJari } from '@/keuangan/forms';
 
@@ -40,8 +40,8 @@ function Form({ tagihanId }: { tagihanId: number }) {
     const saldo = await keuangan.santri(t.santri.id, 1);
     return { t, saldo: saldo.saldo };
   }, [tagihanId]);
-  const { data, error, load } = usePrivateResource(fetcher, bersihkan, true);
-  const guard = useMutationGuard('bsa-bayar-tabungan');
+  const { data, error, load, reject } = usePrivateResource(fetcher, bersihkan, true);
+  const guard = useKeuanganMutation('bsa-bayar-tabungan', reject);
   if (error) return <ErrorState message={error} onRetry={() => void load()} />;
   if (!data) return <LoadingState label="Memuat saldo dan sisa tagihan…" />;
   const { t, saldo } = data;

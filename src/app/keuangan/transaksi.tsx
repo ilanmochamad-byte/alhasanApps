@@ -12,7 +12,7 @@ import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { Chip, ChipRow } from '@/components/ui/chip';
 import { Panel } from '@/components/ui/surface';
-import { useMutationGuard } from '@/hooks/use-mutation-guard';
+import { useKeuanganMutation } from '@/hooks/use-keuangan-mutation';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { galatNominal, nominalKirim, rupiah, sidikJari } from '@/keuangan/forms';
 
@@ -50,8 +50,8 @@ function Form({ santriId, keluar }: { santriId: number; keluar: boolean }) {
     return d;
   }, [santriId]);
   // Isian bertahan di memori saat aplikasi ke latar; dibuang saat layar ditinggalkan atau akses ditolak.
-  const { data: d, error, load } = usePrivateResource(fetcher, bersihkan, true);
-  const guard = useMutationGuard(keluar ? 'bsa-keluar' : 'bsa-setoran');
+  const { data: d, error, load, reject } = usePrivateResource(fetcher, bersihkan, true);
+  const guard = useKeuanganMutation(keluar ? 'bsa-keluar' : 'bsa-setoran', reject);
   if (error) return <ErrorState message={error} onRetry={() => void load()} />;
   if (!d) return <LoadingState label="Memeriksa hak dan saldo…" />;
   const isi = keluar ? pengeluaran : setoran;
