@@ -2,6 +2,8 @@
 
 26 Oktober 2026. Implementator Claude Code; auditor berikutnya Codex. Branch `claude/prd-v6-fase-5` dari audit ulang Fase 4 **`16bcdb7`** (diverifikasi: `origin/main` `f1141e0` memuatnya dan `git diff` kosong; tanpa worktree). Laporan lengkap, kriteria → bukti, penafsiran, batas, dan hash kedua repo ada di repositori web `docs/phase-v6-5/README.md` (branch web dengan nama sama, dari audit ulang Fase 4 `75cb144`).
 
+Commit implementasi mobile `18fe095`; web `8108012`. Keduanya sudah di-push ke branch `claude/prd-v6-fase-5`.
+
 ## Perubahan
 
 - `src/app/keuangan/laporan.tsx` — layar **Laporan keuangan**. Pilihan periode: Bulan ini, Bulan lalu, 3 bulan, atau Tahun ini. Isinya:
