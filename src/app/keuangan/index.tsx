@@ -61,6 +61,7 @@ function Hub() {
           </Card>
         ))}
         <AppButton label="Riwayat pembayaran tagihan" variant="secondary" onPress={() => ke('/keuangan/pembayaran')} />
+        <AppButton label="Laporan keuangan anak" variant="secondary" onPress={() => ke('/keuangan/laporan')} />
         <AppButton label="Muat ulang" variant="secondary" onPress={() => void load()} />
       </Halaman>
     );
@@ -78,6 +79,7 @@ function Hub() {
         <AppButton label="Tunggakan" variant="secondary" onPress={() => ke('/keuangan/tunggakan')} />
         <AppButton label="Mutasi tabungan" variant="secondary" onPress={() => ke('/keuangan/tabungan')} />
         <AppButton label="Rekonsiliasi harian" variant="secondary" onPress={() => ke('/keuangan/rekonsiliasi')} />
+        <AppButton label="Laporan per periode" variant="secondary" onPress={() => ke('/keuangan/laporan')} />
         {kelola ? <AppButton label="Terbitkan tagihan bulanan" variant="secondary" icon="plus" onPress={() => ke('/keuangan/penerbitan')} /> : null}
         {!kelola ? (
           <ThemedText type="caption" themeColor="textSecondary">
