@@ -7,6 +7,7 @@ import { actionableError, api } from '@/api/client';
 import type { AnakListResponse, IzinCapability, IzinListResponse } from '@/api/types';
 import { useAuth } from '@/auth/auth-context';
 import { IzinCard } from '@/components/izin-card';
+import { useIzinWaliAkses } from '@/components/izin-wali-shared';
 import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { MODE_LABEL, ModeSwitcher } from '@/components/mode-switcher';
 import { ScreenHeader } from '@/components/screen-header';
@@ -52,6 +53,27 @@ function PerizinanSession() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { capabilities } = useAuth();
+  // V7 Fase 4: pintu alur orang tua → pembimbing → murobi. Akses dihitung
+  // ulang server; modul belum terpasang (503) berarti pintu tidak tampil.
+  const { akses: aksesWali } = useIzinWaliAkses();
+  const adaAksesWali = Boolean(aksesWali && (aksesWali.wali || aksesWali.pembimbing || aksesWali.admin || aksesWali.murobi));
+  const antreanWali = (aksesWali?.antrean_pembimbing ?? 0) + (aksesWali?.antrean_admin ?? 0);
+  const pintuWali = adaAksesWali ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Buka izin orang tua melalui pembimbing"
+      onPress={() => router.push('/izin-wali')}>
+      <Panel>
+        <Overline>Izin orang tua melalui pembimbing</Overline>
+        <ThemedText selectable type="caption" themeColor="textSecondary">
+          {aksesWali?.wali
+            ? 'Ajukan izin anak, perbaiki saat diminta pembimbing, dan pantau statusnya.'
+            : 'Tinjau, tetapkan, atau pantau pengajuan yang dibuat orang tua.'}
+          {antreanWali > 0 ? ` ${antreanWali} menunggu tindakan.` : ''}
+        </ThemedText>
+      </Panel>
+    </Pressable>
+  ) : null;
 
   const modes = capabilities.list;
   const [mode, setMode] = useState<IzinCapability | null>(capabilities.default_mode);
@@ -157,6 +179,7 @@ function PerizinanSession() {
         style={{ backgroundColor: theme.background }}
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}>
         <ScreenHeader title="Perizinan" />
+        {pintuWali}
         <EmptyState
           title="Belum ada kemampuan perizinan"
           message="Akun ini belum terhubung ke pengurus, wali, atau penugasan murobi aktif. Hubungi admin pesantren."
@@ -197,6 +220,8 @@ function PerizinanSession() {
           {data?.scope.label ?? (modeAktif ? MODE_LABEL[modeAktif] : '')}
         </ThemedText>
 
+        {pintuWali}
+
         {orangTua ? (
           <Panel>
             <Overline>Anak yang terhubung</Overline>
@@ -220,8 +245,8 @@ function PerizinanSession() {
               ))
             )}
             <ThemedText selectable type="caption" themeColor="textMuted">
-              Akun orang tua bersifat baca-saja: tidak tersedia tombol pengajuan, keputusan, atau
-              pembatalan.
+              Daftar di bawah memuat izin yang diajukan pengurus (baca-saja). Pengajuan izin oleh
+              orang tua dibuat dan dipantau lewat “Izin orang tua melalui pembimbing”.
             </ThemedText>
           </Panel>
         ) : null}

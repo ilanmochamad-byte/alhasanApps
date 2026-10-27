@@ -1,0 +1,17 @@
+# Audit Codex — PRD V7 Fase 4 (mobile)
+
+27 Oktober 2026. **Audit teknis lokal selesai setelah dua koreksi. Penerimaan penuh Fase 4 belum tertutup: ketukan Push nyata sesudah logout/pencabutan hak belum dibuktikan.** Tidak memulai Fase 5, merge/deploy atau mengirim rilis.
+
+Laporan lengkap, baseline, probe kontrol, hasil, kegagalan historis dan batas ada di [AUDIT-CODEX.md repositori web](https://github.com/ilanmochamad-byte/WebAlHasan/blob/claude/prd-v7-fase-4/docs/phase-v7-4/AUDIT-CODEX.md), dengan bukti independen di `docs/phase-v7-4/audit-codex/`.
+
+- Audit handoff `b427d0d`/implementasi `7b1ae4d` dari `d3a7646`, branch `claude/prd-v7-fase-4`; handoff remote diverifikasi. Web `1c49df3`/`ba3e1d7` dari audit Fase 3 `2e2acc7`. Membaca AGENTS kedua repo, PRD-V7, prompt Fase 4, audit Fase 1–3 dan bukti/commit fase. Tidak membuat worktree.
+- **F-1 (P2) ditutup:** draf perbaikan sekarang mengikat isi asal dan versinya. Kembali dari latar tidak menaikkan versi draf diam-diam; kiriman basi 409, muat versi terbaru membuang draf lama. Dibuktikan Expo web serta iOS Release simulator dengan perubahan perangkat kedua.
+- **F-2 (P2) ditutup:** detail keputusan V2 memakai data privat yang dibersihkan saat blur/latar serta penolakan GET/POST; sesi terikat akun/ID/mode. Pembungkus mutasi menutup data/draf pada 401/403/404. Pengajuan `asal=Wali` memperoleh pelindung native yang sama dengan navigator V7 sebelum isi dirender. Keputusan, endpoint, idempotensi, versi dan hak V2 tetap server.
+- Probe identik sumber asli **2/3 → 5/0**. Expo web utama **48/0**, tambahan admin pengganti/jalur pengurus/pencabutan **7/0**, HTTP **54/0**, statis Fase 4 **31/0**, tsc/lint exit 0, unit **42/0**. Jalur V2 aplikasi buat/batal/putus tetap langsung tanpa tinjauan pembimbing V7.
+- Android **emulator** Medium_Phone Android 16, APK Debug dev client yang sudah ada (SHA-256 `f2f443fbeed626360da3821cae8109adb44ad1225246bb559924bd28072fe441`) + Metro sumber koreksi/paket lock ter-commit: **8/0**. Logout/URI/login, wali kedua, pencabutan relasi dan murobi pada sesi lama, dua ketukan → satu penerusan, FLAG_SECURE pada V7 serta keputusan V2.
+- iOS **Release arm64 simulator**, tanda tangan ad-hoc lokal, iPhone 17 Pro/iOS 26.2/Xcode 27.1: build berhasil; cold URI/login, konflik draf dari latar, muat versi terbaru, pembatalan tunggal, wali kedua ringkas dan pencabutan relasi dibuktikan. Paritas hasil native Android/iOS dengan web/API **2/0**. Kegagalan selector/keyboard/assertion pembantu dan hasil lanjutannya dijelaskan dalam laporan lengkap, tidak dinyatakan sebagai kegagalan kode produk.
+- Log/cache diperiksa dengan penanda sintetis dan pola token; angka serta batas dekode snapshot ada di laporan lengkap. Kecocokan awal cache Android hanya literal kode `Bearer ` pada bundel dev launcher, nol bearer mentah. Tidak menganggap pemindaian byte sebagai bukti seluruh gambar cache OS sudah didekode.
+- **Belum diuji:** perangkat fisik, pengiriman/ketukan Push Expo/FCM/APNs nyata, cold start rilis Android, iOS Debug, MySQL/cPanel/produksi dan UAT. URI/notifikasi in-app bukan pengganti bukti Push. Gerbang akhir V6 tetap terbuka.
+- Perubahan `package.json`/`package-lock.json` milik pekerjaan lain dipertahankan dan tidak di-commit. Tanpa dependensi atau modul native baru. Sumber uji memakai paket ter-commit Expo 57.0.15 dari salinan tanpa env produksi; direktori node_modules native harus nyata, bukan symlink keluar proyek.
+
+Berhenti setelah commit/push hasil audit kedua branch fitur. Tidak mengizinkan merge/deploy/rilis atau memulai Fase 5.

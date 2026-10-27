@@ -15,6 +15,7 @@ import { api } from '@/api/client';
 import { notificationTarget, reportLinkTarget } from '@/rapor/forms';
 import { kesehatanLinkTarget } from '@/kesehatan/forms';
 import { keuanganLinkTarget, lokasiKeuangan, ruteKeuangan, TIPE_KEUANGAN, type TipeKeuangan } from '@/keuangan/forms';
+import { izinWaliLinkTarget, TIPE_IZIN_WALI } from '@/izin-wali/forms';
 import { useAuth } from '@/auth/auth-context';
 import {
   appVersion,
@@ -81,10 +82,11 @@ const NotificationContext = createContext<NotificationContextValue | null>(null)
 /**
  * Tujuan yang penunjuknya dipertahankan sampai layar tujuan benar-benar
  * dibuka (bertahan melewati 401/login ulang): rapor V4, ringkasan
- * kesehatan V5, serta tagihan/pembayaran/transaksi tabungan V6. Layar tujuan memanggil `tujuanDibuka` setelah server
- * mengizinkan, atau menolak.
+ * kesehatan V5, tagihan/pembayaran/transaksi tabungan V6, serta pengajuan izin
+ * wali V7. Layar tujuan memanggil `tujuanDibuka` setelah server mengizinkan,
+ * atau menolak.
  */
-const TUJUAN_BERTAHAN = ['rapor', 'kesehatan_ringkasan', ...Object.keys(TIPE_KEUANGAN)];
+const TUJUAN_BERTAHAN = ['rapor', 'kesehatan_ringkasan', TIPE_IZIN_WALI, ...Object.keys(TIPE_KEUANGAN)];
 
 const keuanganTipe = (tipe: string): tipe is TipeKeuangan => tipe in TIPE_KEUANGAN;
 
@@ -93,12 +95,14 @@ function ruteTujuan(tipe: string) {
   if (tipe === 'rapor') return '/rapor/[id]' as const;
   if (tipe === 'v3_publikasi') return '/publikasi/[id]' as const;
   if (tipe === 'kesehatan_ringkasan') return '/kesehatan/wali/[id]' as const;
+  if (tipe === TIPE_IZIN_WALI) return '/izin-wali/[id]' as const;
   return '/izin/[id]' as const;
 }
 
 function lokasiTujuan(tipe: string, id: number) {
   if (keuanganTipe(tipe)) return lokasiKeuangan(tipe, id);
-  return tipe === 'rapor' ? `/rapor/${id}` : tipe === 'kesehatan_ringkasan' ? `/kesehatan/wali/${id}` : null;
+  return tipe === 'rapor' ? `/rapor/${id}` : tipe === 'kesehatan_ringkasan' ? `/kesehatan/wali/${id}`
+    : tipe === TIPE_IZIN_WALI ? `/izin-wali/${id}` : null;
 }
 
 /**
@@ -195,11 +199,14 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       const rapor = reportLinkTarget(url);
       const ringkasan = rapor === null ? kesehatanLinkTarget(url) : null;
       const bsa = rapor === null && ringkasan === null ? keuanganLinkTarget(url) : null;
-      const target = rapor !== null ? { tipe: 'rapor', id: rapor } : ringkasan !== null ? { tipe: 'kesehatan_ringkasan', id: ringkasan } : bsa;
+      const izin = rapor === null && ringkasan === null && bsa === null ? izinWaliLinkTarget(url) : null;
+      const target = rapor !== null ? { tipe: 'rapor', id: rapor } : ringkasan !== null ? { tipe: 'kesehatan_ringkasan', id: ringkasan }
+        : izin !== null ? { tipe: TIPE_IZIN_WALI, id: izin } : bsa;
       if (target === null) return;
       if (userId !== null) tertunda.current = target;
       else buka(target.tipe === 'rapor' ? { tipe: 'rapor', rapor_id: target.id }
         : keuanganTipe(target.tipe) ? { tipe: target.tipe, [TIPE_KEUANGAN[target.tipe]]: target.id }
+        : target.tipe === TIPE_IZIN_WALI ? { tipe: TIPE_IZIN_WALI, pengajuan_id: target.id }
         : { tipe: 'kesehatan_ringkasan', ringkasan_id: target.id });
     };
     if (!initialLink.current) { initialLink.current = true; void Linking.getInitialURL().then(receive).catch(() => {}); }
