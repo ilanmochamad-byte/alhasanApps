@@ -30,10 +30,11 @@ export default function PerbaikiIzinWaliScreen() {
 
 function Perbaiki({ id }: { id: number }) {
   const router = useRouter();
-  const [isian, setIsian] = useState<IsianIzin | null>(null);
+  // Draf melekat pada isi dan versi yang benar-benar dilihat saat mulai menyunting.
+  const [draf, setDraf] = useState<{ isian: IsianIzin; asal: IsianIzin; version: number } | null>(null);
   const [validasi, setValidasi] = useState<string | null>(null);
   const [konflik, setKonflik] = useState(false);
-  const bersihkan = useCallback(() => setIsian(null), []);
+  const bersihkan = useCallback(() => setDraf(null), []);
   const fetcher = useCallback(async () => {
     if (!Number.isSafeInteger(id) || id < 1) throw new Error('Penunjuk pengajuan tidak valid.');
     return izinWali.detail(id);
@@ -48,10 +49,11 @@ function Perbaiki({ id }: { id: number }) {
   }
   const detail = data as DetailWali;
   const p = detail.pengajuan;
-  const version = p.version as number;
-  const asal: IsianIzin = { tgl_izin: p.tgl_izin, tgl_kembali: p.tgl_kembali, alasan: p.alasan ?? '', catatan: p.catatan ?? '' };
-  const nilai = isian ?? asal;
-  const ubah = (bagian: Partial<IsianIzin>) => setIsian({ ...nilai, ...bagian });
+  const version = draf?.version ?? p.version as number;
+  const terbaru: IsianIzin = { tgl_izin: p.tgl_izin, tgl_kembali: p.tgl_kembali, alasan: p.alasan ?? '', catatan: p.catatan ?? '' };
+  const asal = draf?.asal ?? terbaru;
+  const nilai = draf?.isian ?? terbaru;
+  const ubah = (bagian: Partial<IsianIzin>) => setDraf({ isian: { ...nilai, ...bagian }, asal, version });
   const permintaan = [...(detail.tinjauan ?? [])].reverse().find(t => t.tindakan === 'minta_perbaikan');
 
   async function kirim() {
@@ -87,7 +89,7 @@ function Perbaiki({ id }: { id: number }) {
       <Field label="Alasan izin" accessibilityLabel="Alasan izin" value={nilai.alasan} onChangeText={alasan => ubah({ alasan })} multiline />
       <Field label="Catatan" accessibilityLabel="Catatan" hint="Opsional" value={nilai.catatan} onChangeText={catatan => ubah({ catatan })} multiline />
       <Pesan text={validasi ?? guard.error} tone="danger" />
-      {konflik ? <AppButton label="Muat versi terbaru" variant="secondary" onPress={() => { setKonflik(false); setIsian(null); void load(); }} /> : null}
+      {konflik ? <AppButton label="Muat versi terbaru" variant="secondary" onPress={() => { setKonflik(false); setDraf(null); void load(); }} /> : null}
       <AppButton label="Kirim perbaikan" loading={guard.isBusy} disabled={guard.isBusy} onPress={() => void kirim()} />
     </Halaman>
   );

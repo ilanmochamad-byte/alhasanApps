@@ -1,21 +1,24 @@
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { RefreshControl, StyleSheet, View, useWindowDimensions } from 'react-native';
 
-import { actionableError, api } from '@/api/client';
+import { api } from '@/api/client';
 import type { GuruPilihan, IzinCapability, IzinDetailResponse, RoutingResponse } from '@/api/types';
 import { AppButton } from '@/components/app-button';
 import { AppIcon } from '@/components/app-icon';
 import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { StatusBadge, formatTanggal, statusColor } from '@/components/izin-card';
-import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
+import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { ActionBar } from '@/components/ui/action-bar';
 import { Field } from '@/components/ui/app-field';
 import { Chip, ChipRow } from '@/components/ui/chip';
 import { Divider, Overline, Panel } from '@/components/ui/surface';
 import { Radius } from '@/constants/theme';
-import { useMutationGuard } from '@/hooks/use-mutation-guard';
+import { useIzinWaliMutation } from '@/hooks/use-izin-wali-mutation';
+import { usePrivateResource } from '@/hooks/use-private-resource';
+import { IzinWaliProtection } from '@/components/izin-wali-protection';
+import { useAuth } from '@/auth/auth-context';
 import { useTheme } from '@/hooks/use-theme';
 
 /**
@@ -32,10 +35,12 @@ import { useTheme } from '@/hooks/use-theme';
  */
 export default function IzinDetailScreen() {
   const { fontScale } = useWindowDimensions();
+  const { profile } = useAuth();
+  const { id, mode } = useLocalSearchParams<{ id: string; mode?: string }>();
 
   // iOS dapat mempertahankan pengukuran ScrollView lama ketika Dynamic Type
   // diubah saat layar aktif. Remount terarah mencegah judul/status terpotong.
-  return <IzinDetailSession key={fontScale} fontScale={fontScale} />;
+  return <IzinDetailSession key={`${profile?.id}:${id}:${mode}:${fontScale}`} fontScale={fontScale} />;
 }
 
 function IzinDetailSession({ fontScale }: { fontScale: number }) {
@@ -46,10 +51,6 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
   const id = Number(params.id);
   const mode = (params.mode || undefined) as IzinCapability | undefined;
 
-  const [detail, setDetail] = useState<IzinDetailResponse | null>(null);
-  const [routing, setRouting] = useState<RoutingResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [pesan, setPesan] = useState<string | null>(null);
 
@@ -59,43 +60,26 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
   const [alasanTetapkan, setAlasanTetapkan] = useState('');
   const [murobiTerpilih, setMurobiTerpilih] = useState<number | null>(null);
 
-  const keputusanGuard = useMutationGuard('izin-keputusan');
-  const batalGuard = useMutationGuard('izin-batal');
-  const tetapkanGuard = useMutationGuard('izin-tetapkan');
+  const bersihkan = useCallback(() => {
+    setAlasan(''); setAlasanPenggantian(''); setAlasanBatal('');
+    setAlasanTetapkan(''); setMurobiTerpilih(null); setPesan(null);
+  }, []);
+  const fetcher = useCallback(async (): Promise<{ detail: IzinDetailResponse; routing: RoutingResponse | null }> => {
+    const detail = await api.izinDetail(id, mode);
+    const routing = detail.aksi.tetapkan_murobi ? await api.izinRouting(id) : null;
+    return { detail, routing };
+  }, [id, mode]);
+  const { data, error, reject, load: loadPrivate } = usePrivateResource(fetcher, bersihkan);
+  const detail = data?.detail ?? null;
+  const routing = data?.routing ?? null;
+  const load = useCallback(async (refresh = false) => {
+    if (refresh) setRefreshing(true);
+    try { await loadPrivate(); } finally { setRefreshing(false); }
+  }, [loadPrivate]);
+  const keputusanGuard = useIzinWaliMutation('izin-keputusan', reject);
+  const batalGuard = useIzinWaliMutation('izin-batal', reject);
+  const tetapkanGuard = useIzinWaliMutation('izin-tetapkan', reject);
   const sedangMutasi = keputusanGuard.isBusy || batalGuard.isBusy || tetapkanGuard.isBusy;
-
-  const load = useCallback(
-    async (refresh = false) => {
-      if (refresh) setRefreshing(true);
-      else setLoading(true);
-      setError(null);
-      try {
-        const hasil = await api.izinDetail(id, mode);
-        setDetail(hasil);
-        if (hasil.aksi.tetapkan_murobi) {
-          const rute = await api.izinRouting(id);
-          setRouting(rute);
-          setMurobiTerpilih(
-            (current) => current ?? rute.kandidat[0]?.guru_id ?? rute.murobi_berhak[0]?.guru_id ?? null,
-          );
-        } else {
-          setRouting(null);
-        }
-      } catch (caught) {
-        setError(actionableError(caught));
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [id, mode],
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      void load();
-    }, [load]),
-  );
 
   const putuskan = useCallback(
     async (hasil: 'Disetujui' | 'Ditolak') => {
@@ -143,10 +127,12 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
     }
   }, [alasanBatal, batalGuard, detail, id, load, mode]);
 
+  const tujuanMurobi = murobiTerpilih ?? routing?.kandidat[0]?.guru_id ?? routing?.murobi_berhak[0]?.guru_id ?? null;
+
   const tetapkanMurobi = useCallback(async () => {
-    if (!detail || murobiTerpilih === null) return;
+    if (!detail || tujuanMurobi === null) return;
     const payload = {
-      murobi_guru_id: murobiTerpilih,
+      murobi_guru_id: tujuanMurobi,
       alasan: alasanTetapkan,
       version: detail.pengajuan.version,
     };
@@ -159,11 +145,10 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
       setAlasanTetapkan('');
       await load(true);
     }
-  }, [alasanTetapkan, detail, id, load, murobiTerpilih, tetapkanGuard]);
+  }, [alasanTetapkan, detail, id, load, tujuanMurobi, tetapkanGuard]);
 
-  if (loading && !detail) return <LoadingState label="Memuat detail pengajuan…" />;
   if (error && !detail) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!detail) return <EmptyState title="Pengajuan tidak tersedia" message="Kembali lalu muat ulang daftar." />;
+  if (!detail) return <LoadingState label="Memuat detail pengajuan…" />;
 
   const { pengajuan, keputusan, riwayat, koreksi, aksi, scope } = detail;
   const adminPengganti = aksi.putuskan_admin && !aksi.putuskan_murobi;
@@ -174,7 +159,7 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
       : routing.murobi_berhak
     : [];
 
-  return (
+  const content = (
     <View style={styles.screen}>
       <KeyboardAwareScrollView
         contentInsetAdjustmentBehavior="automatic"
@@ -363,7 +348,7 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
                     key={guru.guru_id}
                     accessibilityRole="radio"
                     label={guru.nama}
-                    selected={guru.guru_id === murobiTerpilih}
+                    selected={guru.guru_id === tujuanMurobi}
                     disabled={sedangMutasi}
                     onPress={() => setMurobiTerpilih(guru.guru_id)}
                   />
@@ -392,7 +377,7 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
               label="Tetapkan murobi"
               icon="users"
               loading={tetapkanGuard.isBusy}
-              disabled={sedangMutasi || murobiTerpilih === null}
+              disabled={sedangMutasi || tujuanMurobi === null}
               onPress={() => void tetapkanMurobi()}
             />
           </Panel>
@@ -518,6 +503,7 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
       ) : null}
     </View>
   );
+  return pengajuan.asal === 'Wali' ? <IzinWaliProtection>{content}</IzinWaliProtection> : content;
 }
 
 function Baris({ label, nilai }: { label: string; nilai: string }) {
