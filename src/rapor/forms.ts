@@ -21,7 +21,7 @@ export function requireReason(reason: string, required: boolean) {
 export function notificationTarget(data: unknown): { tipe: string; id: number } | null {
   if (!data || typeof data !== 'object') return null;
   const p = data as Record<string, unknown>;
-  const key = p.tipe === 'rapor' ? 'rapor_id' : p.tipe === 'v3_publikasi' ? 'publikasi_id' : p.tipe === 'izin' ? 'pengajuan_id'
+  const key = p.tipe === 'rapor' ? 'rapor_id' : p.tipe === 'v3_publikasi' ? 'publikasi_id' : p.tipe === 'izin' || p.tipe === 'izin_wali' ? 'pengajuan_id'
     : p.tipe === 'kesehatan_ringkasan' ? 'ringkasan_id'
     : p.tipe === 'bsa_tagihan' ? 'tagihan_id' : p.tipe === 'bsa_pembayaran' ? 'pembayaran_id' : p.tipe === 'bsa_tabungan' ? 'transaksi_id' : null;
   if (!key || (typeof p[key] !== 'string' && typeof p[key] !== 'number')) return null;

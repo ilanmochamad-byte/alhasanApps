@@ -313,6 +313,8 @@ export type Pengajuan = {
   pembatalan: { oleh: string | null; pada: string; alasan: string | null } | null;
   diajukan_pada: string | null;
   aksi: IzinActions;
+  /** V7 Fase 4 (aditif): asal pengajuan; server lama tidak mengirimnya. */
+  asal?: 'Wali' | 'Pengurus';
 };
 
 export type Keputusan = {

@@ -100,6 +100,9 @@ export default function NotifikasiDetailScreen() {
             }
           />
         ) : null}
+        {data.tautan.tipe === 'izin_wali' && data.tautan.pengajuan_id ? (
+          <AppButton label="Buka pengajuan izin" onPress={() => router.push({ pathname: '/izin-wali/[id]', params: { id: String(data.tautan.pengajuan_id) } })} />
+        ) : null}
         {data.tautan.tipe === 'kesehatan_ringkasan' && data.tautan.ringkasan_id ? (
           <AppButton label="Buka informasi kesehatan" onPress={() => router.push({ pathname: '/kesehatan/wali/[id]', params: { id: String(data.tautan.ringkasan_id) } })} />
         ) : null}

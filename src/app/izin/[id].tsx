@@ -268,6 +268,25 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
           <Baris label="Cakupan Anda" nilai={scope.label} />
         </Panel>
 
+        {pengajuan.asal === 'Wali' ? (
+          /* V7 Fase 4: pengajuan orang tua yang sudah diteruskan pembimbing.
+             Keputusan tetap di layar ini; tahap pembimbing dibaca di rincian V7
+             yang memeriksa hak lagi di server. */
+          <Panel>
+            <Overline>Diajukan orang tua</Overline>
+            <ThemedText selectable type="caption" themeColor="textSecondary">
+              Pengajuan ini dibuat wali santri dan sudah ditinjau pembimbing sebelum sampai ke tahap murobi.
+              Pembatalan hanya dapat dilakukan wali pengaju.
+            </ThemedText>
+            <AppButton
+              label="Lihat tahap pembimbing"
+              variant="secondary"
+              size="sm"
+              onPress={() => router.push({ pathname: '/izin-wali/[id]', params: { id: String(pengajuan.id) } })}
+            />
+          </Panel>
+        ) : null}
+
         {keputusan ? (
           <Panel>
             <Overline>Keputusan</Overline>
