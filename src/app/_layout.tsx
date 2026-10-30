@@ -75,6 +75,8 @@ function RootNavigator() {
         <Stack.Screen name="kesehatan" options={{ headerShown: false }} />
         {/* V6 Fase 4 — keuangan santri/BSA. Hak tiap layar diperiksa server. */}
         <Stack.Screen name="keuangan" options={{ headerShown: false }} />
+        {/* Penugasan Keamanan (lintas guru/pengurus Fase 4) — hanya baca; hak tiap layar diperiksa server. */}
+        <Stack.Screen name="keamanan" options={{ headerShown: false }} />
         <Stack.Screen name="notifikasi/index" options={{ title: 'Notifikasi' }} />
         <Stack.Screen name="notifikasi/[id]" options={{ title: 'Detail Notifikasi' }} />
         <Stack.Screen name="notifikasi/perangkat" options={{ title: 'Perangkat & Push' }} />

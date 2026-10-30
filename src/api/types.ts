@@ -14,6 +14,17 @@ export type Profile = {
   capabilities?: CapabilityPayload;
 };
 
+/**
+ * Penugasan lintas guru/pengurus Fase 4 (`GET /profile/identitas`): satu akun
+ * dapat memegang identitas guru dan identitas pengurus yang dibentuk dari data
+ * gurunya. Hanya untuk tampilan; hak tetap dihitung server per permintaan.
+ */
+export type ProfileIdentitas = {
+  guru: { id: number; nip: string | null; nama: string } | null;
+  pengurus: { id: number; nama: string; jabatan: string; milik_guru: boolean } | null;
+  penugasan: { jenis: string; label: string; identitas: string }[];
+};
+
 export type MeetingSummary = {
   id: number;
   status: 'Draf' | 'Dibuka' | 'Selesai';
