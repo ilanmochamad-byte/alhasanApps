@@ -131,8 +131,11 @@ export type LaporanKeuangan = {
 export type PratinjauBaris = {
   santri_id: number; nis: string; nama: string; kelas: string | null; unit: string | null; hasil: 'Terbit' | 'SudahAda' | 'Dilewati';
   keterangan: string | null; tarif_id: number | null; tagihan_id: number | null; total: number; penyesuaian: { jenis: string; nama: string; nominal: number }[];
+  /** Hanya pada pratinjau satu santri: komponen tarif yang akan disalin ke tagihan. */
+  komponen?: { nama: string; nominal: number }[];
 };
-export type Pratinjau = { rows: PratinjauBaris[]; jumlah: { Terbit: number; SudahAda: number; Dilewati: number }; total_terbit: number; hash: string; periode: string; jatuh_tempo: string; unit: string | null };
+/** `santri_id` hanya ada bila pratinjau diminta untuk satu santri (server sesudah perbaikan PR #100). */
+export type Pratinjau = { rows: PratinjauBaris[]; jumlah: { Terbit: number; SudahAda: number; Dilewati: number }; total_terbit: number; hash: string; periode: string; jatuh_tempo: string; unit: string | null; santri_id?: number };
 
 // Hasil mutasi (respons ringkas; rincian dibaca ulang lewat GET).
 export type HasilSetoran = { id: number; replayed: boolean; status_setoran?: 'Sah' | 'Menunggu'; transaksi_id?: number | null; setoran_transfer_id?: number | null; nomor_kuitansi?: string | null; saldo_sesudah: number };
@@ -173,7 +176,7 @@ export const keuangan = {
   // keuangan tidak disimpan di perangkat); ekspor tersedia di website sesuai hak.
   laporan: (f: { dari: string; sampai: string; santri?: number; q?: string }, page = 1) =>
     request<LaporanKeuangan>(`${dasar}/laporan${query({ ...f, page })}`),
-  pratinjau: (b: { periode: string; jatuh_tempo: string; unit: string }) =>
+  pratinjau: (b: { periode: string; jatuh_tempo: string; unit: string; santri_id?: number }) =>
     request<Pratinjau>(`${dasar}/penerbitan/pratinjau`, { method: 'POST', body: b }),
 
   setoran: (santriId: number, i: IsianSetoran, key: string) => kirim<HasilSetoran>(`/santri/${santriId}/setoran`, {
@@ -196,6 +199,6 @@ export const keuangan = {
     kirim<{ id: number; replayed: boolean; versi: number }>(`/tagihan/${tagihanId}/revisi`, b, key),
   batalTagihan: (tagihanId: number, versi: number, alasan: string, key: string) =>
     kirim<{ id: number; replayed: boolean }>(`/tagihan/${tagihanId}/batal`, { versi, alasan }, key),
-  terbitkan: (b: { periode: string; jatuh_tempo: string; unit: string; pratinjau_hash: string }, key: string) =>
+  terbitkan: (b: { periode: string; jatuh_tempo: string; unit: string; pratinjau_hash: string; santri_id?: number }, key: string) =>
     kirim<{ id: number; replayed: boolean; jumlah_terbit: number }>('/penerbitan', b, key),
 };

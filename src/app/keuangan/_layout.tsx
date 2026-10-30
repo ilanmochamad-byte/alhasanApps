@@ -63,6 +63,7 @@ export default function KeuanganLayout() {
       <Stack.Screen name="rekonsiliasi" options={{ title: 'Rekonsiliasi harian' }} />
       <Stack.Screen name="laporan" options={{ title: 'Laporan keuangan' }} />
       <Stack.Screen name="penerbitan" options={{ title: 'Terbitkan tagihan' }} />
+      <Stack.Screen name="terbit-santri" options={{ title: 'Tagihan satu santri' }} />
     </Stack>
   );
 }

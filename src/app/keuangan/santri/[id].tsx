@@ -60,6 +60,10 @@ function Detail({ id }: { id: number }) {
             <AppButton label="Penarikan/belanja" size="sm" variant="secondary" onPress={() => transaksi('keluar')} style={{ flex: 1 }} />
           </View>
         ) : null}
+        {kelola ? (
+          <AppButton label="Terbitkan tagihan" size="sm" variant="secondary"
+            onPress={() => router.push({ pathname: '/keuangan/terbit-santri', params: { santri_id: String(d.santri.id) } })} />
+        ) : null}
       </Panel>
       <Pesan text={pesan} tone="success" />
 

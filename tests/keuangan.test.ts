@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { galatAlasan, galatNominal, keuanganLinkTarget, labelJenis, labelPeriode, lokasiKeuangan, nominalKirim, periodeKini, rentangLaporan, ruteKeuangan, rupiah, sidikJari, tanggalKini } from '../src/keuangan/forms.ts';
+import { galatAlasan, galatNominal, keuanganLinkTarget, labelJenis, labelPeriode, lokasiKeuangan, nominalKirim, periodeKini, pratinjauSatuSantriSah, rentangLaporan, ruteKeuangan, rupiah, sidikJari, tanggalKini } from '../src/keuangan/forms.ts';
 import { notificationTarget } from '../src/rapor/forms.ts';
 
 test('Rupiah ditampilkan bulat dengan titik ribuan tanpa Intl', () => {
@@ -73,4 +73,15 @@ test('Rentang laporan Fase 5: bulan ini, bulan lalu (lintas tahun), 3 bulan, tah
   assert.deepEqual(rentangLaporan('bulan_lalu', jan), { dari: '2026-12', sampai: '2026-12' });
   assert.deepEqual(rentangLaporan('tiga_bulan', jan), { dari: '2026-11', sampai: '2027-01' });
   assert.deepEqual(rentangLaporan('tahun_ini', new Date(2026, 11, 31)), { dari: '2026-01', sampai: '2026-12' });
+});
+
+test('Pratinjau satu santri sah hanya bila server menyaring santri itu (server lama mengabaikan santri_id)', () => {
+  const satu = { santri_id: 7, rows: [{ santri_id: 7 }] };
+  assert.equal(pratinjauSatuSantriSah(satu, 7), true);
+  assert.equal(pratinjauSatuSantriSah(satu, 8), false);
+  assert.equal(pratinjauSatuSantriSah({ rows: [{ santri_id: 7 }] }, 7), false, 'tanpa santri_id = server lama');
+  assert.equal(pratinjauSatuSantriSah({ rows: [{ santri_id: 7 }, { santri_id: 9 }] }, 7), false, 'seluruh unit');
+  assert.equal(pratinjauSatuSantriSah({ santri_id: 7, rows: [{ santri_id: 7 }, { santri_id: 9 }] }, 7), false);
+  assert.equal(pratinjauSatuSantriSah({ santri_id: 7, rows: [{ santri_id: 9 }] }, 7), false);
+  assert.equal(pratinjauSatuSantriSah({ santri_id: 7, rows: [] }, 7), false);
 });
