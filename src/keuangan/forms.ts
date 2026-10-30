@@ -76,6 +76,16 @@ export function rentangLaporan(pilihan: PilihanRentang, now = new Date()): { dar
   }
 }
 
+/**
+ * Pratinjau satu santri hanya boleh diterbitkan bila server benar-benar
+ * menyaring santri itu: respons menyebut `santri_id` yang sama dan tepat satu
+ * baris milik santri tersebut. Server lama mengabaikan `santri_id` dan
+ * mengembalikan seluruh unit; menerbitkannya akan menagih santri lain.
+ */
+export function pratinjauSatuSantriSah(p: { santri_id?: number; rows: { santri_id: number }[] }, santriId: number): boolean {
+  return p.santri_id === santriId && p.rows.length === 1 && p.rows[0].santri_id === santriId;
+}
+
 export function tanggalKini(now = new Date()): string {
   return `${periodeKini(now)}-${String(now.getDate()).padStart(2, '0')}`;
 }
