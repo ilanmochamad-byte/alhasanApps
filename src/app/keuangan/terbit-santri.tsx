@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { View } from 'react-native';
 
 import { actionableError, ApiError } from '@/api/client';
@@ -39,44 +39,56 @@ function Form({ santriId }: { santriId: number }) {
   const [pratinjau, setPratinjau] = useState<Pratinjau | null>(null);
   const [memuat, setMemuat] = useState(false);
   const [galat, setGalat] = useState<string | null>(null);
-  const bersihkan = useCallback(() => setPratinjau(null), []);
+  const versiPratinjau = useRef(0);
+  const bersihkan = useCallback(() => {
+    versiPratinjau.current++;
+    setPratinjau(null); setGalat(null); setMemuat(false);
+  }, []);
   const fetcher = useCallback(async () => {
     if (!Number.isSafeInteger(santriId) || santriId < 1) throw new Error('Penunjuk santri tidak valid.');
     const d = await keuangan.santri(santriId, 1);
     if (!d.akses.kelola || !d.santri.aktif) throw new ApiError('Penerbitan hanya oleh Petugas BSA berpenugasan aktif untuk santri aktif.', 403, 'FORBIDDEN');
     return d.santri;
   }, [santriId]);
-  const { data: santri, error, load, reject } = usePrivateResource(fetcher, bersihkan, true);
+  const { data: santri, error, load, reject, active, generation } = usePrivateResource(fetcher, bersihkan);
   const guard = useKeuanganMutation('bsa-terbit-santri', reject);
   if (error) return <ErrorState message={error} onRetry={() => void load()} />;
   if (!santri) return <LoadingState label="Memeriksa hak penerbitan…" />;
 
   async function lihat() {
-    setGalat(null); setPratinjau(null); guard.reset();
+    bersihkan(); guard.reset();
+    const versi = versiPratinjau.current;
+    const epoch = generation.current;
+    const masihBerlaku = () => active.current && epoch === generation.current && versi === versiPratinjau.current;
     if (!/^\d{4}-\d{2}$/.test(periode)) { setGalat('Periode berformat TTTT-BB, mis. 2026-11.'); return; }
     if (!jatuhTempo) { setGalat('Jatuh tempo wajib diisi.'); return; }
     setMemuat(true);
     try {
       const p = await keuangan.pratinjau({ periode, jatuh_tempo: jatuhTempo, unit: '', santri_id: santriId });
+      if (!masihBerlaku()) return;
       if (pratinjauSatuSantriSah(p, santriId)) setPratinjau(p);
       else setGalat('Server belum mendukung penerbitan satu santri. Gunakan menu Penerbitan atau website sampai server diperbarui.');
     } catch (e) {
+      if (!masihBerlaku()) return;
       if (e instanceof ApiError && [401, 403, 404].includes(e.status)) reject(e); else setGalat(actionableError(e));
     } finally {
-      setMemuat(false);
+      if (masihBerlaku()) setMemuat(false);
     }
   }
   async function terbitkan() {
     if (!pratinjau) return;
+    const versi = versiPratinjau.current;
+    const epoch = generation.current;
+    const masihBerlaku = () => active.current && epoch === generation.current && versi === versiPratinjau.current;
     const b = { periode: pratinjau.periode, jatuh_tempo: pratinjau.jatuh_tempo, unit: '', santri_id: santriId, pratinjau_hash: pratinjau.hash };
     const r = await guard.run(sidikJari('terbit-santri', b), key => keuangan.terbitkan(b, key));
-    if (!r) return;
+    if (!r || !masihBerlaku()) return;
     // Buka tagihan yang baru terbit; rinciannya dibaca ulang dari server.
     try {
       const t = (await keuangan.santri(santriId, 1)).tagihan.find(x => x.periode === b.periode);
-      if (t) { router.replace({ pathname: '/keuangan/tagihan/[id]', params: { id: String(t.id) } }); return; }
+      if (t && masihBerlaku()) { router.replace({ pathname: '/keuangan/tagihan/[id]', params: { id: String(t.id) } }); return; }
     } catch { /* rincian santri dapat dibuka dari tombol kembali */ }
-    router.back();
+    if (masihBerlaku()) router.back();
   }
   const r = pratinjau?.rows[0];
   return (
@@ -84,8 +96,8 @@ function Form({ santriId }: { santriId: number }) {
       <Panel style={{ gap: 12 }}>
         <ThemedText type="h3">{santri.nama}</ThemedText>
         <ThemedText type="caption" themeColor="textSecondary">NIS {santri.nis}{santri.kelas ? ` · ${santri.kelas}` : ''}{santri.unit ? ` · ${santri.unit}` : ''}</ThemedText>
-        <PrivateField label="Periode (TTTT-BB)" value={periode} onChangeText={v => { setPeriode(v); setPratinjau(null); }} maxLength={7} autoCapitalize="none" />
-        <DateField label="Jatuh tempo" value={jatuhTempo} onChange={v => { setJatuhTempo(v); setPratinjau(null); }} />
+        <PrivateField label="Periode (TTTT-BB)" value={periode} onChangeText={v => { setPeriode(v); bersihkan(); }} editable={!guard.isBusy} maxLength={7} autoCapitalize="none" />
+        <DateField label="Jatuh tempo" value={jatuhTempo} onChange={v => { setJatuhTempo(v); bersihkan(); }} disabled={guard.isBusy} />
         <AppButton label="Tampilkan tagihan" variant="secondary" loading={memuat} disabled={memuat || guard.isBusy} onPress={() => void lihat()} />
         <ThemedText type="caption" themeColor="textSecondary">Nominal diambil dari tarif unit dan penyesuaian santri. Tarif diatur di website.</ThemedText>
       </Panel>

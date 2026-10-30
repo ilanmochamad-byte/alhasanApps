@@ -74,3 +74,8 @@ Audit atas mobile `74c331d` dari `7478f7c` dan web `971b369` dari `851ef0a`, ked
 ## Keputusan Human Developer — Terbit tagihan satu santri dari tarif (30 Oktober 2026)
 
 Atas permintaan Human Developer ("Ya, tambahkan") sesudah perbaikan web PR #100, Claude Code menambah tombol **Terbitkan tagihan** di rincian santri (hanya Petugas BSA berhak kelola) dan layar `src/app/keuangan/terbit-santri.tsx` pada `claude/terbit-tagihan-satu-santri` dari `origin/main` `92caea4` (tanpa worktree). Pratinjau `santri_id` → terbit berhash pratinjau dan idempotensi → rincian tagihan; isian manual/tarif tetap di website. `pratinjauSatuSantriSah` menolak respons server tanpa PR #100. Paket tidak berubah; perubahan paket milik pekerjaan lain tidak di-commit. tsc/lint exit 0, unit 43/0; uji Expo web 27/0 dan regresi di repo web `docs/terbit-tagihan-satu-santri-app/`. Codex mengaudit berikutnya. Tidak merge/rilis aplikasi.
+
+
+## Audit Codex — tombol satu santri (30 Oktober 2026)
+
+Audit handoff `a815d45` (web `f8ded4e`): **LULUS teknis lokal setelah koreksi P2 F-1** respons pratinjau lama pada layar `terbit-santri.tsx`. Probe identik1/2 →3/0, Expo27/0, regresi Fase4 45/0 dan Fase5 20/0, tsc/lint0, unit43/0, build baru iOS Release simulator7/0. Laporan `docs/terbit-tagihan-satu-santri/AUDIT-CODEX.md`; bukti lengkap di repo web `docs/terbit-tagihan-satu-santri-app/`. Backend/paket tidak berubah; paket kotor pekerjaan lain tidak di-commit. Android native perubahan ini, fisik, Push, cPanel/produksi dan UAT belum diuji; gerbang akhir bersama tagihan/tabungan V6 tetap terbuka. Tidak merge/deploy/rilis atau mulai fase/PRD lain; keputusan berikutnya Human Developer.
