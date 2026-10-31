@@ -96,3 +96,10 @@ Audit handoff `a815d45` (web `f8ded4e`): **LULUS teknis lokal setelah koreksi P2
   UAT belum diuji; gerbang V5/V6/V7 tidak ditutup. Tidak worktree/subagen,
   merge/deploy/migrasi produksi/rilis atau Fase 5. Berhenti setelah commit/push
   hasil audit kedua branch yang sama.
+
+
+## Audit Codex — Penugasan lintas guru/pengurus dan Keamanan Fase 5 (31 Oktober 2026)
+
+- Audit hanya mobile `1b4335e` dari `d4d792a` dan web `9e62464` dari `39cc644`, kedua branch `claude/penugasan-keamanan-fase-5`: **LULUS audit teknis lokal setelah tiga koreksi alat rilis web; kesiapan produksi belum dinyatakan lulus.** Tidak mengubah kode aplikasi, migrasi, atau dependensi. Paket salinan kerja milik pekerjaan lain dipertahankan.
+- Probe arsip Claude **6/9 → 15/0**; rilis final **49/0** (restore writer **11/0**, dump **12/0**), E2E backend **19/0**, verifier **28/0**, verifier V5/V6/V7 exit 0. Arsip mobile tanpa env lokal: TypeScript/lint resmi Expo exit 0, unit **47/0**; tidak mengulang UI/native. Seluruh regresi dan kegagalan historis tercatat di laporan web.
+- Laporan lengkap web `docs/penugasan-keamanan/fase-5/AUDIT-CODEX.md`; ringkasan mobile `docs/penugasan-keamanan-fase-5/AUDIT-CODEX.md`. Runtime iOS, fisik/build distribusi/Push, MariaDB 10.6.28/MySQL/cPanel/produksi, restore nyata/rollback kode/UAT belum diuji. Gerbang V5/V6/V7 tetap terbuka. Tanpa worktree/subagen, merge/deploy/migrasi produksi/rilis atau pekerjaan berikutnya; berhenti setelah commit/push audit kedua branch.
