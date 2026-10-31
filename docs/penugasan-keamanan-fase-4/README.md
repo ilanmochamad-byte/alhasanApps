@@ -1,6 +1,6 @@
 # Penugasan lintas guru/pengurus — Fase 4 (aplikasi): Keamanan hanya baca dan akun dua identitas
 
-**Status (31 Oktober 2026): implementasi Claude Code, menunggu audit independen Codex.** Belum merge, belum rilis aplikasi. Fase 5 belum dimulai.
+**Status (31 Oktober 2026): LULUS audit teknis lokal Codex; lihat `AUDIT-CODEX.md`.** Belum merge, belum rilis aplikasi. Fase 5 belum dimulai.
 
 Laporan lengkap (cakupan, bukti, penafsiran PF4-1…PF4-8, temuan, batas, handoff) ada di repo web
 `WebAlHasan/docs/penugasan-keamanan/fase-4/README.md`. Rancangan: `WebAlHasan/docs/penugasan-keamanan/rancangan.md` (PK-1, PK-T2, PK-T3, PK-T4).
