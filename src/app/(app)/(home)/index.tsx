@@ -7,6 +7,7 @@ import { useRaporAkses } from '@/components/rapor-entry';
 import { usePembinaanAkses } from '@/components/pembinaan-entry';
 import { useKesehatanAkses } from '@/components/kesehatan-shared';
 import { useKeuanganAkses } from '@/components/keuangan-shared';
+import { useKeamananAkses } from '@/components/keamanan-shared';
 import { actionableError, api } from '@/api/client';
 import type { ScheduleOccurrence, TodayResponse } from '@/api/types';
 import { useAuth } from '@/auth/auth-context';
@@ -44,6 +45,7 @@ export default function HomeScreen() {
   const aksesRapor = useRaporAkses();
   const aksesKesehatan = useKesehatanAkses();
   const aksesKeuangan = useKeuanganAkses();
+  const aksesKeamanan = useKeamananAkses();
   const [data, setData] = useState<TodayResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -152,10 +154,14 @@ export default function HomeScreen() {
     ...(aksesKeuangan.tersedia
       ? [{ icon: 'wallet', label: aksesKeuangan.wali ? 'Keuangan anak' : 'Keuangan', tone: 'info', onPress: () => router.push('/keuangan') }] satisfies MenuTileItem[]
       : []),
+    // Penugasan Keamanan (lintas guru/pengurus Fase 4): hanya baca; hak tiap layar tetap diperiksa server.
+    ...(aksesKeamanan.tersedia
+      ? [{ icon: 'eye', label: 'Keamanan', tone: 'warning', onPress: () => router.push('/keamanan') }] satisfies MenuTileItem[]
+      : []),
   ];
 
-  const keadaanMenu = keadaanMenuBeranda(menu.length, aksesPembinaan.status === 'memuat' || aksesRapor.status === 'memuat' || aksesKesehatan.status === 'memuat' || aksesKeuangan.status === 'memuat' ? 'memuat'
-    : aksesPembinaan.error || aksesRapor.error || aksesKesehatan.error || aksesKeuangan.error ? 'gagal' : 'siap');
+  const keadaanMenu = keadaanMenuBeranda(menu.length, aksesPembinaan.status === 'memuat' || aksesRapor.status === 'memuat' || aksesKesehatan.status === 'memuat' || aksesKeuangan.status === 'memuat' || aksesKeamanan.status === 'memuat' ? 'memuat'
+    : aksesPembinaan.error || aksesRapor.error || aksesKesehatan.error || aksesKeuangan.error || aksesKeamanan.error ? 'gagal' : 'siap');
 
   return (
     <ScrollView
@@ -209,6 +215,7 @@ export default function HomeScreen() {
       {aksesRapor.error && <AppButton label="Muat ulang akses rapor" variant="secondary" onPress={aksesRapor.muatUlang} />}
       {aksesKesehatan.error ? <AppButton label="Muat ulang akses kesehatan" variant="secondary" onPress={aksesKesehatan.muatUlang} /> : null}
       {aksesKeuangan.error ? <AppButton label="Muat ulang akses keuangan" variant="secondary" onPress={aksesKeuangan.muatUlang} /> : null}
+      {aksesKeamanan.error ? <AppButton label="Muat ulang akses Keamanan" variant="secondary" onPress={aksesKeamanan.muatUlang} /> : null}
       {aksesPembinaan.error ? (
         <AppButton label="Muat ulang akses pembinaan" variant="secondary" onPress={aksesPembinaan.muatUlang} />
       ) : null}

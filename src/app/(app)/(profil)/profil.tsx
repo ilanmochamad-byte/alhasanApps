@@ -1,8 +1,11 @@
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import { Alert, ScrollView, StyleSheet, View, useColorScheme, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { akun } from '@/api/akun';
+import { ApiError } from '@/api/client';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
 import { ThemedText } from '@/components/themed-text';
@@ -11,7 +14,9 @@ import { ScreenHeader } from '@/components/screen-header';
 import { ListRow, RowGroup } from '@/components/ui/list-row';
 import { Overline } from '@/components/ui/surface';
 import { Radius } from '@/constants/theme';
+import { usePrivateResource } from '@/hooks/use-private-resource';
 import { useTheme } from '@/hooks/use-theme';
+import { kelompokPenugasan } from '@/keamanan/format';
 
 const VERSION = Constants.expoConfig?.version ?? '—';
 
@@ -47,6 +52,15 @@ export default function ProfilScreen() {
   const roles = profile?.roles ?? [];
   const cakupan = capabilities.list;
   const modeAktif = capabilities.default_mode;
+  // Server lama tanpa endpoint identitas (404) → bagian identitas tidak tampil.
+  const muatIdentitas = useCallback(async () => {
+    try { return { identitas: await akun.identitas() }; } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return { identitas: null };
+      throw e;
+    }
+  }, []);
+  const identitas = usePrivateResource(muatIdentitas).data?.identitas;
+  const penugasan = kelompokPenugasan(identitas?.penugasan ?? []);
 
   // Perilaku konfirmasi keluar dipindahkan apa adanya dari layar Beranda V1.
   function confirmLogout() {
@@ -111,6 +125,35 @@ export default function ProfilScreen() {
           </View>
         </View>
       </View>
+
+      {/* Penugasan lintas guru/pengurus Fase 4: satu akun, dua identitas (PK-1).
+          Informasi saja — menu dan hak tetap ditentukan server. */}
+      {identitas && (identitas.guru || identitas.pengurus || identitas.penugasan.length > 0) ? (
+        <View style={styles.group}>
+          <Overline>Identitas &amp; penugasan</Overline>
+          <RowGroup>
+            {identitas.guru ? (
+              <ListRow
+                icon="book"
+                title="Sebagai guru"
+                subtitle={`${identitas.guru.nama}${identitas.guru.nip ? ` · NIP ${identitas.guru.nip}` : ''} — ${penugasan.guru.length > 0 ? penugasan.guru.join(' · ') : 'tanpa penugasan guru aktif'}`}
+                last={!identitas.pengurus}
+              />
+            ) : null}
+            {identitas.pengurus ? (
+              <ListRow
+                icon="users"
+                title="Sebagai pengurus"
+                subtitle={`${identitas.pengurus.nama} · ${identitas.pengurus.milik_guru ? 'dibentuk dari data guru' : identitas.pengurus.jabatan} — ${penugasan.pengurus.length > 0 ? penugasan.pengurus.join(' · ') : 'tanpa penugasan pengurus aktif'}`}
+                last
+              />
+            ) : null}
+            {!identitas.guru && !identitas.pengurus ? (
+              <ListRow icon="users" title="Penugasan aktif" subtitle={identitas.penugasan.map(p => p.label).join(' · ')} last />
+            ) : null}
+          </RowGroup>
+        </View>
+      ) : null}
 
       <View style={styles.group}>
         <Overline>Akun &amp; pemberitahuan</Overline>

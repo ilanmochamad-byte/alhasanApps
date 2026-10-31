@@ -79,3 +79,20 @@ Atas permintaan Human Developer ("Ya, tambahkan") sesudah perbaikan web PR #100,
 ## Audit Codex — tombol satu santri (30 Oktober 2026)
 
 Audit handoff `a815d45` (web `f8ded4e`): **LULUS teknis lokal setelah koreksi P2 F-1** respons pratinjau lama pada layar `terbit-santri.tsx`. Probe identik1/2 →3/0, Expo27/0, regresi Fase4 45/0 dan Fase5 20/0, tsc/lint0, unit43/0, build baru iOS Release simulator7/0. Laporan `docs/terbit-tagihan-satu-santri/AUDIT-CODEX.md`; bukti lengkap di repo web `docs/terbit-tagihan-satu-santri-app/`. Backend/paket tidak berubah; paket kotor pekerjaan lain tidak di-commit. Android native perubahan ini, fisik, Push, cPanel/produksi dan UAT belum diuji; gerbang akhir bersama tagihan/tabungan V6 tetap terbuka. Tidak merge/deploy/rilis atau mulai fase/PRD lain; keputusan berikutnya Human Developer.
+
+
+## Audit Codex — Penugasan lintas guru/pengurus dan Keamanan Fase 4 (31 Oktober 2026)
+
+- Audit hanya Fase 4 pada branch `claude/penugasan-keamanan-fase-4` kedua repo,
+  mobile `10d13c3` dari `367ae5d`, web `933f8a1` dari `6ebdc24`: **LULUS
+  audit teknis lokal setelah satu koreksi P3 validasi saringan di backend**.
+  Kode mobile/paket tidak dikoreksi; perubahan paket pekerjaan lain dipertahankan.
+- Probe web identik **31/10 → 41/0**; HTTP **66/0**, statis **35/0**, Expo web
+  **46/0**, tsc/lint 0, unit **47/0**. Android emulator Debug + Metro sumber
+  ter-commit **8/0 + 2/0** (baca/kerahasiaan/revokasi/proteksi/profil guru).
+  Rincian dan regresi di laporan web `docs/penugasan-keamanan/fase-4/AUDIT-CODEX.md`;
+  ringkasan repo ini `docs/penugasan-keamanan-fase-4/AUDIT-CODEX.md`.
+- iOS runtime, fisik, build distribusi, Push nyata, MySQL/cPanel/produksi dan
+  UAT belum diuji; gerbang V5/V6/V7 tidak ditutup. Tidak worktree/subagen,
+  merge/deploy/migrasi produksi/rilis atau Fase 5. Berhenti setelah commit/push
+  hasil audit kedua branch yang sama.
