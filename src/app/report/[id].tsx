@@ -7,6 +7,7 @@ import type { ReportMeetingDetail } from '@/api/types';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
+import { daftarKelas, labelKelas, namaKelasAsal } from '@/lib/kelas-jadwal';
 
 export default function ReportMeetingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -21,15 +22,17 @@ export default function ReportMeetingScreen() {
   }, [id]);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
+  const kelas = meeting ? daftarKelas(meeting.task) : [];
+  const gabungan = kelas.length > 1;
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: theme.background }} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: meeting ? `Pertemuan ${meeting.date}` : 'Detail Pertemuan' }} />
       {!meeting && !error ? <LoadingState label="Memuat detail pertemuan…" /> : error ? <ErrorState message={error} onRetry={() => void load()} /> : meeting ? <>
-        <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}><ThemedText selectable style={styles.title}>{meeting.task.subject} · {meeting.task.class.name}</ThemedText><ThemedText selectable>{meeting.date} · {meeting.task.day}, {meeting.task.start_time}–{meeting.task.end_time}</ThemedText><ThemedText selectable themeColor="textSecondary">{meeting.task.book} · {meeting.task.place}</ThemedText><ThemedText selectable themeColor="textSecondary">Guru: {meeting.task.teacher.name}</ThemedText></View>
+        <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}><ThemedText selectable style={styles.title}>{meeting.task.subject} · {labelKelas(meeting.task)}</ThemedText>{gabungan ? <ThemedText selectable themeColor="textSecondary">Kelas gabungan · {kelas.length} kelas dalam satu pertemuan</ThemedText> : null}<ThemedText selectable>{meeting.date} · {meeting.task.day}, {meeting.task.start_time}–{meeting.task.end_time}</ThemedText><ThemedText selectable themeColor="textSecondary">{meeting.task.book} · {meeting.task.place}</ThemedText><ThemedText selectable themeColor="textSecondary">Guru: {meeting.task.teacher.name}</ThemedText></View>
         <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}><ThemedText selectable style={styles.title}>Kehadiran guru</ThemedText>{meeting.teacher_attendance ? <><ThemedText selectable style={{ color: theme.primary, fontWeight: '900' }}>{meeting.teacher_attendance.status}</ThemedText><ThemedText selectable>{meeting.teacher_attendance.notes || 'Tanpa catatan'}</ThemedText><ThemedText selectable type="small" themeColor="textSecondary">Pencatat: {meeting.teacher_attendance.recorded_by ?? '-'} · diperbarui {meeting.teacher_attendance.updated_at}</ThemedText></> : <ThemedText selectable themeColor="textSecondary">Belum dicatat.</ThemedText>}</View>
         <ThemedText selectable style={styles.sectionTitle}>Peserta ({meeting.student_summary.recorded_count}/{meeting.student_summary.participant_count})</ThemedText>
-        {meeting.students.map((student) => <View key={student.student_id} style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}><View style={styles.heading}><View style={{ flex: 1 }}><ThemedText selectable style={styles.name}>{student.name}</ThemedText><ThemedText selectable type="small" themeColor="textSecondary">NIS {student.nis}</ThemedText></View><ThemedText selectable style={{ color: student.status ? theme.primary : theme.textSecondary, fontWeight: '800' }}>{student.status ?? 'Belum dicatat'}</ThemedText></View><ThemedText selectable>{student.notes || 'Tanpa catatan'}</ThemedText><ThemedText selectable type="small" themeColor="textSecondary">Pencatat: {student.recorded_by ?? '-'} · diperbarui {student.updated_at ?? '-'}</ThemedText></View>)}
+        {meeting.students.map((student) => <View key={student.student_id} style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}><View style={styles.heading}><View style={{ flex: 1 }}><ThemedText selectable style={styles.name}>{student.name}</ThemedText><ThemedText selectable type="small" themeColor="textSecondary">NIS {student.nis}{gabungan && namaKelasAsal(student, kelas) ? ` · Kelas ${namaKelasAsal(student, kelas)}` : ''}</ThemedText></View><ThemedText selectable style={{ color: student.status ? theme.primary : theme.textSecondary, fontWeight: '800' }}>{student.status ?? 'Belum dicatat'}</ThemedText></View><ThemedText selectable>{student.notes || 'Tanpa catatan'}</ThemedText><ThemedText selectable type="small" themeColor="textSecondary">Pencatat: {student.recorded_by ?? '-'} · diperbarui {student.updated_at ?? '-'}</ThemedText></View>)}
       </> : null}
     </ScrollView>
   );

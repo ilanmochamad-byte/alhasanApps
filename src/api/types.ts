@@ -32,6 +32,12 @@ export type MeetingSummary = {
   completed_at: string | null;
 };
 
+/**
+ * Jadwal kelas gabungan Fase 1 (server): `classes` memuat seluruh kelas,
+ * kelas utama lebih dahulu. Opsional agar server lama tetap terbaca.
+ */
+export type ClassRef = { id: number; name: string; level: string; is_primary: boolean };
+
 export type ScheduleOccurrence = {
   id: number;
   occurrence_date: string;
@@ -41,7 +47,9 @@ export type ScheduleOccurrence = {
   subject: string;
   book: string;
   place: string;
+  /** Kelas utama (kompatibilitas). */
   class: { id: number; name: string; level: string };
+  classes?: ClassRef[];
   teacher: { id: number; nip: string | null; name: string };
   academic_year: { id: number; year: string; semester: string };
   meeting: MeetingSummary | null;
@@ -70,6 +78,8 @@ export type StudentMeetingRow = {
   student_id: number;
   nis: string;
   name: string;
+  /** Kelas asal santri pada pertemuan (kelas gabungan); opsional untuk server lama. */
+  class?: { id: number; name: string };
   attendance: {
     id: number;
     status: AttendanceStatus;
@@ -94,7 +104,10 @@ export type MeetingDetail = {
     subject: string;
     book: string;
     place: string;
+    /** Kelas utama jadwal saat ini (kompatibilitas). */
     class: { id: number; name: string; level: string };
+    /** Kelas yang dibekukan saat pertemuan dibuka. */
+    classes?: ClassRef[];
     teacher: { id: number; nip: string | null; name: string };
     academic_year: { id: number; year: string; semester: string };
   };
@@ -226,6 +239,7 @@ export type ReportMeetingDetail = {
     student_id: number;
     nis: string;
     name: string;
+    class?: { id: number; name: string };
     status: AttendanceStatus | null;
     notes: string | null;
     recorded_by: string | null;

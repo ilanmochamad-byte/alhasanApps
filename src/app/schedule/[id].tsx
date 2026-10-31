@@ -2,7 +2,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { actionableError, api, createIdempotencyKey } from '@/api/client';
+import { ApiError, actionableError, api, createIdempotencyKey } from '@/api/client';
 import type { ScheduleOccurrence } from '@/api/types';
 import { AppButton } from '@/components/app-button';
 import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
@@ -14,6 +14,7 @@ import { Field } from '@/components/ui/app-field';
 import { Badge } from '@/components/ui/chip';
 import { Divider, Overline, Panel } from '@/components/ui/surface';
 import { useTheme } from '@/hooks/use-theme';
+import { daftarKelas } from '@/lib/kelas-jadwal';
 
 export default function ScheduleDetailScreen() {
   const params = useLocalSearchParams<{ id: string; date?: string }>();
@@ -27,6 +28,9 @@ export default function ScheduleDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState(false);
   const attempt = useRef<{ notes: string; key: string } | null>(null);
+  // Ketukan ganda sebelum status `opening` sempat dirender tidak mengirim
+  // permintaan kedua; percobaan ulang setelah gagal memakai kunci yang sama.
+  const inFlight = useRef(false);
 
   const load = useCallback(async () => {
     if (!Number.isInteger(scheduleId) || scheduleId < 1 || !date) {
@@ -52,6 +56,8 @@ export default function ScheduleDetailScreen() {
   );
 
   async function openMeeting() {
+    if (inFlight.current) return;
+    inFlight.current = true;
     const normalizedNotes = notes.trim();
     if (!attempt.current || attempt.current.notes !== normalizedNotes) {
       attempt.current = { notes: normalizedNotes, key: createIdempotencyKey('open') };
@@ -63,7 +69,17 @@ export default function ScheduleDetailScreen() {
       router.replace({ pathname: '/meeting/[id]', params: { id: String(meeting.id) } });
     } catch (caught) {
       setError(actionableError(caught));
+      // Pertemuan sudah dibuka di perangkat/website lain: perbarui status tanpa
+      // menghapus pesan agar tombol berganti menjadi "Isi absensi".
+      if (caught instanceof ApiError && caught.status === 409) {
+        try {
+          setSchedule(await api.schedule(scheduleId, date));
+        } catch {
+          // Pesan 409 tetap tampil; muat ulang manual tetap tersedia.
+        }
+      }
     } finally {
+      inFlight.current = false;
       setOpening(false);
     }
   }
@@ -85,6 +101,8 @@ export default function ScheduleDetailScreen() {
   if (!schedule) return null;
 
   const sudahAda = Boolean(schedule.meeting);
+  const kelas = daftarKelas(schedule);
+  const gabungan = kelas.length > 1;
 
   return (
     <View style={styles.screen}>
@@ -116,7 +134,14 @@ export default function ScheduleDetailScreen() {
 
           <Divider />
 
-          <Detail label="Kelas" value={`${schedule.class.name} · ${schedule.class.level}`} />
+          {gabungan ? (
+            <Detail
+              label="Kelas gabungan"
+              value={kelas.map((k) => (k.level ? `${k.name} · ${k.level}` : k.name)).join('\n')}
+            />
+          ) : (
+            <Detail label="Kelas" value={`${schedule.class.name} · ${schedule.class.level}`} />
+          )}
           <Detail label="Kitab" value={schedule.book} />
           <Detail label="Tempat" value={schedule.place} />
           <Detail label="Tahun ajaran" value={`${schedule.academic_year.year} · ${schedule.academic_year.semester}`} />
@@ -134,7 +159,9 @@ export default function ScheduleDetailScreen() {
           <Panel>
             <Overline>Buka pertemuan</Overline>
             <ThemedText selectable type="caption" themeColor="textSecondary">
-              Daftar santri akan dibekukan dari keanggotaan kelas saat pertemuan dibuka.
+              {gabungan
+                ? `Satu pertemuan untuk ${kelas.length} kelas. Daftar santri seluruh kelas akan dibekukan dari keanggotaan kelas saat pertemuan dibuka.`
+                : 'Daftar santri akan dibekukan dari keanggotaan kelas saat pertemuan dibuka.'}
             </ThemedText>
             <Field
               value={notes}

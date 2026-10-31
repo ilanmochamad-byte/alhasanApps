@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/surface';
 import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { isoHariIni } from '@/lib/date';
+import { labelKelas } from '@/lib/kelas-jadwal';
 import { statusSesi } from '@/lib/schedule-status';
 
 /**
@@ -32,6 +33,7 @@ export function ScheduleCard({
   // Teks sistem sangat besar: jam, isi, dan penanda Absen ditumpuk agar
   // judul tidak terperas menjadi kolom sempit di antara jam dan penanda.
   const bertumpuk = fontScale > 1.35;
+  const kelas = labelKelas(schedule);
   const status = statusSesi(schedule.meeting, schedule.occurrence_date, today);
   const warnaStatus =
     status.nada === 'selesai' ? theme.primary : status.nada === 'menunggu' ? theme.warning : theme.textSecondary;
@@ -40,7 +42,7 @@ export function ScheduleCard({
     <Card
       onPress={onPress}
       accessibilityLabel={[
-        `${schedule.subject}, ${schedule.class.name}`,
+        `${schedule.subject}, ${kelas}`,
         `${schedule.start_time} sampai ${schedule.end_time}`,
         status.label,
         status.perluAbsen ? 'ketuk untuk absen' : null,
@@ -62,7 +64,7 @@ export function ScheduleCard({
       </View>
       <View style={[styles.body, bertumpuk && styles.bodyStacked]}>
         <ThemedText selectable type="h3" style={styles.title}>
-          {schedule.subject} · {schedule.class.name}
+          {schedule.subject} · {kelas}
         </ThemedText>
         <View style={styles.statusRow}>
           {status.ikon ? <AppIcon name={status.ikon} size={15} color={warnaStatus} /> : null}
