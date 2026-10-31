@@ -1,6 +1,6 @@
 # Penugasan lintas guru/pengurus — Fase 5 (rilis): ringkasan mobile
 
-**31 Oktober 2026 · implementasi Claude Code selesai, menunggu audit Codex.** Belum merge, belum rilis aplikasi. Laporan lengkap (alat rilis, bukti, batas, handoff) ada di repo web `WebAlHasan/docs/penugasan-keamanan/fase-5/README.md`, beserta runbook `runbook-rilis-pemulihan.md` dan `checklist-smoke.md` di folder yang sama. Rancangan: `WebAlHasan/docs/penugasan-keamanan/rancangan.md` §4 Fase 5.
+**31 Oktober 2026 · LULUS audit teknis lokal Codex; kesiapan produksi belum dinyatakan lulus. Lihat [AUDIT-CODEX.md](AUDIT-CODEX.md).** Belum merge, belum rilis aplikasi. Laporan lengkap (alat rilis, bukti, batas, handoff) ada di repo web `WebAlHasan/docs/penugasan-keamanan/fase-5/README.md`, beserta runbook `runbook-rilis-pemulihan.md` dan `checklist-smoke.md` di folder yang sama. Rancangan: `WebAlHasan/docs/penugasan-keamanan/rancangan.md` §4 Fase 5.
 
 | Butir | Nilai |
 | --- | --- |
