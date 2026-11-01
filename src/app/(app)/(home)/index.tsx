@@ -23,6 +23,7 @@ import { Elevation, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { attendanceShortcut } from '@/lib/attendance-shortcut';
 import { keadaanMenuBeranda } from '@/lib/home-menu';
+import { labelKelas } from '@/lib/kelas-jadwal';
 
 /** Skala teks sistem di atas ini dianggap "sangat besar" untuk tata letak berkolom. */
 const TEKS_BESAR = 1.35;
@@ -311,7 +312,7 @@ function HeroSession({
         </View>
         <View style={styles.heroText}>
           <ThemedText selectable style={[styles.heroTitle, { color: theme.heroText }]}>
-            {schedule.subject} — {schedule.class.name}
+            {schedule.subject} — {labelKelas(schedule)}
           </ThemedText>
           <ThemedText selectable type="caption" style={{ color: theme.heroTextSecondary }}>
             {hariIni ? schedule.place : `${formatDate(schedule.occurrence_date)} · ${schedule.place}`}

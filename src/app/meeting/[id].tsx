@@ -3,7 +3,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 
 import { actionableError, api, createIdempotencyKey } from '@/api/client';
-import type { AttendancePayload, AttendanceStatus, MeetingDetail } from '@/api/types';
+import type { AttendancePayload, AttendanceStatus, MeetingDetail, StudentMeetingRow } from '@/api/types';
 import { AppButton } from '@/components/app-button';
 import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { formatDate } from '@/components/schedule-card';
@@ -17,6 +17,7 @@ import { StatusRecap } from '@/components/ui/status-recap';
 import { Divider, Overline, Panel } from '@/components/ui/surface';
 import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { daftarKelas, kelompokPeserta, labelKelas, namaKelasAsal } from '@/lib/kelas-jadwal';
 
 type StudentDraft = Record<number, { status: AttendanceStatus; notes: string }>;
 
@@ -34,6 +35,8 @@ export default function MeetingScreen() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const attempt = useRef<{ signature: string; key: string } | null>(null);
+  // Satu kiriman pada satu waktu: ketukan ganda tidak mengirim dua permintaan.
+  const inFlight = useRef(false);
 
   const applyMeeting = useCallback((value: MeetingDetail) => {
     setMeeting(value);
@@ -114,6 +117,7 @@ export default function MeetingScreen() {
   }
 
   async function submit() {
+    if (inFlight.current) return;
     const body = buildPayload();
     if (!meeting || !body) return;
     setSuccess(null);
@@ -125,6 +129,7 @@ export default function MeetingScreen() {
     if (!attempt.current || attempt.current.signature !== signature) {
       attempt.current = { signature, key: createIdempotencyKey('attendance') };
     }
+    inFlight.current = true;
     setSubmitting(true);
     setError(null);
     try {
@@ -136,6 +141,7 @@ export default function MeetingScreen() {
     } catch (caught) {
       setError(actionableError(caught));
     } finally {
+      inFlight.current = false;
       setSubmitting(false);
     }
   }
@@ -172,6 +178,12 @@ export default function MeetingScreen() {
 
   const total = meeting.students.length;
   const progres = total > 0 ? Math.round((tercatat / total) * 100) : 0;
+  const kelas = daftarKelas(meeting.task);
+  const gabungan = kelas.length > 1;
+  // Jadwal satu kelas tetap satu daftar tanpa judul kelas (tampilan lama).
+  const kelompok = gabungan ? kelompokPeserta(meeting.students, kelas) : [{ kelas: null, items: meeting.students }];
+  // Nomor urut mengikuti urutan tampil (per kelas pada kelas gabungan).
+  const nomor = new Map(kelompok.flatMap((grup) => grup.items).map((student, index) => [student.student_id, index + 1]));
 
   return (
     <View style={styles.screen}>
@@ -192,7 +204,7 @@ export default function MeetingScreen() {
             <View style={[styles.rail, { backgroundColor: theme.primary }]} />
             <View style={styles.headerText}>
               <ThemedText selectable type="h2">
-                {meeting.task.subject} · {meeting.task.class.name}
+                {meeting.task.subject} · {labelKelas(meeting.task)}
               </ThemedText>
               <ThemedText selectable type="caption" themeColor="textSecondary">
                 {formatDate(meeting.date)} · {meeting.task.place}
@@ -227,6 +239,11 @@ export default function MeetingScreen() {
             <ThemedText selectable type="h3">
               Santri · {total} orang
             </ThemedText>
+            {gabungan ? (
+              <ThemedText selectable type="caption" themeColor="textSecondary">
+                Kelas gabungan · {kelas.length} kelas dalam satu pertemuan
+              </ThemedText>
+            ) : null}
             <View style={styles.progressRow}>
               <View style={[styles.progressTrack, { backgroundColor: theme.backgroundElement }]}>
                 <View
@@ -241,39 +258,28 @@ export default function MeetingScreen() {
           <AppButton label="Semua hadir" icon="check" variant="secondary" size="sm" onPress={markAllPresent} />
         </View>
 
-        {meeting.students.map((student, index) => {
-          const draft = students[student.student_id] ?? { status: 'Hadir' as const, notes: '' };
-          return (
-            <View
-              key={student.student_id}
-              style={[styles.studentCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-              <View style={styles.studentTitle}>
-                <View style={[styles.number, { backgroundColor: theme.backgroundElement }]}>
-                  <ThemedText selectable type="caption" themeColor="textSecondary">
-                    {String(index + 1).padStart(2, '0')}
-                  </ThemedText>
-                </View>
-                <View style={styles.studentText}>
-                  <ThemedText selectable type="h3">
-                    {student.name}
-                  </ThemedText>
-                  <ThemedText selectable type="caption" themeColor="textMuted">
-                    NIS {student.nis}
-                  </ThemedText>
-                </View>
+        {kelompok.map((grup) => (
+          <View key={grup.kelas?.id ?? 'semua'} style={styles.group}>
+            {gabungan ? (
+              <View style={styles.groupHeader} accessibilityRole="header">
+                <Overline>{grup.kelas ? grup.kelas.name : 'Kelas asal tidak tercatat'}</Overline>
+                <ThemedText selectable type="caption" themeColor="textMuted">
+                  {grup.items.length} santri
+                </ThemedText>
               </View>
-              <StatusSelector
-                value={draft.status}
-                onChange={(status) => updateStudent(student.student_id, { status })}
+            ) : null}
+            {grup.items.map((student) => (
+              <StudentCard
+                key={student.student_id}
+                student={student}
+                number={nomor.get(student.student_id) ?? 0}
+                kelasAsal={gabungan ? namaKelasAsal(student, kelas) : ''}
+                draft={students[student.student_id] ?? { status: 'Hadir', notes: '' }}
+                onChange={(patch) => updateStudent(student.student_id, patch)}
               />
-              <Field
-                value={draft.notes}
-                onChangeText={(notes) => updateStudent(student.student_id, { notes })}
-                placeholder="Catatan santri (opsional)"
-              />
-            </View>
-          );
-        })}
+            ))}
+          </View>
+        ))}
 
         <Panel>
           <Overline>Ringkasan</Overline>
@@ -316,6 +322,49 @@ export default function MeetingScreen() {
   );
 }
 
+function StudentCard({
+  student,
+  number,
+  kelasAsal,
+  draft,
+  onChange,
+}: {
+  student: StudentMeetingRow;
+  number: number;
+  /** Diisi hanya pada pertemuan kelas gabungan. */
+  kelasAsal: string;
+  draft: { status: AttendanceStatus; notes: string };
+  onChange: (patch: Partial<{ status: AttendanceStatus; notes: string }>) => void;
+}) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.studentCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+      <View style={styles.studentTitle}>
+        <View style={[styles.number, { backgroundColor: theme.backgroundElement }]}>
+          <ThemedText selectable type="caption" themeColor="textSecondary">
+            {String(number).padStart(2, '0')}
+          </ThemedText>
+        </View>
+        <View style={styles.studentText}>
+          <ThemedText selectable type="h3">
+            {student.name}
+          </ThemedText>
+          <ThemedText selectable type="caption" themeColor="textMuted">
+            NIS {student.nis}
+            {kelasAsal ? ` · Kelas ${kelasAsal}` : ''}
+          </ThemedText>
+        </View>
+      </View>
+      <StatusSelector value={draft.status} onChange={(status) => onChange({ status })} />
+      <Field
+        value={draft.notes}
+        onChangeText={(notes) => onChange({ notes })}
+        placeholder="Catatan santri (opsional)"
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: {
@@ -338,6 +387,8 @@ const styles = StyleSheet.create({
   progressTrack: { flex: 1, height: 5, borderRadius: 999, overflow: 'hidden' },
   progressFill: { height: 5, borderRadius: 999 },
   progressText: { fontVariant: ['tabular-nums'] },
+  group: { gap: 14 },
+  groupHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingTop: 4 },
   studentCard: {
     borderWidth: 1,
     borderRadius: Radius.xl,
