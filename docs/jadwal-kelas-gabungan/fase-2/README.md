@@ -1,6 +1,6 @@
 # Jadwal pengajian kelas gabungan — Fase 2 (aplikasi)
 
-Status: **diimplementasikan Claude Code, menunggu audit independen Codex (31 Oktober 2026).** Bukan izin merge atau rilis aplikasi.
+Status terbaru (1 November 2026): **audit Codex BELUM LULUS penuh Fase 2** karena build Release iOS baru crash saat startup. Alur fungsional lulus pada lingkungan yang diuji; rincian dan batas di [AUDIT-CODEX.md](AUDIT-CODEX.md). Fase 1 dan 2 bukan siap produksi atau izin rilis terpisah. Catatan implementator di bawah dipertahankan sebagai riwayat.
 
 - **Baseline mobile:** `origin/main` `b8d182529487d82e648c39e78830c64b5e375363` (isi sama dengan `5364f3da88f955aecabddcf81bfd27181719c500`). **Baseline web (API Fase 1):** audit Fase 1 `907552204e6f3dbb1684b7988fe8b10ff09f6f94`, dimuat `origin/main` web `9aa29562fedc951cebf2dbc0bd954387b2709073`. Branch `claude/jadwal-kelas-gabungan-fase-2` di kedua repo; tanpa worktree.
 - **Perubahan (commit `e1fd8a4`):** pembantu tampilan `src/lib/kelas-jadwal.ts`; tipe aditif `classes`/`students[].class`; kartu jadwal dan Beranda, detail jadwal ("Kelas gabungan", "Satu pertemuan untuk N kelas"), absensi (kelompok per kelas asal + label "Kelas <asal>" per santri; satu kelas tetap tampilan lama), rincian laporan dan rincian kehadiran Keamanan. Penjaga ketukan ganda pada buka pertemuan dan kirim absensi; 409 pembukaan memuat ulang status jadwal. Kunci idempotensi, hak server, sesi 401, dan aturan bisnis tidak berubah; tidak ada pembukaan pertemuan otomatis. Tanpa dependensi/modul native baru.
