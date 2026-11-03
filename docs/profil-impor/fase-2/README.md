@@ -1,5 +1,7 @@
 # Profil pengguna aplikasi — Fase 2 (kartu Beranda, Profil, Edit Profil, foto, Ganti Password)
 
+**Status audit 4 November 2026:** lulus teknis setelah koreksi. Hasil independen dan gerbang rilis ada di [Audit Codex](AUDIT-CODEX.md). Catatan implementator di bawah dipertahankan sebagai riwayat.
+
 Implementator **Claude Code**, auditor berikutnya **Codex** (`AGENTS.md` repo web, workstream "Profil pengguna aplikasi dan impor guru/pengurus"). Sumber kebutuhan: `PRD-PROFIL-IMPORT.md` §6 Fase 2 (repo WebAlHasan). Kontrak API: `docs/profil-impor/fase-1/README.md` dan audit `docs/profil-impor/fase-1/AUDIT-CODEX.md` (repo web).
 
 - **Mobile** `claude/profil-impor-fase-2` dari `origin/main` `b9a4e10` (memuat audit kelas gabungan Fase 2 `ec6cdf6` + versi 1.0.1). Tanpa worktree; tidak menulis di `main`.

@@ -31,9 +31,9 @@ const formulirDari = (data: ProfilPribadi): Formulir => ({ versi: data.versi, as
  * disimpan server. Selain berkas yang dikembalikan, pemotong menyimpan salinan
  * antara di cache `ImagePicker` milik aplikasi ini, jadi folder itu disapu.
  */
-function buangSalinanLokal(uri: string) {
+function buangSalinanLokal(uri?: string) {
   if (process.env.EXPO_OS === 'web') return;
-  try { if (uri.startsWith('file://')) { const berkas = new File(uri); if (berkas.exists) berkas.delete(); } } catch { /* lanjut menyapu */ }
+  try { if (uri?.startsWith('file://')) { const berkas = new File(uri); if (berkas.exists) berkas.delete(); } } catch { /* lanjut menyapu */ }
   try {
     const folder = new Directory(Paths.cache, 'ImagePicker');
     if (folder.exists) for (const isi of folder.list()) isi.delete();
@@ -125,25 +125,34 @@ export default function EditProfilScreen() {
   async function pilihFoto() {
     if (berjalan.current) return;
     setPesanFoto(null);
-    // Pemilih bawaan sistem (Android Photo Picker / PHPicker iOS): tidak
-    // meminta izin akses seluruh galeri.
-    const pilihan = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8, exif: false, base64: false,
-    });
-    if (pilihan.canceled || !pilihan.assets?.[0]) return;
-    const aset = pilihan.assets[0];
-    const mime = mimeFoto(aset.mimeType, aset.fileName, aset.uri);
-    const masalah = periksaFoto(mime, aset.fileSize ?? (aset.file ? aset.file.size : undefined));
-    if (masalah || !mime) { buangSalinanLokal(aset.uri); setPesanFoto({ teks: masalah ?? 'Foto tidak valid.', nada: 'danger' }); return; }
-    const ekstensi = mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg';
-    berjalan.current = true; setSibuk('foto');
+    berjalan.current = true;
+    setSibuk('foto');
+    let uri: string | undefined;
     try {
-      const hasil = await profilApi.unggahFoto({ uri: aset.uri, nama: aset.fileName || `foto-profil.${ekstensi}`, mime, file: aset.file });
+      // Pemilih bawaan sistem tanpa izin akses seluruh galeri.
+      const pilihan = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8, exif: false, base64: false,
+      });
+      const aset = pilihan.canceled ? undefined : pilihan.assets[0];
+      if (!aset) return;
+      uri = aset.uri;
+      const mime = mimeFoto(aset.mimeType, aset.fileName, aset.uri);
+      const masalah = periksaFoto(mime, aset.fileSize ?? aset.file?.size);
+      if (masalah || !mime) {
+        setPesanFoto({ teks: masalah ?? 'Foto tidak valid.', nada: 'danger' });
+        return;
+      }
+      const ekstensi = mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg';
+      const hasil = await profilApi.unggahFoto({ uri, nama: aset.fileName || `foto-profil.${ekstensi}`, mime, file: aset.file });
       terapkanFoto(hasil);
       setPesanFoto({ teks: 'Foto profil diperbarui.', nada: 'primary' });
     } catch (e) {
       setPesanFoto({ teks: actionableError(e), nada: 'danger' });
-    } finally { berjalan.current = false; setSibuk(null); buangSalinanLokal(aset.uri); }
+    } finally {
+      buangSalinanLokal(uri);
+      berjalan.current = false;
+      setSibuk(null);
+    }
   }
 
   async function hapusFoto() {

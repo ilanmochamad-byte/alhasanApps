@@ -44,6 +44,7 @@ export function ProfilProvider({ children }: PropsWithChildren) {
   const userId = profile?.id ?? null;
   const [keadaan, setKeadaan] = useState<Keadaan>({ userId: null, data: null, status: 'memuat', error: null });
   const [foto, setFoto] = useState<Foto>({ userId: null, versi: 0, uri: null, gagal: false });
+  const [percobaanFoto, setPercobaanFoto] = useState(0);
   const generasi = useRef(0);
   const pemilik = useRef<number | null>(null);
   useEffect(() => { pemilik.current = userId; generasi.current += 1; }, [userId]);
@@ -57,6 +58,7 @@ export function ProfilProvider({ children }: PropsWithChildren) {
       const data = await profilApi.pribadi();
       // Respons milik akun lain atau permintaan yang sudah usang diabaikan.
       if (epoch !== generasi.current || pemilik.current !== akun || data.akun.id !== akun) return;
+      setPercobaanFoto((kini) => kini + 1);
       setKeadaan({ userId: akun, data, status: 'siap', error: null });
     } catch (e) {
       if (epoch !== generasi.current || pemilik.current !== akun) return;
@@ -89,8 +91,10 @@ export function ProfilProvider({ children }: PropsWithChildren) {
 
   const data = keadaan.userId === userId ? keadaan.data : null;
   const fotoVersi = data?.foto.ada ? data.foto.versi : 0;
+  const fotoBerlaku = foto.userId === userId && foto.versi === fotoVersi && fotoVersi !== 0;
+  const fotoSiap = fotoBerlaku && foto.uri !== null;
   useEffect(() => {
-    if (userId === null || fotoVersi === 0) return;
+    if (userId === null || fotoVersi === 0 || fotoSiap) return;
     let aktif = true;
     void (async () => {
       try {
@@ -101,9 +105,7 @@ export function ProfilProvider({ children }: PropsWithChildren) {
       }
     })();
     return () => { aktif = false; };
-  }, [userId, fotoVersi]);
-
-  const fotoBerlaku = foto.userId === userId && foto.versi === fotoVersi && fotoVersi !== 0;
+  }, [userId, fotoVersi, fotoSiap, percobaanFoto]);
   const value: ProfilContextValue = {
     data,
     status: userId === null ? 'memuat' : keadaan.userId === userId ? keadaan.status : 'memuat',

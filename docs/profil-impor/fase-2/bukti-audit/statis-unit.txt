@@ -1,0 +1,126 @@
+TypeScript exit 0
+
+> alhasanapps@1.0.0 lint
+> expo lint
+
+Expo lint exit 0
+(node:25864) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/pif2-codex-mobile/tests/attendance-shortcut.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/pif2-codex-mobile/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Absensi kembali ke daftar jadwal saat hari kosong atau seluruh sesi selesai (1.787833ms)
+✔ Absensi memilih sesi pertama yang belum selesai, termasuk yang belum dibuka (0.174375ms)
+(node:25865) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/pif2-codex-mobile/tests/date-time.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/pif2-codex-mobile/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ tanggal/jam lokal lengkap termasuk tengah malam dan tahun kabisat (10.156334ms)
+✔ tolak bagian kosong, format manual salah dan tanggal yang dinormalisasi JS (0.163334ms)
+(node:25866) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/pif2-codex-mobile/tests/izin-wali.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/pif2-codex-mobile/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Isian izin wali mengikuti aturan server (2.640917ms)
+✔ Isian dirapikan; perbaikan wajib berbeda dari versi asal (0.658375ms)
+✔ Catatan tinjauan: perbaikan/tolak wajib, teruskan opsional (0.171ms)
+✔ Penolakan pembimbing dibedakan dari keputusan murobi (1.011042ms)
+✔ Tautan notifikasi izin wali hanya membawa penunjuk (0.736958ms)
+(node:25867) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/pif2-codex-mobile/tests/keamanan.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/pif2-codex-mobile/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Kueri Keamanan tanpa kunci kosong dan ter-encode (1.540625ms)
+✔ Rentang tanggal: opsional, format ISO, akhir tidak mendahului awal (0.510708ms)
+✔ Nada lencana dan label status mengikuti halaman web Keamanan (0.317042ms)
+✔ Penugasan profil dikelompokkan per identitas (satu akun, dua identitas) (2.938333ms)
+(node:25868) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/pif2-codex-mobile/tests/kelas-jadwal.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/pif2-codex-mobile/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ server lama tanpa classes tetap terbaca sebagai satu kelas utama (1.662625ms)
+✔ jadwal satu kelas dari server Fase 1 tidak ditandai gabungan (0.23275ms)
+✔ kelas gabungan: utama lebih dahulu, tanpa ganda, label dipisah koma (0.158334ms)
+✔ peserta dikelompokkan per kelas asal mengikuti urutan kelas, urutan server dipertahankan (0.227792ms)
+✔ kelas asal di luar daftar dan peserta tanpa kelas tetap tampil, kelompok kosong dibuang (0.15875ms)
+✔ nama kelas asal memakai nama dari server, lalu daftar kelas, kosong bila tidak ada (0.102041ms)
+(node:25869) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/pif2-codex-mobile/tests/kesehatan.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/pif2-codex-mobile/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Koreksi mengirim keadaan lengkap: rincian lama ber-id dipertahankan, waktu asli tidak bergeser (2.178667ms)
+✔ Baris baru yang seluruhnya kosong diabaikan; baris lama kosong tetap dikirim agar server menolaknya (1.830875ms)
+✔ Alasan wajib minimal lima karakter, maksimal 1000; sidik jari berubah bila isi berubah (0.54725ms)
+✔ Penunjuk notifikasi kesehatan hanya ringkasan_id valid; isi/tautan lain diabaikan (0.442208ms)
+✔ Deep-link kesehatan hanya skema aplikasi dan rute ringkasan wali (0.396208ms)
+✔ Teks perubahan versi memakai label manusia (0.266667ms)
+✔ Hasil pencarian santri dikelompokkan per kelas; belum ditempatkan paling akhir (0.6255ms)
+✔ Periode laporan: bulan ini, bulan lalu (lintas tahun), dan 30 hari berakhir hari ini (0.8285ms)
+(node:25870) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/pif2-codex-mobile/tests/keuangan.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/pif2-codex-mobile/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Rupiah ditampilkan bulat dengan titik ribuan tanpa Intl (1.558459ms)
+✔ Nominal dikirim sebagai teks angka; pecahan dan huruf diteruskan agar server menolak (0.897125ms)
+✔ Alasan koreksi wajib 5–500 karakter seperti website (0.73675ms)
+✔ Sidik jari sama untuk isi sama (retry memakai kunci yang sama) dan berbeda bila isi berubah (0.141417ms)
+✔ Label periode, jenis, dan nilai awal tanggal (1.267875ms)
+✔ Penunjuk notifikasi keuangan hanya id; tipe/kunci lain ditolak (0.979417ms)
+✔ Tautan skema keuangan hanya menerima jalur yang dikenal (0.289541ms)
+✔ Rentang laporan Fase 5: bulan ini, bulan lalu (lintas tahun), 3 bulan, tahun ini — paling panjang 12 bulan (0.209958ms)
+✔ Pratinjau satu santri sah hanya bila server menyaring santri itu (server lama mengabaikan santri_id) (0.204042ms)
+(node:25871) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/pif2-codex-mobile/tests/print-dialog.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/pif2-codex-mobile/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ mengenali exception pembatalan cetak iOS dari nama dan pesan (0.780167ms)
+✔ mengenali bentuk CodedError dari bridge native (0.297542ms)
+✔ tidak menyembunyikan kegagalan cetak yang sebenarnya (0.152542ms)
+✔ mengembalikan hasil normal ketika pencetakan dimulai (0.160625ms)
+✔ mengubah penutupan dialog menjadi hasil dibatalkan (0.211ms)
+✔ meneruskan kegagalan printer tanpa perubahan (3.076583ms)
+(node:25872) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/pif2-codex-mobile/tests/profil.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/pif2-codex-mobile/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Isian yang boleh diubah sama dengan kontrak Fase 1 (tanpa username/NIP/NIK/penugasan) (2.385458ms)
+✔ Hanya kunci yang berubah dikirim; kosong dikirim sebagai string kosong (0.245833ms)
+✔ Validasi awal selaras pesan server (3.844625ms)
+✔ Galat server per isian; nilai bukan teks diabaikan (0.326584ms)
+✔ Aturan password sama dengan website: 12 karakter, besar, kecil, angka, ≤72 byte, sama (0.839ms)
+✔ Inisial, status tanpa duplikat, binaan kamar vs kelas tanpa nama rekaan (0.324333ms)
+✔ Mapel–kelas dikelompokkan per mapel, kombinasi ganda dipertahankan (0.294834ms)
+✔ Rincian penugasan menyebut target, mapel–kelas, atau seluruh cakupan (0.2745ms)
+✔ Alamat lengkap satu baris dari isian berjenjang (0.1865ms)
+✔ Foto: hanya JPEG/PNG/WebP ≤ 2 MiB; mime dari ekstensi bila tidak dilaporkan (0.57225ms)
+✔ Base64 tanpa btoa sama dengan Buffer (0.862833ms)
+(node:25873) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/pif2-codex-mobile/tests/rapor.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/pif2-codex-mobile/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Kosong tetap belum lengkap, nol sah, versi lama tetap dikirim (2.8215ms)
+✔ Validasi angka/reason tidak meloloskan nilai tak sah atau alasan kosong (0.300958ms)
+✔ Push hanya penunjuk valid; data/nilai/tautan lain tidak dipakai (0.894ms)
+✔ Deep-link native hanya skema/rute rapor sah; ID bertahan sebagai penunjuk (0.336459ms)
+(node:25874) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/pif2-codex-mobile/tests/redesain-fase1.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/pif2-codex-mobile/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ pekan dimulai Senin, termasuk ketika tanggal terpilih hari Minggu (4.787792ms)
+✔ pekan melintasi pergantian bulan, tahun, dan 29 Februari (0.327542ms)
+✔ geser pekan maju dan mundur mempertahankan hari (0.185167ms)
+✔ pesan tanpa menu hanya muncul setelah akses pembinaan selesai diperiksa (0.131292ms)
+(node:25875) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/pif2-codex-mobile/tests/redesain-fase2.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/pif2-codex-mobile/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ sesi hari ini yang belum dibuka atau belum selesai ditandai perlu absen (1.341333ms)
+✔ sesi selesai tidak pernah meminta absen, kapan pun tanggalnya (0.126625ms)
+✔ sesi hari lain tidak diberi penanda absen dan dibedakan masa depan/lampau (0.108042ms)
+ℹ tests 64
+ℹ suites 0
+ℹ pass 64
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 433.663083

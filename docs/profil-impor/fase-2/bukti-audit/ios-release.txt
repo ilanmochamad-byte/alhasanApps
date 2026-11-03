@@ -1,0 +1,35 @@
+4 November 2026 — iPhone 17 Pro simulator, iOS 26.2 (23C54), Xcode 27.2 (27B52).
+
+Artefak handoff b887d7b dipasang ulang sebelum build audit. Hash binary
+17eea54bf98320c784a070480842f18036e645d87165e40ad141ed9a7b194101 dan bundel
+40a5c516f2a625663c17f98cdb9a63b74c73926384ff68d1e1701eec9a9653bb
+sesuai catatan implementator. Proses tetap hidup dan layar masuk terlihat.
+
+Build audit utuh dari git archive b887d7b + dua koreksi sumber, npm ci
+dengan lock ter-commit (Expo 57.0.15, React Native 0.86.2, ImagePicker 57.0.20).
+Salinan tanpa .env. EXPO_NO_DOTENV=1 dan API http://127.0.0.1:8962/api/v1.
+expo prebuild --platform ios --no-install, LANG=en_US.UTF-8 pod install,
+xcodebuild -workspace ios/alhasanApps.xcworkspace -scheme alhasanApps
+-configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator'
+-derivedDataPath /tmp/pif2-codex-ios-dd CODE_SIGN_IDENTITY=- ARCHS=arm64 build.
+BUILD SUCCEEDED. Mach-O arm64, verifikasi tanda tangan lokal berhasil.
+Binary 49cad7f0cd2c0259c570d27328ed324430a65ba8ebbfcb0e604bec188daeb00b
+Bundel 958f206f1886eeaebeb469f71ce5b219d2353fd6a66d6c21764bcaae5f4cd98a
+Info.plist: 0 kunci izin foto/kamera/mikrofon.
+
+[lulus] Dua cold start melalui simctl install/launch/terminate. launchctl list
+masih menunjukkan PID 22936 dan 23041 setelah masing-masing 6 detik;
+layar masuk tampil. Crash RCTEventEmitter.receiveEvent historis tidak muncul.
+[lulus] Login wali sintetis menampilkan kartu pertama SBX Wali A, inisial SW,
+status Orang Tua tanpa target binaan. Perizinan, Pembinaan, Kesehatan anak,
+dan Keuangan anak tetap ditawarkan; ketuk kartu membuka Profil.
+[lulus] Profil menunjukkan data diri, tanpa penugasan aktif, Edit Profil,
+dan Ganti password. Edit Profil membuka PHPicker langsung tanpa prompt akses
+seluruh galeri; pembatalan mengaktifkan lagi tombol Pilih foto. Pilih gambar
+sintetis membuka pemotong Choose.
+[lulus] Setelah fixture stabil, unggah foto sintetis berhasil. Panel menunjukkan
+"Foto profil diperbarui", DB menunjukkan foto_versi=1, dan ImagePicker cache
+kosong. Edit tempat lahir Garut tampil langsung pada Profil dan DB.
+[lulus] Setelah cold start dengan sesi tersimpan dan Dynamic Type
+accessibility-extra-large, kartu wali tetap pertama. Tanggal membungkus,
+foto, nama, dan status tampil utuh. Bukti ios-release-teks-besar.png.
