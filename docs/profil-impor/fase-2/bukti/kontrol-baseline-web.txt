@@ -1,0 +1,8 @@
+# Kontrol: uji Expo web Fase 2 pada kode mobile origin/main b9a4e10 (git archive, node_modules sama), API/DB sama
+
+=== B-A/B-B. Kartu identitas di Beranda ===
+[gagal] Pengecualian: locator.waitFor: Timeout 20000ms exceeded.
+  halaman terbuka: http://127.0.0.1:8963/
+
+Hasil: 0 lulus / 1 gagal
+exit=1

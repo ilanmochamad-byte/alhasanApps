@@ -1,7 +1,7 @@
 import * as Device from 'expo-device';
-import { createContext, type PropsWithChildren, use, useCallback, useEffect, useState } from 'react';
+import { createContext, type PropsWithChildren, use, useCallback, useEffect, useRef, useState } from 'react';
 
-import { api, setUnauthorizedHandler } from '@/api/client';
+import { ApiError, api, setPasswordChangeHandler, setUnauthorizedHandler } from '@/api/client';
 import type { CapabilityPayload, IzinCapability, Profile } from '@/api/types';
 import { tokenStorage } from '@/auth/token-storage';
 import { clearReportCache } from '@/rapor/pdf';
@@ -27,8 +27,15 @@ const NO_CAPABILITIES: CapabilityPayload = {
   },
 };
 
+/** Akun yang wajib mengganti password sementara (PI-1); tanpa menu lain. */
+export type WajibGantiPassword = { name: string; username: string };
+
 type AuthContextValue = {
   profile: Profile | null;
+  /** Bukan null → hanya layar Ganti Password yang tersedia sampai berhasil. */
+  wajibGantiPassword: WajibGantiPassword | null;
+  /** Dipanggil setelah password sementara berhasil diganti: memuat profil penuh. */
+  selesaiGantiPassword: () => Promise<void>;
   capabilities: CapabilityPayload;
   hasCapability: (capability: IzinCapability) => boolean;
   isLoading: boolean;
@@ -40,17 +47,28 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [wajibGantiPassword, setWajibGantiPassword] = useState<WajibGantiPassword | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const profileRef = useRef<Profile | null>(null);
+  useEffect(() => { profileRef.current = profile; }, [profile]);
 
   const clearSession = useCallback(async () => {
     await tokenStorage.clear();
     try { clearReportCache(); } catch { /* Cache cleanup can be retried on next startup. */ }
     setProfile(null);
+    setWajibGantiPassword(null);
   }, []);
 
   useEffect(() => {
     setUnauthorizedHandler(clearSession);
-    return () => setUnauthorizedHandler(null);
+    // PF-1: admin mereset password ketika sesi masih berjalan → seluruh menu
+    // ditutup dan hanya Ganti Password tersisa; token tetap dipakai.
+    setPasswordChangeHandler(() => {
+      const lama = profileRef.current;
+      setWajibGantiPassword((kini) => kini ?? { name: lama?.name ?? '', username: lama?.username ?? '' });
+      setProfile(null);
+    });
+    return () => { setUnauthorizedHandler(null); setPasswordChangeHandler(null); };
   }, [clearSession]);
 
   useEffect(() => {
@@ -62,8 +80,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (!token) return;
         const restoredProfile = await api.profile();
         if (active) setProfile(restoredProfile);
-      } catch {
-        await tokenStorage.clear();
+      } catch (caught) {
+        // Token terbatas tetap disimpan: pengguna melanjutkan Ganti Password.
+        if (caught instanceof ApiError && caught.code === 'PASSWORD_CHANGE_REQUIRED') {
+          if (active) setWajibGantiPassword((kini) => kini ?? { name: '', username: '' });
+        } else {
+          await tokenStorage.clear();
+        }
       } finally {
         if (active) setIsLoading(false);
       }
@@ -75,7 +98,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const deviceName = Device.modelName || Device.deviceName || 'Perangkat guru';
     const result = await api.login(username, password, deviceName);
     await tokenStorage.set(result.token);
-    setProfile(result.profile);
+    if ('password_change_required' in result && result.password_change_required) {
+      setWajibGantiPassword({ name: result.profile.name, username: result.profile.username });
+      return;
+    }
+    setWajibGantiPassword(null);
+    setProfile(result.profile as Profile);
+  }, []);
+
+  const selesaiGantiPassword = useCallback(async () => {
+    const lengkap = await api.profile();
+    setWajibGantiPassword(null);
+    setProfile(lengkap);
   }, []);
 
   /**
@@ -101,7 +135,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   );
 
   return (
-    <AuthContext.Provider value={{ profile, capabilities, hasCapability, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ profile, wajibGantiPassword, selesaiGantiPassword, capabilities, hasCapability, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

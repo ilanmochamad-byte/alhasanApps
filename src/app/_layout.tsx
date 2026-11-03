@@ -15,11 +15,12 @@ import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '@/auth/auth-context';
 import { useTheme } from '@/hooks/use-theme';
 import { NotificationProvider } from '@/notifications/notification-context';
+import { ProfilProvider } from '@/profil/profil-context';
 
 SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
-  const { profile, isLoading } = useAuth();
+  const { profile, wajibGantiPassword, isLoading } = useAuth();
   const theme = useTheme();
   // Redesain tampilan: huruf merek dimuat sebelum navigator digambar agar teks
   // tidak berganti huruf di depan pengguna. Bila gagal (mis. berkas rusak),
@@ -43,11 +44,19 @@ function RootNavigator() {
 
   return (
     <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal', contentStyle: { backgroundColor: theme.background } }}>
-      <Stack.Protected guard={!profile}>
+      <Stack.Protected guard={!profile && !wajibGantiPassword}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
+      </Stack.Protected>
+      {/* PRD-PROFIL-IMPORT PI-1: password sementara dari admin. Sampai diganti,
+          hanya layar ini yang tersedia; server juga menolak endpoint lain. */}
+      <Stack.Protected guard={!profile && Boolean(wajibGantiPassword)}>
+        <Stack.Screen name="ganti-password-wajib" options={{ headerShown: false }} />
       </Stack.Protected>
       <Stack.Protected guard={Boolean(profile)}>
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
+        {/* PRD-PROFIL-IMPORT Fase 2 — data diri, foto, dan password akun sendiri. */}
+        <Stack.Screen name="akun/edit-profil" options={{ title: 'Edit Profil' }} />
+        <Stack.Screen name="akun/ganti-password" options={{ title: 'Ganti Password' }} />
         <Stack.Screen name="schedule/[id]" options={{ title: 'Detail Tugas' }} />
         <Stack.Screen name="meeting/[id]" options={{ title: 'Absensi Pertemuan' }} />
         {/* Redesain tampilan: Laporan keluar dari bilah tab (4 tab) dan dibuka
@@ -93,8 +102,10 @@ export default function RootLayout() {
         {/* V2 Fase 4: penyedia notifikasi berada DI DALAM AuthProvider karena
             registrasi perangkat dan deep link bergantung pada sesi aktif. */}
         <NotificationProvider>
-          <StatusBar style="auto" />
-          <RootNavigator />
+          <ProfilProvider>
+            <StatusBar style="auto" />
+            <RootNavigator />
+          </ProfilProvider>
         </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
