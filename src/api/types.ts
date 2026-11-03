@@ -686,3 +686,77 @@ export type PublikasiDetail = {
   publikasi: { id: number; santri_id: number; ringkasan: string; tindak_lanjut: string | null; diterbitkan_pada: string; ditarik_pada: string | null; dibaca_pada: string | null; version: number; status: 'Terbit' | 'Ditarik' };
   riwayat: { version: number; tindakan: string; created_at: string }[];
 };
+
+// ---------------------------------------------------------------------------
+// PRD-PROFIL-IMPORT Fase 2 — profil pribadi (`GET /profile/pribadi`, Fase 1).
+// Status, penugasan, binaan, dan pasangan mapel–kelas dihitung server dari
+// penugasan aktif pada setiap permintaan; aplikasi hanya menampilkannya.
+// ---------------------------------------------------------------------------
+export type ProfilIsian =
+  | 'nama'
+  | 'tempat_lahir'
+  | 'tanggal_lahir'
+  | 'alamat_rumah'
+  | 'kelurahan'
+  | 'kecamatan'
+  | 'kabupaten'
+  | 'provinsi'
+  | 'no_hp'
+  | 'email';
+
+export type ProfilPribadiData = Record<ProfilIsian, string | null> & { nip: string | null; nik: string | null };
+
+export type ProfilRujukan = { id: number; nama: string };
+
+export type ProfilPenugasan = {
+  jenis: string;
+  label: string;
+  /** Subjek penugasan: `guru` atau `pengurus` (PK-1). */
+  identitas: string;
+  rincian: {
+    id: number;
+    tahun_ajaran: ProfilRujukan;
+    target: { tipe: 'Kamar' | 'Kelas'; id: number; nama: string } | null;
+    mata_pelajaran: ProfilRujukan | null;
+    kelas: ProfilRujukan | null;
+    jenjang: string | null;
+    gelombang: string | null;
+    tanggal_mulai: string | null;
+    tanggal_selesai: string | null;
+  }[];
+};
+
+export type ProfilBinaan = { peran: string; jenis: string; tipe: 'Kamar' | 'Kelas'; id: number; nama: string };
+
+export type ProfilMengajar = { mata_pelajaran_id: number; mata_pelajaran: string; kelas_id: number; kelas: string };
+
+export type ProfilPribadi = {
+  akun: { id: number; username: string; peran: string[] };
+  sumber: 'guru' | 'pengurus' | 'wali' | 'akun';
+  pribadi: ProfilPribadiData;
+  foto: { ada: boolean; versi: number; url: string | null; inisial: string };
+  versi: number;
+  status: { kode: string; label: string; jenis: 'peran' | 'penugasan' }[];
+  penugasan: ProfilPenugasan[];
+  binaan: ProfilBinaan[];
+  mengajar: ProfilMengajar[];
+  dapat_diubah: ProfilIsian[];
+  wajib_ganti_password: boolean;
+};
+
+export type GantiPasswordResponse = {
+  sesi_versi: number;
+  token_lain_dicabut: number;
+  perangkat_dicabut: number;
+  wajib_ganti_password: false;
+};
+
+/** PI-1: login akun berpassword sementara memberi token terbatas. */
+export type LoginTerbatasResponse = {
+  token: string;
+  token_type: 'Bearer';
+  expires_at: string;
+  password_change_required: true;
+  token_scope: 'ganti_password';
+  profile: { id: number; name: string; username: string };
+};

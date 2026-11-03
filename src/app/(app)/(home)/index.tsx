@@ -13,7 +13,7 @@ import type { ScheduleOccurrence, TodayResponse } from '@/api/types';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
 import { AppIcon } from '@/components/app-icon';
-import { NotificationBell } from '@/components/notification-bell';
+import { KartuIdentitas } from '@/components/profil-shared';
 import { ScheduleCard, formatDate } from '@/components/schedule-card';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
@@ -24,18 +24,10 @@ import { useTheme } from '@/hooks/use-theme';
 import { attendanceShortcut } from '@/lib/attendance-shortcut';
 import { keadaanMenuBeranda } from '@/lib/home-menu';
 import { labelKelas } from '@/lib/kelas-jadwal';
+import { useProfil } from '@/profil/profil-context';
 
 /** Skala teks sistem di atas ini dianggap "sangat besar" untuk tata letak berkolom. */
 const TEKS_BESAR = 1.35;
-
-function tanggalHariIni() {
-  return new Intl.DateTimeFormat('id-ID', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date());
-}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -47,6 +39,7 @@ export default function HomeScreen() {
   const aksesKesehatan = useKesehatanAkses();
   const aksesKeuangan = useKeuanganAkses();
   const aksesKeamanan = useKeamananAkses();
+  const { muat: muatProfil } = useProfil();
   const [data, setData] = useState<TodayResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,7 +77,9 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       void load();
-    }, [load]),
+      // Status/penugasan kartu dihitung ulang server setiap kembali ke Beranda.
+      void muatProfil();
+    }, [load, muatProfil]),
   );
 
   function openSchedule(schedule: ScheduleOccurrence) {
@@ -170,21 +165,11 @@ export default function HomeScreen() {
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
+        <RefreshControl refreshing={refreshing} onRefresh={() => { void muatProfil(); void load(true); }} tintColor={theme.primary} />
       }>
-      {/* Lonceng sebaris dengan tanggal agar sapaan mendapat lebar penuh dan
-          tetap terbaca ketika ukuran teks sistem diperbesar. */}
-      <View style={styles.greeting}>
-        <View style={styles.header}>
-          <ThemedText selectable type="caption" themeColor="textSecondary" style={styles.date}>
-            {tanggalHariIni()}
-          </ThemedText>
-          <NotificationBell />
-        </View>
-        <ThemedText selectable style={styles.greetingName}>
-          Assalamu&rsquo;alaikum, {profile?.guru?.name ?? profile?.name ?? ''}
-        </ThemedText>
-      </View>
+      {/* PRD-PROFIL-IMPORT Fase 2: kartu identitas adalah isi pertama Beranda
+          setelah area aman; tanggal dan lonceng ikut di dalam kartu. */}
+      <KartuIdentitas />
 
       {sorot ? (
         <HeroSession
@@ -411,8 +396,4 @@ const styles = StyleSheet.create({
   },
   // Boleh membungkus agar teks tombol tidak terpotong pada teks sistem besar.
   heroButtonText: { flexShrink: 1, textAlign: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  greeting: { gap: 2, paddingBottom: 4 },
-  date: { flex: 1, fontSize: 13, lineHeight: 17 },
-  greetingName: { fontSize: 22, lineHeight: 28, fontWeight: '800', letterSpacing: -0.3 },
 });

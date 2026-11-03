@@ -1,0 +1,121 @@
+(node:4842) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/tests/attendance-shortcut.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Absensi kembali ke daftar jadwal saat hari kosong atau seluruh sesi selesai (0.374667ms)
+✔ Absensi memilih sesi pertama yang belum selesai, termasuk yang belum dibuka (0.066958ms)
+(node:4843) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/tests/date-time.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ tanggal/jam lokal lengkap termasuk tengah malam dan tahun kabisat (2.389375ms)
+✔ tolak bagian kosong, format manual salah dan tanggal yang dinormalisasi JS (0.090167ms)
+(node:4844) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/tests/izin-wali.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Isian izin wali mengikuti aturan server (4.492416ms)
+✔ Isian dirapikan; perbaikan wajib berbeda dari versi asal (0.788958ms)
+✔ Catatan tinjauan: perbaikan/tolak wajib, teruskan opsional (0.112708ms)
+✔ Penolakan pembimbing dibedakan dari keputusan murobi (0.110333ms)
+✔ Tautan notifikasi izin wali hanya membawa penunjuk (0.1995ms)
+(node:4845) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/tests/keamanan.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Kueri Keamanan tanpa kunci kosong dan ter-encode (0.437542ms)
+✔ Rentang tanggal: opsional, format ISO, akhir tidak mendahului awal (0.151208ms)
+✔ Nada lencana dan label status mengikuti halaman web Keamanan (0.070375ms)
+✔ Penugasan profil dikelompokkan per identitas (satu akun, dua identitas) (0.423292ms)
+(node:4846) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/tests/kelas-jadwal.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ server lama tanpa classes tetap terbaca sebagai satu kelas utama (0.749042ms)
+✔ jadwal satu kelas dari server Fase 1 tidak ditandai gabungan (0.065125ms)
+✔ kelas gabungan: utama lebih dahulu, tanpa ganda, label dipisah koma (0.087167ms)
+✔ peserta dikelompokkan per kelas asal mengikuti urutan kelas, urutan server dipertahankan (0.127375ms)
+✔ kelas asal di luar daftar dan peserta tanpa kelas tetap tampil, kelompok kosong dibuang (0.085625ms)
+✔ nama kelas asal memakai nama dari server, lalu daftar kelas, kosong bila tidak ada (0.068291ms)
+(node:4847) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/tests/kesehatan.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Koreksi mengirim keadaan lengkap: rincian lama ber-id dipertahankan, waktu asli tidak bergeser (0.879292ms)
+✔ Baris baru yang seluruhnya kosong diabaikan; baris lama kosong tetap dikirim agar server menolaknya (1.607041ms)
+✔ Alasan wajib minimal lima karakter, maksimal 1000; sidik jari berubah bila isi berubah (0.359208ms)
+✔ Penunjuk notifikasi kesehatan hanya ringkasan_id valid; isi/tautan lain diabaikan (0.210459ms)
+✔ Deep-link kesehatan hanya skema aplikasi dan rute ringkasan wali (0.358875ms)
+✔ Teks perubahan versi memakai label manusia (0.176917ms)
+✔ Hasil pencarian santri dikelompokkan per kelas; belum ditempatkan paling akhir (0.242958ms)
+✔ Periode laporan: bulan ini, bulan lalu (lintas tahun), dan 30 hari berakhir hari ini (0.410584ms)
+(node:4848) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/tests/keuangan.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Rupiah ditampilkan bulat dengan titik ribuan tanpa Intl (2.987542ms)
+✔ Nominal dikirim sebagai teks angka; pecahan dan huruf diteruskan agar server menolak (0.235833ms)
+✔ Alasan koreksi wajib 5–500 karakter seperti website (0.085333ms)
+✔ Sidik jari sama untuk isi sama (retry memakai kunci yang sama) dan berbeda bila isi berubah (0.082416ms)
+✔ Label periode, jenis, dan nilai awal tanggal (8.488542ms)
+✔ Penunjuk notifikasi keuangan hanya id; tipe/kunci lain ditolak (0.833042ms)
+✔ Tautan skema keuangan hanya menerima jalur yang dikenal (0.573125ms)
+✔ Rentang laporan Fase 5: bulan ini, bulan lalu (lintas tahun), 3 bulan, tahun ini — paling panjang 12 bulan (0.155708ms)
+✔ Pratinjau satu santri sah hanya bila server menyaring santri itu (server lama mengabaikan santri_id) (0.086583ms)
+(node:4849) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/tests/print-dialog.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ mengenali exception pembatalan cetak iOS dari nama dan pesan (0.451ms)
+✔ mengenali bentuk CodedError dari bridge native (0.093125ms)
+✔ tidak menyembunyikan kegagalan cetak yang sebenarnya (0.062083ms)
+✔ mengembalikan hasil normal ketika pencetakan dimulai (0.068ms)
+✔ mengubah penutupan dialog menjadi hasil dibatalkan (0.081625ms)
+✔ meneruskan kegagalan printer tanpa perubahan (0.341875ms)
+(node:4850) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/tests/profil.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Isian yang boleh diubah sama dengan kontrak Fase 1 (tanpa username/NIP/NIK/penugasan) (0.725334ms)
+✔ Hanya kunci yang berubah dikirim; kosong dikirim sebagai string kosong (0.136292ms)
+✔ Validasi awal selaras pesan server (0.727ms)
+✔ Galat server per isian; nilai bukan teks diabaikan (0.082375ms)
+✔ Aturan password sama dengan website: 12 karakter, besar, kecil, angka, ≤72 byte, sama (0.169125ms)
+✔ Inisial, status tanpa duplikat, binaan kamar vs kelas tanpa nama rekaan (0.140875ms)
+✔ Mapel–kelas dikelompokkan per mapel, kombinasi ganda dipertahankan (0.085917ms)
+✔ Rincian penugasan menyebut target, mapel–kelas, atau seluruh cakupan (0.104625ms)
+✔ Alamat lengkap satu baris dari isian berjenjang (0.079417ms)
+✔ Foto: hanya JPEG/PNG/WebP ≤ 2 MiB; mime dari ekstensi bila tidak dilaporkan (0.163125ms)
+✔ Base64 tanpa btoa sama dengan Buffer (0.245625ms)
+(node:4851) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/tests/rapor.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Kosong tetap belum lengkap, nol sah, versi lama tetap dikirim (0.6905ms)
+✔ Validasi angka/reason tidak meloloskan nilai tak sah atau alasan kosong (0.115333ms)
+✔ Push hanya penunjuk valid; data/nilai/tautan lain tidak dipakai (0.401458ms)
+✔ Deep-link native hanya skema/rute rapor sah; ID bertahan sebagai penunjuk (0.1445ms)
+(node:4852) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/tests/redesain-fase1.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ pekan dimulai Senin, termasuk ketika tanggal terpilih hari Minggu (1.377666ms)
+✔ pekan melintasi pergantian bulan, tahun, dan 29 Februari (0.096209ms)
+✔ geser pekan maju dan mundur mempertahankan hari (0.0605ms)
+✔ pesan tanpa menu hanya muncul setelah akses pembinaan selesai diperiksa (0.053875ms)
+(node:4853) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/tests/redesain-fase2.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/claude-501/-Users-ilanmochamad-Documents-GitHub-webalhasan-WebAlHasan/a6b69ea4-0b4b-4e64-8f7b-fab255403eb1/scratchpad/mob/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ sesi hari ini yang belum dibuka atau belum selesai ditandai perlu absen (0.692ms)
+✔ sesi selesai tidak pernah meminta absen, kapan pun tanggalnya (0.068958ms)
+✔ sesi hari lain tidak diberi penanda absen dan dibedakan masa depan/lampau (0.061792ms)
+ℹ tests 64
+ℹ suites 0
+ℹ pass 64
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 224.902416
+exit=0

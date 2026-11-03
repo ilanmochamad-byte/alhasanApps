@@ -1,0 +1,60 @@
+iOS — PRD-PROFIL-IMPORT Fase 2 (simulator, BUKAN perangkat fisik)
+
+Build   : Release, iphonesimulator, arm64, ad-hoc lokal (CODE_SIGN_IDENTITY=-), Xcode 27.2 (27B52)
+          dari salinan uji (git archive b9a4e10 + sumber Fase 2; lock ter-commit Expo 57.0.15 + expo-image-picker 57.0.20),
+          `expo prebuild --platform ios` + `pod install` (LANG=en_US.UTF-8), EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8962/api/v1
+          Empat build berurutan (setiap perubahan JS); bukti akhir memakai build ke-4 (sumber final):
+            main.jsbundle  40a5c516f2a625663c17f98cdb9a63b74c73926384ff68d1e1701eec9a9653bb
+            alhasanApps    17eea54bf98320c784a070480842f18036e645d87165e40ad141ed9a7b194101
+          Bundel: "127.0.0.1:8962" 1×, "alhasan.co.id" 0×. Info.plist: NSPhotoLibraryUsageDescription /
+          NSCameraUsageDescription / NSMicrophoneUsageDescription = 0 kunci.
+Device  : iPhone 17 Pro simulator, iOS 26.2 (23C54), 402×874 pt
+API/DB  : php -S 127.0.0.1:8962 + test_pif2_app_test (tests/profil_impor_f1_db.sh + tests/profil_impor_f2_app_seed.php)
+Masukan : injeksi teks simulator menjatuhkan/menggandakan karakter (batas alat, sudah tercatat sejak V6);
+          isian diisi lewat `simctl pbcopy` + Tempel. Password uji iOS disetel tanpa '#' pada DB uji.
+
+Startup
+  [lulus] Build Release BARU dibuka tanpa crash startup (blocker F-1 kelas gabungan Fase 2 tidak muncul pada build ini).
+          Build 1–4 masing-masing dibuka; cold start dengan sesi tersimpan memulihkan sesi.
+
+Kartu Beranda & Profil (sbx_pengurus_a)
+  [lulus] Kartu identitas isi pertama Beranda di bawah area aman: tanggal+lonceng, inisial "SP", nama, status Pengurus/Pembimbing,
+          tiga target "Pembimbing · Kamar SBX Kamar A / Kamar SBX Kamar C / Kelas SBX T7 Kelas 30"      (ios-beranda.png)
+  [lulus] Ketuk kartu → Profil: Data diri (NIP, tempat/tanggal lahir, alamat, HP, email "Belum diisi"), Rincian penugasan aktif
+  [catatan] Jarak ±60 pt di atas kartu/judul Profil sama dengan tata letak Beranda/Profil sebelumnya (paddingTop insets.top + 8
+          di bawah bilah tab iOS 26); tidak diubah Fase 2.
+
+Foto (PHPicker sistem)
+  [lulus] "Pilih foto" membuka PHPicker sistem (Photos/Collections) langsung, TANPA dialog izin akses galeri  (ios-phpicker.png)
+  [lulus] Pilih → pemotong persegi "Choose" → unggah multipart (XMLHttpRequest) → "Foto profil diperbarui", avatar berganti;
+          DB foto_versi 0 → 1                                                                          (ios-edit-foto.png)
+  [lulus] Build final: "Ganti foto" → foto_versi 1 → 2; Library/Caches/ImagePicker berisi 0 berkas sesudah unggah
+          (sebelum perbaikan pembersihan: salinan foto tertinggal di Caches/ImagePicker)              (ios-ganti-foto-final.png)
+
+Edit isian
+  [lulus] Tempat lahir "Garut iOS" → Simpan → kembali ke Profil, nilai tampil tanpa masuk ulang; DB tempat_lahir = "Garut iOS",
+          versi 1 → 2                                                                                  (ios-profil-sesudah.png)
+
+Teks besar (Dynamic Type accessibility-extra-large, `simctl ui content_size`)
+  [lulus] Sesudah aplikasi dimulai ulang: tanggal, nama, chip status dan tiga target membungkus utuh, tidak terpotong
+                                                                                                    (ios-beranda-teks-ax-xl.png)
+  [catatan] Bila ukuran teks diubah SAAT aplikasi berjalan, baris tanggal sempat terpotong sampai aplikasi dibuka ulang
+          (tata letak lama React Native); dicatat sebagai batas, tidak khusus fitur ini.         (ios-beranda-teks-ax-xl-tanpa-restart.png)
+
+Keluar, sesi kedaluwarsa, password sementara (sbx_murobi_c, force_password_change=1)
+  [lulus] Keluar dari Profil → dialog konfirmasi → layar masuk.
+  [lulus] Login password sementara → token api_tokens.cakupan = ganti_password; layar "Ganti password sementara" tanpa tab menu,
+          menyebut @sbx_murobi_c                                                                    (ios-password-sementara.png)
+  [lulus] Password saat ini + password baru + ulangan → "Simpan dan lanjutkan" → Beranda (kartu "SBX Murobi C", Guru/Murobi,
+          "Murobi · Kelas SBX Kelas 1", "Murobi · Kelas SBX T7 Kelas 30"); DB force_password_change = 0, token aktif menjadi
+          penuh, token lain akun (id 289) dicabut (PI-2)                                         (ios-sesudah-password-sementara.png)
+  [lulus] Sesudah DB uji dibangun ulang (token lama tidak ada) aplikasi membuka layar masuk (401 → sesi dibersihkan)
+                                                                                                    (ios-sesi-kedaluwarsa-login.png)
+
+Privasi
+  [lulus] Kontainer data aplikasi 193 berkas: 0 berkas memuat password uji (SandboxUji123, SementaraUji2026, IosBaruUji2026)
+          atau "Bearer ".
+  [lulus] `log show` 15 menit proses alhasanApps (11.552 baris): 0 baris password uji / bearer heksadesimal mentah.
+
+Tidak diuji iOS: Debug/dev client (linker historis), perangkat fisik, build distribusi/TestFlight, Push nyata, uji otomatis
+berskrip (iOS dijalankan manual lewat alat simulator; tidak ada skrip yang dapat diulang auditor apa adanya).

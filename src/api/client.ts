@@ -19,6 +19,7 @@ import type {
   IzinListResponse,
   KeputusanResponse,
   LoginResponse,
+  LoginTerbatasResponse,
   MeetingDetail,
   MutasiResponse,
   NotifikasiDetailResponse,
@@ -57,6 +58,7 @@ type RequestOptions = {
 };
 
 let unauthorizedHandler: (() => void | Promise<void>) | null = null;
+let passwordChangeHandler: (() => void) | null = null;
 
 export class ApiError extends Error {
   constructor(
@@ -72,6 +74,20 @@ export class ApiError extends Error {
 
 export function setUnauthorizedHandler(handler: (() => void | Promise<void>) | null) {
   unauthorizedHandler = handler;
+}
+
+/**
+ * PRD-PROFIL-IMPORT PI-1/PF-1: token terbatas, atau token penuh lama setelah
+ * admin menerbitkan password sementara, dijawab 403 `PASSWORD_CHANGE_REQUIRED`
+ * oleh setiap endpoint selain ganti password/logout. Sesi lalu dialihkan ke
+ * layar Ganti Password tanpa membuang token.
+ */
+export function setPasswordChangeHandler(handler: (() => void) | null) {
+  passwordChangeHandler = handler;
+}
+
+function tanganiPenolakanSesi(status: number, code: string | undefined) {
+  if (status === 403 && code === 'PASSWORD_CHANGE_REQUIRED') passwordChangeHandler?.();
 }
 
 function apiBaseUrl(): string {
@@ -126,6 +142,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
           await tokenStorage.clear();
           await unauthorizedHandler?.();
         }
+        if (authenticated) tanganiPenolakanSesi(response.status, payload?.error?.code);
         if (response.status >= 500 && attempt < retryCount) {
           await delay(400 * 2 ** attempt);
           continue;
@@ -174,6 +191,63 @@ export async function requestPdf(path: string): Promise<ArrayBuffer> {
   } finally { clearTimeout(timeout); }
 }
 
+/**
+ * Unggahan `multipart/form-data` (foto profil) lewat `XMLHttpRequest`: hanya
+ * lapisan jaringan XHR React Native yang mengirim berkas lokal `{ uri, name,
+ * type }` dari FormData (`fetch` Expo tidak). Di web dipakai objek `File` dari
+ * pemilih. Tanpa percobaan ulang otomatis.
+ */
+export async function requestMultipart<T>(path: string, form: FormData): Promise<T> {
+  const token = await tokenStorage.get();
+  const url = `${apiBaseUrl()}${path}`;
+  const hasil = await new Promise<{ status: number; body: string }>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    xhr.timeout = 60_000;
+    xhr.setRequestHeader('Accept', 'application/json');
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.onload = () => resolve({ status: xhr.status, body: xhr.responseText });
+    xhr.onerror = () => reject(new ApiError('Tidak dapat terhubung ke server. Periksa internet lalu coba lagi.', 0, 'NETWORK_ERROR'));
+    xhr.ontimeout = () => reject(new ApiError('Unggahan melewati batas waktu. Periksa koneksi lalu coba lagi.', 0, 'TIMEOUT'));
+    xhr.send(form);
+  });
+  let payload: ApiEnvelope<T> | null = null;
+  try { payload = JSON.parse(hasil.body) as ApiEnvelope<T>; } catch { payload = null; }
+  if (hasil.status < 200 || hasil.status >= 300 || !payload?.success || payload.data === null) {
+    if (hasil.status === 401) { await tokenStorage.clear(); await unauthorizedHandler?.(); }
+    tanganiPenolakanSesi(hasil.status, payload?.error?.code);
+    throw new ApiError(
+      payload?.error?.message ?? 'Server tidak dapat memproses permintaan.',
+      hasil.status,
+      payload?.error?.code ?? 'HTTP_ERROR',
+      payload?.error?.details ?? {},
+    );
+  }
+  return payload.data;
+}
+
+/** Gambar berotorisasi (foto profil) sebagai byte + jenisnya; hanya `image/*` diterima. */
+export async function requestImage(path: string): Promise<{ bytes: Uint8Array; mime: string }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
+  try {
+    const token = await tokenStorage.get();
+    const response = await fetch(`${apiBaseUrl()}${path}`, {
+      headers: { Accept: 'image/*', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, signal: controller.signal,
+    });
+    if (!response.ok) {
+      if (response.status === 401) { await tokenStorage.clear(); await unauthorizedHandler?.(); }
+      throw new ApiError('Foto tidak dapat dimuat.', response.status, 'IMAGE_ERROR');
+    }
+    const mime = (response.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(mime)) throw new ApiError('Respons foto tidak valid.', 503, 'IMAGE_ERROR');
+    return { bytes: new Uint8Array(await response.arrayBuffer()), mime };
+  } catch (e) {
+    if (e instanceof ApiError) throw e;
+    throw new ApiError('Foto tidak dapat dimuat. Periksa koneksi.', 0, e instanceof Error && e.name === 'AbortError' ? 'TIMEOUT' : 'NETWORK_ERROR');
+  } finally { clearTimeout(timeout); }
+}
+
 function query(values: Record<string, string | number | boolean | undefined>) {
   const params = new URLSearchParams();
   Object.entries(values).forEach(([key, value]) => {
@@ -185,8 +259,11 @@ function query(values: Record<string, string | number | boolean | undefined>) {
 
 export const api = {
   login(username: string, password: string, deviceName: string) {
-    return request<LoginResponse>('/auth/login', {
-      method: 'POST', authenticated: false, body: { username, password, device_name: deviceName },
+    // PI-1 (aditif): aplikasi sanggup menangani password sementara, sehingga
+    // server memberi token terbatas alih-alih menolak login.
+    return request<LoginResponse | LoginTerbatasResponse>('/auth/login', {
+      method: 'POST', authenticated: false,
+      body: { username, password, device_name: deviceName, izinkan_password_sementara: true },
     });
   },
   profile: () => request<Profile>('/profile'),

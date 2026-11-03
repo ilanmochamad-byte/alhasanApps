@@ -1,0 +1,5 @@
+# salinan uji: git archive HEAD (b9a4e10) + sumber kerja Fase 2; lock = HEAD + expo-image-picker ~57.0.20 (Expo 57.0.15)
+$ npx tsc --noEmit
+exit=0
+$ npx expo lint
+exit=0
