@@ -101,6 +101,6 @@ export const keamanan = {
   pelanggaranDetail: (id: number) => request<PelanggaranDetail>(`/keamanan/pelanggaran/${id}`),
   konseling: (f: { status?: string; q?: string; page?: number }) => request<KasusDaftar>(`/keamanan/konseling${kueri({ ...f })}`),
   konselingDetail: (id: number) => request<KasusDetail>(`/keamanan/konseling/${id}`),
-  kehadiran: (f: { date_from?: string; date_to?: string; status?: string; page?: number }) => request<KehadiranLaporan>(`/keamanan/kehadiran${kueri({ ...f })}`),
+  kehadiran: (f: { date_from?: string; date_to?: string; status?: string; q?: string; page?: number }) => request<KehadiranLaporan>(`/keamanan/kehadiran${kueri({ ...f })}`),
   pertemuan: (id: number) => request<Pertemuan>(`/keamanan/kehadiran/pertemuan/${id}`),
 };

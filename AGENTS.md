@@ -130,3 +130,10 @@ Atas perintah Human Developer sesudah audit Codex Fase 1 lulus: Claude Code meng
 ## Pencarian santri, IBTIDA PA/PI, dan versi aplikasi (5 November 2026)
 
 Claude Code mengimplementasikan satu fase pada `claude/pencarian-santri-absensi-ibtida` dari `origin/main` `bd7833f` (1.2.0 → 1.3.0); branch web bernama sama memuat perubahan API minimal (`q` nama/NIS). Codex mengaudit berikutnya. Ringkasan `docs/pencarian-santri-aplikasi/implementasi/README.md`; laporan, bukti, dan batas di repo web lokasi sama. Perubahan paket milik pekerjaan lain tidak di-commit. Tidak merge/deploy/rilis.
+
+## Audit Codex — Pencarian santri, IBTIDA PA/PI, dan versi aplikasi (5 November 2026)
+
+- Audit `e4a0642` dari main `bd7833f` dan web `5e60638` dari `1c652e3`, kedua branch `claude/pencarian-santri-absensi-ibtida`: **LULUS audit teknis lokal setelah koreksi P2 F-1**, pencarian nama/NIS pada laporan kehadiran Keamanan berhalaman ditambahkan di aplikasi/API. Versi tetap **1.3.0**, satu kenaikan paket dari 1.2.0; `/reports` guru lama tetap.
+- Probe **6/9 → 15/0**, browser koreksi **14/0**, absensi **53/0**, daftar **24/0**, regresi kelas gabungan **57/0**, Keamanan **46/0**, HTTP **26/0**, unit **77/0**, tsc/lint exit 0, CLI versi auditor **8/0**. Laporan `docs/pencarian-santri-aplikasi/AUDIT-CODEX.md`; bukti lengkap di repo web lokasi sama dan `audit-codex/`.
+- Artefak Release handoff 1.3.0 Android emulator/iOS simulator diuji ulang independen **7/0 · 7/0**, akun/snapshot/API dan ID/status payload sama; satu guru/lima santri unik dan cold start. Tidak membangun ulang; binary belum memuat F-1 daftar kehadiran (final diuji browser/API), kode absensi native tidak berubah. Build lokal bukan EAS/distribusi; fisik/Push/iOS Debug/MySQL/cPanel/UAT belum diuji dan gerbang produksi terdahulu tetap terbuka.
+- Paket lokal pekerjaan lain dipertahankan dan tidak di-commit. Tidak worktree/subagen, merge/deploy/migrasi produksi/rilis atau fase berikutnya; berhenti setelah commit/push audit kedua branch.

@@ -1,0 +1,17 @@
+# Audit Codex — pencarian santri, IBTIDA PA/PI, dan versi aplikasi
+
+**5 November 2026 — LULUS audit teknis lokal setelah koreksi F-1 (P2).**
+
+Audit satu fase `claude/pencarian-santri-absensi-ibtida`, mobile `e4a0642` dari main remote `bd7833f` (1.2.0), web `5e60638` dari `1c652e3`; keduanya diverifikasi dengan fetch. Laporan lengkap, bukti, penafsiran, oracle historis dan reproduksi probe berada di repositori WebAlHasan: `docs/pencarian-santri-aplikasi/AUDIT-CODEX.md` serta `audit-codex/`.
+
+F-1: inventaris implementasi melewatkan laporan kehadiran Keamanan berhalaman. Auditor menambah kolom nama/NIS, reset halaman, parameter klien dan penyaring API bercakupan atas snapshot nama/NIS; detail/ringkasan/paginasi memakai predikat yang sama. Endpoint guru lama `/reports` tetap. Probe layanan identik **6/9 → 15/0**, browser/HTTP koreksi **14/0** (target di luar halaman pertama dari 48 catatan).
+
+Expo web absensi **53/0**, daftar **24/0**, regresi kelas gabungan **57/0**, Keamanan **46/0**; kontrak server pencarian **26/0**. Draf status/catatan PA/PI bertahan lintas tab/kata kunci, payload seluruh ID tepat sekali, DB satu guru/lima santri unik dengan catatan pada ID yang benar, lalu dibaca ulang. Tanpa kelas, satu kelas, non-IBTIDA dan respons server lama dicakup browser. Unit **77/0**, TypeScript/lint **exit 0** dari arsip tanpa `.env*` dengan lock ter-commit. Tsc awal sebelum Expo menghasilkan deklarasi CSS otomatis sempat gagal; final lulus tanpa perubahan kode/dependensi untuk diagnostik itu.
+
+Versi tetap **1.3.0** (minor dari main terbaru 1.2.0); koreksi masih paket sama. Pemeriksaan HEAD/`--kerja` lulus. CLI auditor **8/0** membuktikan penolakan perubahan tanpa kenaikan, versi turun, dan branch tertinggal dari main baru; bump minor idempoten dan koreksi paket sama tidak menaikkan lagi. EAS tetap mengurus nomor build.
+
+Auditor mengulang **artefak Release handoff 1.3.0**, bukan membangunnya ulang: Android emulator API 36 dan iPhone 17 Pro simulator iOS 26.2 **7/0 · 7/0**, akun/snapshot/API sama. Tab Semua 5/PA 3/PI 2, cari NIS, status, satu PUT lima ID/status sama, DB satu guru/lima santri unik, serta cold start/tautan PI diuji. Hash APK `842b193ea9668d4947877c1cc57d2154d1fafc19a7ae97631f0ddbef2b81de11`, executable iOS `1d7410f962e4483e038fd5b5483380556dce01b56c89abffa6cc7dd76cb8c9d3`, bundel iOS `d0f001e2e16bb44ed3e97d73f7d30a5aae7929d68304ace738baa96f67e4f958`. Seluruh 308 berkas src/assets salinan build cocok e4a0642, lock cocok; package.json hanya belum memuat tiga skrip versi. Kontrak kelas/peserta/status sama; hash JSON respons mentah berbeda dan tidak diklaim byte-identik.
+
+**Batas:** binary native belum memuat koreksi F-1 daftar kehadiran; final F-1 diuji browser/API, kode absensi native tidak diubah. Build memakai prebuild lokal/versi manual/HTTP localhost dan bukan representasi izin build EAS bersih. Native menguji status/NIS; catatan dan pencarian nama diuji browser. Perangkat fisik, AAB/IPA/TestFlight/EAS, iOS Debug, Push nyata, build/data produksi pengguna, MariaDB produksi/MySQL/cPanel dan UAT belum diuji. Penyebab laporan perbedaan perangkat pengguna belum ditentukan; gerbang produksi terdahulu tetap terbuka.
+
+Tanpa perubahan dependensi/migrasi. Perubahan lokal package.json/package-lock.json milik pekerjaan lain tidak diikutkan. Tidak worktree/subagen, merge, deploy, migrasi produksi, rilis aplikasi, atau fase berikutnya; berhenti setelah commit/push kedua branch fitur.
