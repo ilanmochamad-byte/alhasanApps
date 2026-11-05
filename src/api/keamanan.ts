@@ -25,7 +25,7 @@ export type IzinDaftar = Halaman<IzinItem> & {
   cakupan_label: string;
   ringkasan: { total: number; per_asal: Record<'Wali' | 'Pengurus', number>; per_hasil: Record<string, number> };
 };
-export type IzinFilter = { asal?: string; hasil?: string; basis?: 'izin' | 'diajukan'; dari?: string; sampai?: string; page?: number };
+export type IzinFilter = { asal?: string; hasil?: string; basis?: 'izin' | 'diajukan'; dari?: string; sampai?: string; q?: string; page?: number };
 
 export type IzinDetail = {
   pengajuan: {

@@ -33,6 +33,10 @@ export function Chip({
     <Pressable
       accessibilityRole={accessibilityRole}
       accessibilityState={{ selected: Boolean(selected), disabled: Boolean(disabled) }}
+      // React Native Web tidak memetakan accessibilityState ke DOM; atribut
+      // ARIA ini membuat status tab/radio terbaca pembaca layar web.
+      aria-selected={accessibilityRole === 'tab' ? Boolean(selected) : undefined}
+      aria-checked={accessibilityRole === 'radio' ? Boolean(selected) : undefined}
       disabled={disabled || !onPress}
       onPress={onPress}
       hitSlop={4}

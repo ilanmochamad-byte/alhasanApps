@@ -39,7 +39,7 @@ export default function KeamananKonselingScreen() {
       </ChipRow>
       <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
         <View style={{ flex: 1 }}>
-          <Field label="Cari santri" accessibilityLabel="Cari santri" value={cari} onChangeText={setCari} placeholder="Nama santri" maxLength={100}
+          <Field label="Cari santri" accessibilityLabel="Cari santri" value={cari} onChangeText={setCari} placeholder="Nama atau NIS santri" maxLength={100}
             returnKeyType="search" onSubmitEditing={() => { setQ(cari.trim()); setPage(1); }} />
         </View>
         <AppButton label="Cari" size="sm" variant="secondary" onPress={() => { setQ(cari.trim()); setPage(1); }} />

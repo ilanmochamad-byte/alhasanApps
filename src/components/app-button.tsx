@@ -18,6 +18,8 @@ type Props = {
   /** `md` = 48 (baku), `sm` = 40 untuk tombol sekunder yang berdampingan. */
   size?: 'md' | 'sm';
   style?: StyleProp<ViewStyle>;
+  /** Penjelasan tambahan bagi pembaca layar (mis. jangkauan tindakan). */
+  accessibilityHint?: string;
 };
 
 export function AppButton({
@@ -29,6 +31,7 @@ export function AppButton({
   icon,
   size = 'md',
   style,
+  accessibilityHint,
 }: Props) {
   const theme = useTheme();
 
@@ -48,6 +51,7 @@ export function AppButton({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: busy, busy: Boolean(loading) }}
       disabled={busy}
       onPress={onPress}

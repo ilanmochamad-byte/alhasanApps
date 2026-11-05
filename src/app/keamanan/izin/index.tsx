@@ -9,6 +9,7 @@ import { CatatanHanyaBaca, Halaman, Lencana } from '@/components/keamanan-shared
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { Badge, Chip, ChipRow } from '@/components/ui/chip';
+import { Field } from '@/components/ui/app-field';
 import { DateField } from '@/components/ui/date-field';
 import { Card } from '@/components/ui/surface';
 import { usePrivateResource } from '@/hooks/use-private-resource';
@@ -23,12 +24,15 @@ export default function KeamananIzinScreen() {
   const [dari, setDari] = useState('');
   const [sampai, setSampai] = useState('');
   const [terapan, setTerapan] = useState<{ dari: string; sampai: string }>({ dari: '', sampai: '' });
+  // Pencarian nama/NIS oleh server dalam cakupan Keamanan, menjangkau seluruh halaman.
+  const [cari, setCari] = useState('');
+  const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const [galat, setGalat] = useState<string | null>(null);
   const fetcher = useCallback(() => {
-    const f: IzinFilter = { asal, hasil, dari: terapan.dari, sampai: terapan.sampai, page };
+    const f: IzinFilter = { asal, hasil, dari: terapan.dari, sampai: terapan.sampai, q, page };
     return keamanan.izin(f);
-  }, [asal, hasil, terapan, page]);
+  }, [asal, hasil, terapan, q, page]);
   const { data, error, load } = usePrivateResource(fetcher);
   const terapkan = () => {
     const pesan = periksaRentang(dari, sampai);
@@ -47,6 +51,14 @@ export default function KeamananIzinScreen() {
           <Chip key={kode || 'semua'} accessibilityRole="radio" label={label} selected={hasil === kode} onPress={() => { setHasil(kode); setPage(1); }} />
         ))}
       </ChipRow>
+      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
+        <View style={{ flex: 1 }}>
+          <Field label="Cari santri" accessibilityLabel="Cari santri menurut nama atau NIS" value={cari} onChangeText={setCari}
+            placeholder="Nama atau NIS santri" maxLength={100} autoCorrect={false} returnKeyType="search"
+            onSubmitEditing={() => { setQ(cari.trim()); setPage(1); }} />
+        </View>
+        <AppButton label="Cari" size="sm" variant="secondary" onPress={() => { setQ(cari.trim()); setPage(1); }} />
+      </View>
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <View style={{ flex: 1 }}><DateField label="Izin dari" value={dari} onChange={setDari} /></View>
         <View style={{ flex: 1 }}><DateField label="Sampai" value={sampai} onChange={setSampai} /></View>
