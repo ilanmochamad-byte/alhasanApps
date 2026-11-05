@@ -1,10 +1,11 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 
 import { keamanan } from '@/api/keamanan';
 import { Baris, tanggalPanjang } from '@/components/kesehatan-shared';
 import { CatatanHanyaBaca, Halaman, Lencana } from '@/components/keamanan-shared';
+import { PesertaKosong, PesertaSaring } from '@/components/peserta-saring';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { Badge, ChipRow } from '@/components/ui/chip';
@@ -12,6 +13,7 @@ import { Panel } from '@/components/ui/surface';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { nadaKehadiran } from '@/keamanan/format';
 import { daftarKelas, labelKelas, namaKelasAsal } from '@/lib/kelas-jadwal';
+import { saringPeserta, tabKelas, TAB_SEMUA } from '@/lib/peserta-saring';
 
 /** Rincian pertemuan, peserta santri aktif kini. Setiap pembukaan diaudit server tanpa isi. */
 export default function KeamananPertemuanScreen() {
@@ -19,12 +21,18 @@ export default function KeamananPertemuanScreen() {
   const nomor = Number(id);
   const fetcher = useCallback(() => keamanan.pertemuan(nomor), [nomor]);
   const { data, error, load } = usePrivateResource(fetcher);
+  const [kataKunci, setKataKunci] = useState('');
+  const [tab, setTab] = useState<string>(TAB_SEMUA);
   if (error) return <ErrorState message={error} onRetry={() => void load()} />;
   if (!data) return <LoadingState label="Memuat rincian pertemuan…" />;
   const t = data.task;
   const kelasTask = { class: { id: t.class.id ?? 0, name: t.class.name }, classes: t.classes };
   const kelas = daftarKelas(kelasTask);
   const gabungan = kelas.length > 1;
+  const tabs = gabungan ? tabKelas(data.students, kelas) : null;
+  const tabAktif = tabs?.some((item) => item.key === tab) ? tab : TAB_SEMUA;
+  const kelompok = saringPeserta(data.students, kelas, { tab: tabAktif, kataKunci });
+  const tampil = kelompok.reduce((jumlah, grup) => jumlah + grup.items.length, 0);
   return (
     <Halaman>
       <ThemedText type="h3">{t.subject} · {labelKelas(kelasTask)}</ThemedText>
@@ -41,10 +49,17 @@ export default function KeamananPertemuanScreen() {
       <ThemedText type="h3">
         Peserta{data.student_summary ? ` (${data.student_summary.recorded_count}/${data.student_summary.participant_count} tercatat)` : ''}
       </ThemedText>
+      {data.students.length > 0 ? (
+        <PesertaSaring kataKunci={kataKunci} onKataKunci={setKataKunci} tabs={tabs} tab={tabAktif} onTab={setTab}
+          tampil={tampil} total={data.students.length} />
+      ) : null}
       <Panel>
         <View style={{ gap: 12 }}>
           {data.students.length === 0 ? <ThemedText themeColor="textSecondary">Belum ada peserta santri aktif pada pertemuan ini.</ThemedText> : null}
-          {data.students.map(s => (
+          {tampil === 0 && data.students.length > 0 ? <PesertaKosong onReset={() => { setKataKunci(''); setTab(TAB_SEMUA); }} /> : null}
+          {kelompok.flatMap(grup => [
+            ...(gabungan && grup.nama ? [<ThemedText key={`h-${grup.key}`} type="label" accessibilityRole="header">{grup.nama} · {grup.items.length} santri</ThemedText>] : []),
+            ...grup.items.map(s => (
             <View key={s.student_id} style={{ gap: 4 }}>
               <ThemedText type="bodyBold">{s.name}</ThemedText>
               <ThemedText type="caption" themeColor="textSecondary">NIS {s.nis}{gabungan && namaKelasAsal(s, kelas) ? ` · Kelas ${namaKelasAsal(s, kelas)}` : ''}{s.recorded_by ? ` · dicatat ${s.recorded_by}` : ''}</ThemedText>
@@ -54,7 +69,8 @@ export default function KeamananPertemuanScreen() {
               </ChipRow>
               {s.notes ? <ThemedText>{s.notes}</ThemedText> : null}
             </View>
-          ))}
+          )),
+          ])}
         </View>
       </Panel>
       <CatatanHanyaBaca text="Hanya baca. Pembukaan rincian ini tercatat di jejak audit tanpa isi. Koreksi kehadiran dilakukan guru pengampu; cetak/PDF di website." />

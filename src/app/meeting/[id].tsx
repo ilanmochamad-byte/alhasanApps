@@ -6,6 +6,7 @@ import { actionableError, api, createIdempotencyKey } from '@/api/client';
 import type { AttendancePayload, AttendanceStatus, MeetingDetail, StudentMeetingRow } from '@/api/types';
 import { AppButton } from '@/components/app-button';
 import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
+import { PesertaKosong, PesertaSaring } from '@/components/peserta-saring';
 import { formatDate } from '@/components/schedule-card';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { StatusSelector } from '@/components/status-selector';
@@ -17,7 +18,8 @@ import { StatusRecap } from '@/components/ui/status-recap';
 import { Divider, Overline, Panel } from '@/components/ui/surface';
 import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { daftarKelas, kelompokPeserta, labelKelas, namaKelasAsal } from '@/lib/kelas-jadwal';
+import { daftarKelas, labelKelas, namaKelasAsal } from '@/lib/kelas-jadwal';
+import { nomorUrut, saringPeserta, tabKelas, TAB_SEMUA } from '@/lib/peserta-saring';
 
 type StudentDraft = Record<number, { status: AttendanceStatus; notes: string }>;
 
@@ -34,6 +36,9 @@ export default function MeetingScreen() {
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  // Saringan TAMPILAN saja: draf dan payload tetap seluruh peserta.
+  const [kataKunci, setKataKunci] = useState('');
+  const [tab, setTab] = useState<string>(TAB_SEMUA);
   const attempt = useRef<{ signature: string; key: string } | null>(null);
   // Satu kiriman pada satu waktu: ketukan ganda tidak mengirim dua permintaan.
   const inFlight = useRef(false);
@@ -180,10 +185,17 @@ export default function MeetingScreen() {
   const progres = total > 0 ? Math.round((tercatat / total) * 100) : 0;
   const kelas = daftarKelas(meeting.task);
   const gabungan = kelas.length > 1;
+  // Tab kelas asal hanya pada kelas gabungan; kelompok dari ID kelas asal
+  // snapshot yang cocok dengan kelas pertemuan, bukan dari nama santri.
+  const tabs = gabungan ? tabKelas(meeting.students, kelas) : null;
+  const tabAktif = tabs?.some((item) => item.key === tab) ? tab : TAB_SEMUA;
   // Jadwal satu kelas tetap satu daftar tanpa judul kelas (tampilan lama).
-  const kelompok = gabungan ? kelompokPeserta(meeting.students, kelas) : [{ kelas: null, items: meeting.students }];
-  // Nomor urut mengikuti urutan tampil (per kelas pada kelas gabungan).
-  const nomor = new Map(kelompok.flatMap((grup) => grup.items).map((student, index) => [student.student_id, index + 1]));
+  const kelompok = saringPeserta(meeting.students, kelas, { tab: tabAktif, kataKunci });
+  const tampil = kelompok.reduce((jumlah, grup) => jumlah + grup.items.length, 0);
+  // Nomor urut stabil menurut urutan "Semua" (per kelas pada kelas gabungan),
+  // tidak berubah saat dicari atau berpindah tab.
+  const nomor = nomorUrut(meeting.students, kelas);
+  const tersaring = tampil < total;
 
   return (
     <View style={styles.screen}>
@@ -255,14 +267,46 @@ export default function MeetingScreen() {
               </ThemedText>
             </View>
           </View>
-          <AppButton label="Semua hadir" icon="check" variant="secondary" size="sm" onPress={markAllPresent} />
+          <AppButton
+            label={`Semua hadir (${total})`}
+            icon="check"
+            variant="secondary"
+            size="sm"
+            onPress={markAllPresent}
+            accessibilityHint={`Menandai seluruh ${total} santri pertemuan ini hadir, termasuk yang tidak sedang ditampilkan.`}
+          />
         </View>
+        {gabungan || tersaring ? (
+          <ThemedText selectable type="caption" themeColor="textSecondary">
+            “Semua hadir” berlaku untuk seluruh {total} santri pertemuan ini, termasuk yang tidak sedang
+            ditampilkan oleh pencarian atau tab kelas.
+          </ThemedText>
+        ) : null}
+
+        <PesertaSaring
+          kataKunci={kataKunci}
+          onKataKunci={setKataKunci}
+          tabs={tabs}
+          tab={tabAktif}
+          onTab={setTab}
+          tampil={tampil}
+          total={total}
+        />
+
+        {tampil === 0 && total > 0 ? (
+          <PesertaKosong
+            onReset={() => {
+              setKataKunci('');
+              setTab(TAB_SEMUA);
+            }}
+          />
+        ) : null}
 
         {kelompok.map((grup) => (
-          <View key={grup.kelas?.id ?? 'semua'} style={styles.group}>
-            {gabungan ? (
+          <View key={grup.key} style={styles.group}>
+            {gabungan && grup.nama ? (
               <View style={styles.groupHeader} accessibilityRole="header">
-                <Overline>{grup.kelas ? grup.kelas.name : 'Kelas asal tidak tercatat'}</Overline>
+                <Overline>{grup.nama}</Overline>
                 <ThemedText selectable type="caption" themeColor="textMuted">
                   {grup.items.length} santri
                 </ThemedText>

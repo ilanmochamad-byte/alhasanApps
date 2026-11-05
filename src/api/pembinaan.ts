@@ -12,7 +12,8 @@ export type Body = Record<string, unknown>;
 export const pembinaan = {
   capabilities: () => request<V3Caps>('/v3/capabilities'),
   options: (page: number) => request<{ santri: Student[]; katalog: Catalog[]; dapat_mencatat: boolean }>(`/v3/mobile/options?page=${page}`),
-  page: (kind: 'pelanggaran' | 'kasus', page: number) => request<V3Page>(`/v3/${kind === 'kasus' ? 'konseling/kasus' : kind}?page=${page}`),
+  // `q` dicari server (nama atau NIS) dalam cakupan hak akun, menjangkau seluruh halaman.
+  page: (kind: 'pelanggaran' | 'kasus', page: number, q = '') => request<V3Page>(`/v3/${kind === 'kasus' ? 'konseling/kasus' : kind}?page=${page}${q.trim() ? `&q=${encodeURIComponent(q.trim())}` : ''}`),
   publications: (page: number) => request<{ rows: { id: number; status: string; ringkasan: string }[]; total: number; per_page: number }>(`/v3/publikasi?page=${page}`),
   recommendations: (page: number) => request<{ rows: Recommendation[] }>(`/v3/mobile/rekomendasi?page=${page}`),
   case: (id: number) => request<CaseDetail>(`/v3/konseling/kasus/${id}`),
