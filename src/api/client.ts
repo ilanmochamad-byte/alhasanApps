@@ -292,6 +292,10 @@ export const api = {
     });
   },
   meeting: (id: number) => request<MeetingDetail>(`/meetings/${id}`),
+  /** Menyelaraskan peserta pertemuan Dibuka dengan penempatan kelas terbaru (aman diulang). */
+  refreshParticipants(meetingId: number) {
+    return request<MeetingDetail>(`/meetings/${meetingId}/participants/refresh`, { method: 'POST', body: {} });
+  },
   saveAttendance(meetingId: number, payload: AttendancePayload) {
     return request<MeetingDetail>(`/meetings/${meetingId}/attendance`, { method: 'PUT', body: payload });
   },
