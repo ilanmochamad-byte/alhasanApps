@@ -141,3 +141,9 @@ Claude Code mengimplementasikan satu fase pada `claude/pencarian-santri-absensi-
 ## Perbaikan peserta absensi (6 November 2026)
 
 Atas persetujuan Human Developer: implementator Claude Code, auditor Codex. Branch `claude/perbaikan-peserta-absensi` dari `origin/main` `e21d4ab`; versi **1.3.0 → 1.4.0** (minor). Layar absensi pertemuan berstatus Dibuka mendapat tombol "Perbarui daftar" (`POST /meetings/{id}/participants/refresh`, web branch sama nama): server menyelaraskan peserta dengan penempatan kelas aktif terbaru; isian guru untuk santri yang tetap tercantum dipertahankan (`src/lib/perbarui-peserta.ts`). Tanpa dependensi/modul native baru. Bukti dan batas di `docs/perbaikan-peserta-absensi/README.md` repo WebAlHasan. Tidak merge/rilis; audit Codex berikutnya.
+
+## Audit Codex — Perbaikan peserta absensi (6 November 2026)
+
+- Audit `724c170` dari `e21d4ab` dan web `6dead3e` dari `71dbc00`, kedua branch `claude/perbaikan-peserta-absensi`: **LULUS audit teknis lokal setelah koreksi backend F-1 (P2)**. Refresh web/API membatalkan perubahan peserta saat audit gagal; API 500 `AUDIT_FAILED`. Kode/paket mobile tidak dikoreksi; versi tetap **1.4.0**. Paket pengguna yang belum di-commit dipertahankan.
+- Probe asli/koreksi **6/5 → 11/0**, integrasi **36/0**, konkurensi **8/0**, browser Expo web + website **18/0**, probe HTTP/browser **21/0**, unit **80/0**, TypeScript/lint exit 0 dan versi minor lulus. Laporan repo ini `docs/perbaikan-peserta-absensi/AUDIT-CODEX.md`; laporan/regresi/bukti lengkap pada lokasi sama di WebAlHasan.
+- Audit ini **hanya Expo web**, bukan build/eksekusi native 1.4.0. Android emulator/iOS simulator/fisik/distribusi EAS/Push nyata/MariaDB produksi/MySQL/cPanel/UAT dan gerbang produksi terdahulu tetap terbuka. Tidak worktree/subagen, merge/deploy/migrasi produksi/rilis atau fase berikutnya; berhenti setelah commit/push audit kedua branch.
