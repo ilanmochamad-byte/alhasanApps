@@ -19,6 +19,7 @@ import { Divider, Overline, Panel } from '@/components/ui/surface';
 import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { daftarKelas, labelKelas, namaKelasAsal } from '@/lib/kelas-jadwal';
+import { gabungDrafPeserta, ringkasPerubahanPeserta } from '@/lib/perbarui-peserta';
 import { nomorUrut, saringPeserta, tabKelas, TAB_SEMUA } from '@/lib/peserta-saring';
 
 type StudentDraft = Record<number, { status: AttendanceStatus; notes: string }>;
@@ -36,6 +37,9 @@ export default function MeetingScreen() {
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  // Hasil "Perbarui daftar", tampil tepat di bawah tombolnya.
+  const [refreshInfo, setRefreshInfo] = useState<{ text: string; error: boolean } | null>(null);
   // Saringan TAMPILAN saja: draf dan payload tetap seluruh peserta.
   const [kataKunci, setKataKunci] = useState('');
   const [tab, setTab] = useState<string>(TAB_SEMUA);
@@ -93,6 +97,34 @@ export default function MeetingScreen() {
     () => meeting?.students.filter((student) => student.attendance !== null).length ?? 0,
     [meeting],
   );
+
+  // Perbarui daftar santri (pertemuan Dibuka): server menyelaraskan peserta
+  // dengan penempatan kelas terbaru; isian guru untuk santri yang tetap
+  // tercantum dipertahankan, santri baru diisi "Hadir".
+  async function refreshParticipants() {
+    if (inFlight.current || !meeting) return;
+    inFlight.current = true;
+    setRefreshing(true);
+    setError(null);
+    setSuccess(null);
+    setRefreshInfo(null);
+    try {
+      const updated = await api.refreshParticipants(meetingId);
+      setMeeting(updated);
+      setStudents((current) =>
+        gabungDrafPeserta(current, updated.students, (student) => ({
+          status: (student.attendance?.status as AttendanceStatus | undefined) ?? 'Hadir',
+          notes: student.attendance?.notes ?? '',
+        })),
+      );
+      setRefreshInfo({ text: ringkasPerubahanPeserta(updated.participant_changes), error: false });
+    } catch (caught) {
+      setRefreshInfo({ text: actionableError(caught), error: true });
+    } finally {
+      inFlight.current = false;
+      setRefreshing(false);
+    }
+  }
 
   function updateStudent(id: number, patch: Partial<StudentDraft[number]>) {
     setStudents((current) => ({ ...current, [id]: { ...current[id], ...patch } }));
@@ -276,6 +308,32 @@ export default function MeetingScreen() {
             accessibilityHint={`Menandai seluruh ${total} santri pertemuan ini hadir, termasuk yang tidak sedang ditampilkan.`}
           />
         </View>
+        {meeting.status === 'Dibuka' ? (
+          <View style={styles.refreshRow}>
+            <ThemedText selectable type="caption" themeColor="textSecondary" style={styles.refreshText}>
+              Daftar santri berbeda dengan kelas saat ini? Perbarui sesuai penempatan kelas terbaru.
+            </ThemedText>
+            <AppButton
+              label="Perbarui daftar"
+              icon="refresh"
+              variant="secondary"
+              size="sm"
+              onPress={() => void refreshParticipants()}
+              loading={refreshing}
+              disabled={submitting}
+              accessibilityHint="Menambahkan santri yang baru ditempatkan di kelas ini dan mengeluarkan santri yang sudah keluar, pindah kelas, atau dinonaktifkan."
+            />
+          </View>
+        ) : null}
+        {meeting.status === 'Dibuka' && refreshInfo ? (
+          <ThemedText
+            selectable
+            type="caption"
+            themeColor={refreshInfo.error ? 'danger' : 'success'}
+            accessibilityLiveRegion={refreshInfo.error ? 'assertive' : 'polite'}>
+            {refreshInfo.text}
+          </ThemedText>
+        ) : null}
         {gabungan || tersaring ? (
           <ThemedText selectable type="caption" themeColor="textSecondary">
             “Semua hadir” berlaku untuk seluruh {total} santri pertemuan ini, termasuk yang tidak sedang
@@ -359,7 +417,7 @@ export default function MeetingScreen() {
           style={styles.grow}
           onPress={confirmSubmit}
           loading={submitting}
-          disabled={meeting.students.some((student) => !students[student.student_id])}
+          disabled={refreshing || meeting.students.some((student) => !students[student.student_id])}
         />
       </ActionBar>
     </View>
@@ -432,6 +490,8 @@ const styles = StyleSheet.create({
   progressFill: { height: 5, borderRadius: 999 },
   progressText: { fontVariant: ['tabular-nums'] },
   group: { gap: 14 },
+  refreshRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  refreshText: { flex: 1 },
   groupHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingTop: 4 },
   studentCard: {
     borderWidth: 1,

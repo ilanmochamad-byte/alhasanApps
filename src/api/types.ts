@@ -120,6 +120,8 @@ export type MeetingDetail = {
     updated_at: string;
   } | null;
   students: StudentMeetingRow[];
+  /** Hanya pada respons `POST /meetings/{id}/participants/refresh` (ID santri). */
+  participant_changes?: { added: number[]; removed: number[]; kept_with_attendance: number[] };
 };
 
 export type LoginResponse = {
