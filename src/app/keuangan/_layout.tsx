@@ -2,6 +2,7 @@ import { Stack } from 'expo-router/stack';
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
+import { HalamanKeadaan } from '@/components/keuangan-shared';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -41,11 +42,20 @@ export default function KeuanganLayout() {
       }).catch(() => { /* Tidak ada layar keuangan yang tampil bila gagal. */ });
     };
   }, [key, attempt]);
-  if (status === 'error') return <ErrorState message="Perlindungan informasi keuangan belum tersedia. Perbarui aplikasi lalu buka kembali."
-    onRetry={() => { setStatus('loading'); setAttempt(v => v + 1); }} />;
-  if (status !== 'ready') return <LoadingState label="Menyiapkan perlindungan informasi keuangan…" />;
+  // Saat perlindungan disiapkan atau gagal, kepala ← tetap tampil (K-10);
+  // isi keuangan belum dipasang sama sekali.
+  if (status === 'error') {
+    return (
+      <HalamanKeadaan title="Keuangan">
+        <ErrorState message="Perlindungan informasi keuangan belum tersedia. Perbarui aplikasi lalu buka kembali."
+          onRetry={() => { setStatus('loading'); setAttempt(v => v + 1); }} />
+      </HalamanKeadaan>
+    );
+  }
+  if (status !== 'ready') return <HalamanKeadaan title="Keuangan"><LoadingState label="Menyiapkan perlindungan informasi keuangan…" /></HalamanKeadaan>;
+  // Redesain gelombang 2: setiap layar menggambar kepala `stack` sendiri.
   return (
-    <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal', contentStyle: { backgroundColor: theme.background } }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
       <Stack.Screen name="index" options={{ title: 'Keuangan' }} />
       <Stack.Screen name="santri/index" options={{ title: 'Santri & saldo' }} />
       <Stack.Screen name="santri/[id]" options={{ title: 'Keuangan santri' }} />

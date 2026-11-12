@@ -19,6 +19,7 @@ export function ProfileHeader({
   caption,
   pills,
   stats = [],
+  statsNominal = false,
   children,
 }: {
   avatar: ReactNode;
@@ -26,11 +27,19 @@ export function ProfileHeader({
   caption?: string;
   pills?: ReactNode;
   stats?: ProfileStat[];
+  /**
+   * Angka strip berupa nominal panjang (mis. "Rp1.250.000"): huruf lebih kecil,
+   * dan bila kolom terlalu sempit untuk nominal jutaan, strip menjadi baris
+   * label–nilai agar angka tidak saling menimpa.
+   */
+  statsNominal?: boolean;
   children?: ReactNode;
 }) {
   const theme = useTheme();
-  const { fontScale } = useWindowDimensions();
+  const { fontScale, width } = useWindowDimensions();
   const bertumpuk = fontScale > 1.35;
+  // Lebar kartu ≈ lebar layar − 2 × 20 (tepi) − 2 × 16 (isi kartu).
+  const baris = statsNominal && (bertumpuk || (Math.min(width, 760) - 72) / Math.max(1, stats.length) < 120);
   return (
     <View style={[styles.kartu, { backgroundColor: theme.card, borderColor: theme.border, boxShadow: Elevation.card }]}>
       {avatar}
@@ -46,7 +55,20 @@ export function ProfileHeader({
       </View>
       {pills}
       {children}
-      {stats.length > 0 ? (
+      {stats.length > 0 && baris ? (
+        <View style={[styles.strip, styles.stripBaris, { borderTopColor: theme.divider }]}>
+          {stats.map((s) => (
+            <View key={s.label} accessible accessibilityLabel={`${s.label}: ${s.value}`} style={styles.barisNilai}>
+              <ThemedText selectable type="labelSmall" themeColor="textSecondary" style={styles.flex}>
+                {s.label}
+              </ThemedText>
+              <ThemedText selectable type="bodyBold" style={styles.nominal}>
+                {s.value}
+              </ThemedText>
+            </View>
+          ))}
+        </View>
+      ) : stats.length > 0 ? (
         <View style={[styles.strip, bertumpuk && styles.stripBertumpuk, { borderTopColor: theme.divider }]}>
           {stats.map((s, i) => (
             <View
@@ -57,7 +79,7 @@ export function ProfileHeader({
                 styles.angka,
                 !bertumpuk && i > 0 && { borderLeftWidth: 1, borderLeftColor: theme.divider },
               ]}>
-              <ThemedText selectable type="numeralCard">
+              <ThemedText selectable type={statsNominal ? 'bodyBold' : 'numeralCard'} style={statsNominal ? styles.nominal : undefined}>
                 {s.value}
               </ThemedText>
               <ThemedText selectable type="labelSmall" themeColor="textSecondary" style={styles.tengah}>
@@ -86,4 +108,8 @@ const styles = StyleSheet.create({
   strip: { alignSelf: 'stretch', flexDirection: 'row', borderTopWidth: 1, paddingTop: 14, marginTop: 2 },
   stripBertumpuk: { flexDirection: 'column', gap: 12 },
   angka: { flex: 1, alignItems: 'center', gap: 2, paddingHorizontal: 6 },
+  stripBaris: { flexDirection: 'column', gap: 10 },
+  barisNilai: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 12, rowGap: 2 },
+  flex: { flexGrow: 1 },
+  nominal: { fontVariant: ['tabular-nums'] },
 });

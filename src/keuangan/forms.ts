@@ -131,3 +131,63 @@ export function keuanganLinkTarget(url: string | null): { tipe: TipeKeuangan; id
     return { tipe: `bsa_${match[1]}` as TipeKeuangan, id };
   } catch { return null; }
 }
+
+// ---------------------------------------------------------------------------
+// Tampilan redesain gelombang 2 Fase 3. Hanya bentuk tampilan dari angka dan
+// status yang dikirim server; tidak ada angka pembanding atau perkiraan.
+
+export type NadaKeuangan = 'success' | 'warning' | 'danger' | 'neutral';
+export type IkonNadaKeuangan = 'check' | 'clock' | 'close' | 'info' | 'wallet';
+
+/**
+ * Nada dan ikon pil status dari teks status server. "Menunggu" selalu jam
+ * (bukan centang): transfer belum diverifikasi belum menjadi uang sah.
+ */
+export function nadaStatusKeuangan(status: string): { tone: NadaKeuangan; icon: IkonNadaKeuangan } {
+  if (status === 'Menunggu') return { tone: 'warning', icon: 'clock' };
+  if (status === 'Sebagian') return { tone: 'warning', icon: 'wallet' };
+  if (status === 'Belum dibayar') return { tone: 'warning', icon: 'info' };
+  if (status === 'Dibatalkan' || status === 'Ditolak') return { tone: 'danger', icon: 'close' };
+  if (status === 'Sah' || status === 'Lunas' || status === 'Terbit') return { tone: 'success', icon: 'check' };
+  return { tone: 'neutral', icon: 'info' };
+}
+
+/** Nominal bertanda menurut arah ledger: "+Rp100.000" / "−Rp30.000". */
+export function nominalBertanda(arah: 'Masuk' | 'Keluar' | string, nominal: number): string {
+  return `${arah === 'Masuk' ? '+' : '−'}${rupiah(nominal)}`;
+}
+
+/** Putaran ikon panah untuk arah ledger: masuk = panah ke bawah, keluar = panah ke atas. */
+export function putaranArah(arah: 'Masuk' | 'Keluar' | string): number {
+  return arah === 'Masuk' ? 90 : -90;
+}
+
+/** Server mengirim paling banyak 60 tagihan per santri (`BsaRepository::tagihanSantri`). */
+export const BATAS_TAGIHAN_SANTRI = 60;
+
+/**
+ * Jumlah sisa tagihan terbit dari daftar tagihan rincian santri. Bila daftar
+ * mencapai batas server, jumlahnya mungkin tidak lengkap → `null` ("—"),
+ * bukan angka yang bisa keliru.
+ */
+export function sisaTagihanTerbuka(tagihan: { status: string; sisa: number }[], batas = BATAS_TAGIHAN_SANTRI): number | null {
+  if (tagihan.length >= batas) return null;
+  return tagihan.reduce((n, t) => (t.status === 'Terbit' ? n + Math.max(0, t.sisa) : n), 0);
+}
+
+const BULAN_PENDEK = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+/** "2026-10" → "Okt 2026". */
+export function labelPeriodePendek(periode: string): string {
+  const m = /^(\d{4})-(\d{2})$/.exec(periode);
+  return m ? `${BULAN_PENDEK[Number(m[2]) - 1] ?? m[2]} ${m[1]}` : periode;
+}
+
+/**
+ * Seri grafik batang dari `per_bulan` laporan. Grafik hanya digambar bila
+ * respons memuat seri (dua bulan atau lebih); satu bulan → `null`.
+ */
+export function seriPerBulan<K extends string>(rows: ({ periode: string } & Record<K, number>)[], kunci: K) {
+  if (rows.length < 2) return null;
+  return rows.map(r => ({ key: r.periode, label: labelPeriodePendek(r.periode), value: Math.max(0, r[kunci]), display: rupiah(r[kunci]) }));
+}

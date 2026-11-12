@@ -5,17 +5,17 @@ import { ApiError } from '@/api/client';
 import { keuangan } from '@/api/keuangan';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { Pesan } from '@/components/kesehatan-shared';
-import { Halaman } from '@/components/keuangan-shared';
+import { Halaman, HalamanKeadaan, Kartu, KartuSantri, Pesan } from '@/components/keuangan-shared';
 import { PrivateField } from '@/components/private-field';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { Chip, ChipRow } from '@/components/ui/chip';
 import { DateField } from '@/components/ui/date-field';
-import { Panel } from '@/components/ui/surface';
+import { FilterPills } from '@/components/ui/filter-pills';
 import { useKeuanganMutation } from '@/hooks/use-keuangan-mutation';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { galatAlasan, galatNominal, labelPeriode, nominalKirim, rupiah, sidikJari } from '@/keuangan/forms';
+
+const JUDUL = 'Revisi atau batal tagihan';
 
 /**
  * Revisi (baris potongan/tambahan atau jatuh tempo baru) atau pembatalan
@@ -49,8 +49,8 @@ function Form({ tagihanId }: { tagihanId: number }) {
   }, [tagihanId]);
   const { data: t, error, load, reject } = usePrivateResource(fetcher, bersihkan, true);
   const guard = useKeuanganMutation('bsa-ubah-tagihan', reject);
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!t) return <LoadingState label="Memuat versi terbaru…" />;
+  if (error) return <HalamanKeadaan title={JUDUL}><ErrorState message={error} onRetry={() => void load()} /></HalamanKeadaan>;
+  if (!t) return <HalamanKeadaan title={JUDUL}><LoadingState label="Memuat versi terbaru…" /></HalamanKeadaan>;
   const v = versi ?? t.versi;
   async function simpan() {
     const ga = galatAlasan(alasan);
@@ -68,41 +68,34 @@ function Form({ tagihanId }: { tagihanId: number }) {
   }
   const muatUlang = () => { bersihkan(); guard.reset(); void load(); };
   return (
-    <Halaman>
-      <Panel style={{ gap: 6 }}>
-        <ThemedText type="h3">Tagihan {labelPeriode(t.periode)} · versi {v}</ThemedText>
-        <ThemedText>{t.santri.nama} · total {rupiah(t.total)} · dibayar {rupiah(t.terbayar)}</ThemedText>
-      </Panel>
-      <ChipRow>
-        <Chip label="Revisi" accessibilityRole="radio" selected={mode === 'revisi'} onPress={() => { setMode('revisi'); guard.reset(); }} />
-        <Chip label="Batalkan tagihan" accessibilityRole="radio" selected={mode === 'batal'} onPress={() => { setMode('batal'); guard.reset(); }} />
-      </ChipRow>
-      <Panel style={{ gap: 12 }}>
+    <Halaman title={JUDUL}
+      bawah={<AppButton label={mode === 'batal' ? 'Batalkan tagihan' : 'Simpan revisi'} variant={mode === 'batal' ? 'danger' : 'primary'}
+        loading={guard.isBusy} disabled={guard.isBusy} onPress={() => void simpan()} style={{ flex: 1 }} />}>
+      <KartuSantri nama={t.santri.nama} keterangan={`Tagihan ${labelPeriode(t.periode)} · versi ${v}`}
+        angka={[{ label: 'Total', nilai: rupiah(t.total) }, { label: 'Dibayar', nilai: rupiah(t.terbayar) }]} />
+      <FilterPills accessibilityLabel="Jenis perubahan" value={mode} onChange={m => { setMode(m); guard.reset(); }}
+        options={[{ value: 'revisi', label: 'Revisi' }, { value: 'batal', label: 'Batalkan tagihan' }]} />
+      <Kartu>
         {mode === 'revisi' ? (
           <>
             <ThemedText type="label">Baris koreksi (opsional)</ThemedText>
-            <ChipRow>
-              <Chip label="Tanpa baris" accessibilityRole="radio" selected={jenis === ''} onPress={() => setJenis('')} />
-              <Chip label="Potongan" accessibilityRole="radio" selected={jenis === 'Potongan'} onPress={() => setJenis('Potongan')} />
-              <Chip label="Tambahan" accessibilityRole="radio" selected={jenis === 'Tambahan'} onPress={() => setJenis('Tambahan')} />
-            </ChipRow>
+            <FilterPills accessibilityLabel="Baris koreksi" value={jenis} onChange={setJenis}
+              options={[{ value: '', label: 'Tanpa baris' }, { value: 'Potongan', label: 'Potongan' }, { value: 'Tambahan', label: 'Tambahan' }]} />
             {jenis !== '' ? (
               <>
                 <PrivateField label="Keterangan" hint="Opsional" value={nama} onChangeText={setNama} maxLength={100} />
-                <PrivateField label="Nominal (rupiah)" value={nominal} onChangeText={setNominal} keyboardType="number-pad" maxLength={16} />
+                <PrivateField label="Nominal (rupiah)" awalan="Rp" value={nominal} onChangeText={setNominal} keyboardType="number-pad" maxLength={16} />
               </>
             ) : null}
             <DateField label="Jatuh tempo baru" value={jatuhTempo} placeholder="Tidak berubah" onChange={setJatuhTempo} />
           </>
         ) : (
-          <ThemedText>Pembatalan hanya untuk tagihan tanpa pembayaran. Tagihan tetap tersimpan di riwayat.</ThemedText>
+          <Pesan tone="info" text="Pembatalan hanya untuk tagihan tanpa pembayaran. Tagihan tetap tersimpan di riwayat." />
         )}
-        <PrivateField label="Alasan (wajib)" value={alasan} onChangeText={setAlasan} multiline maxLength={500} editable={!guard.isBusy} />
-      </Panel>
+        <PrivateField label="Alasan (wajib)" hint={`${alasan.trim().length}/500`} value={alasan} onChangeText={setAlasan} multiline maxLength={500} editable={!guard.isBusy} />
+      </Kartu>
       <Pesan text={guard.error} tone="danger" />
       {guard.error?.includes('Muat ulang') ? <AppButton label="Muat versi terbaru (isian ini dibuang)" variant="danger" onPress={muatUlang} /> : null}
-      <AppButton label={mode === 'batal' ? 'Batalkan tagihan' : 'Simpan revisi'} variant={mode === 'batal' ? 'danger' : 'primary'}
-        loading={guard.isBusy} disabled={guard.isBusy} onPress={() => void simpan()} />
     </Halaman>
   );
 }

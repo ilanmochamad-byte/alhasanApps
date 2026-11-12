@@ -44,6 +44,10 @@ const TEKS: [Nama, Nama, number][] = [
   ['info', 'card', 4.5], ['violet', 'card', 4.5],
   ['statusHadir', 'card', 3], ['statusIzin', 'card', 3], ['statusTerlambat', 'card', 3],
   ['statusSakit', 'card', 3], ['statusAlpa', 'card', 3],
+  // Fase 3 (Keuangan): angka acuan di sel krem kartu santri (teks/nominal sisa
+  // tagihan berwarna), dan baris "Sisa" invoice yang disorot.
+  ['danger', 'backgroundElement', 4.5], ['warning', 'backgroundElement', 4.5],
+  ['text', 'dangerSoft', 4.5], ['text', 'primarySoft', 4.5],
 ];
 
 for (const mode of ['light', 'dark'] as const) {

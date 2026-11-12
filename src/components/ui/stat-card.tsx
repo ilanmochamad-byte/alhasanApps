@@ -7,10 +7,17 @@ import { useTheme } from '@/hooks/use-theme';
 import { barisKisi } from '@/lib/tampilan';
 
 export type StatTone = 'primary' | 'warning' | 'info' | 'violet' | 'danger';
-export type StatItem = { icon: IconName; value: string; label: string; tone?: StatTone };
+export type StatItem = {
+  icon: IconName;
+  value: string;
+  label: string;
+  tone?: StatTone;
+  /** Label dibaca sebelum angka (mis. laporan "Terbit (2) Rp300.000"). Bawaan: angka dulu. */
+  labelDulu?: boolean;
+};
 
 /** Kartu statistik: ikon dalam lingkaran lunak 44 pt, angka besar, label. */
-export function StatCard({ icon, value, label, tone = 'primary' }: StatItem) {
+export function StatCard({ icon, value, label, tone = 'primary', labelDulu = false }: StatItem) {
   const theme = useTheme();
   const warna = {
     primary: { bg: theme.primarySoft, fg: theme.primary },
@@ -27,12 +34,19 @@ export function StatCard({ icon, value, label, tone = 'primary' }: StatItem) {
       <View style={[styles.ikon, { backgroundColor: warna.bg }]}>
         <AppIcon name={icon} size={22} color={warna.fg} />
       </View>
+      {labelDulu ? (
+        <ThemedText selectable type="labelSmall" themeColor="textSecondary">
+          {label}
+        </ThemedText>
+      ) : null}
       <ThemedText selectable type="numeralCard">
         {value}
       </ThemedText>
-      <ThemedText selectable type="labelSmall" themeColor="textSecondary">
-        {label}
-      </ThemedText>
+      {labelDulu ? null : (
+        <ThemedText selectable type="labelSmall" themeColor="textSecondary">
+          {label}
+        </ThemedText>
+      )}
     </View>
   );
 }

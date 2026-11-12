@@ -1,26 +1,31 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { StyleSheet } from 'react-native';
 
 import { ApiError } from '@/api/client';
 import { keuangan, type IsianKeluar, type IsianSetoran } from '@/api/keuangan';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { Pesan } from '@/components/kesehatan-shared';
-import { Centang, Halaman } from '@/components/keuangan-shared';
+import { Centang, Halaman, HalamanKeadaan, Kartu, KartuSantri, Pesan } from '@/components/keuangan-shared';
 import { PrivateField } from '@/components/private-field';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { Chip, ChipRow } from '@/components/ui/chip';
-import { Panel } from '@/components/ui/surface';
+import { FilterPills } from '@/components/ui/filter-pills';
+import { ReceiptCard, type ReceiptRow } from '@/components/ui/receipt-card';
+import { SuccessPanel } from '@/components/ui/success-panel';
 import { useKeuanganMutation } from '@/hooks/use-keuangan-mutation';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { galatNominal, nominalKirim, rupiah, sidikJari } from '@/keuangan/forms';
 
+type Hasil = { judul: string; pesan: string; menunggu: boolean; baris: ReceiptRow[] };
+
 /**
- * Setoran atau penarikan/belanja tabungan oleh Petugas BSA. Saldo dan
- * keputusan sah/menunggu milik server; aplikasi hanya mengirim isian dengan
- * satu kunci idempotensi per isi, sehingga retry jaringan atau ketukan ganda
- * menghasilkan paling banyak satu transaksi.
+ * Setoran atau penarikan/belanja tabungan oleh Petugas BSA (pola P-Form →
+ * P-Sukses). Saldo dan keputusan sah/menunggu milik server; aplikasi hanya
+ * mengirim isian dengan satu kunci idempotensi per isi, sehingga retry
+ * jaringan atau ketukan ganda menghasilkan paling banyak satu transaksi.
+ * Panel hasil tampil di atas formulir; isian tetap tersedia untuk transaksi
+ * berikutnya.
  */
 export default function TransaksiScreen() {
   const { profile } = useAuth();
@@ -30,12 +35,14 @@ export default function TransaksiScreen() {
 
 function Form({ santriId, keluar }: { santriId: number; keluar: boolean }) {
   const router = useRouter();
+  const judul = keluar ? 'Penarikan atau belanja' : 'Setoran tabungan';
   const [setoran, setSetoran] = useState<IsianSetoran>({ nominal: '', metode: 'Tunai', referensi: '', catatan: '', terverifikasi: false });
   const [pengeluaran, setPengeluaran] = useState<IsianKeluar>({ nominal: '', metode: 'Tunai', jenis: 'Penarikan', tujuan: '', referensi: '', catatan: '' });
-  const [hasil, setHasil] = useState<string | null>(null);
+  const [hasil, setHasil] = useState<Hasil | null>(null);
   const bersihkan = useCallback(() => {
     setSetoran({ nominal: '', metode: 'Tunai', referensi: '', catatan: '', terverifikasi: false });
     setPengeluaran({ nominal: '', metode: 'Tunai', jenis: 'Penarikan', tujuan: '', referensi: '', catatan: '' });
+    setHasil(null);
   }, []);
   // Sesudah sukses: nilai dikosongkan, pilihan jenis/cara dipertahankan untuk transaksi berikutnya.
   const kosongkanNilai = () => {
@@ -52,10 +59,11 @@ function Form({ santriId, keluar }: { santriId: number; keluar: boolean }) {
   // Isian bertahan di memori saat aplikasi ke latar; dibuang saat layar ditinggalkan atau akses ditolak.
   const { data: d, error, load, reject } = usePrivateResource(fetcher, bersihkan, true);
   const guard = useKeuanganMutation(keluar ? 'bsa-keluar' : 'bsa-setoran', reject);
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!d) return <LoadingState label="Memeriksa hak dan saldo…" />;
+  if (error) return <HalamanKeadaan title={judul}><ErrorState message={error} onRetry={() => void load()} /></HalamanKeadaan>;
+  if (!d) return <HalamanKeadaan title={judul}><LoadingState label="Memeriksa hak dan saldo…" /></HalamanKeadaan>;
   const isi = keluar ? pengeluaran : setoran;
   const transfer = isi.metode === 'Transfer';
+  const santri = d.santri;
 
   async function simpan() {
     setHasil(null);
@@ -66,15 +74,41 @@ function Form({ santriId, keluar }: { santriId: number; keluar: boolean }) {
     if (keluar) {
       const kirim = { ...pengeluaran, nominal: nominalKirim(pengeluaran.nominal), tujuan: pengeluaran.tujuan.trim(), referensi: pengeluaran.referensi.trim(), catatan: pengeluaran.catatan.trim() };
       const r = await guard.run(sidikJari('keluar', santriId, kirim), key => keuangan.keluar(santriId, kirim, key));
-      if (r) { setHasil(`${r.jenis ?? kirim.jenis} ${rupiah(Number(kirim.nominal))} tercatat sah${r.replayed ? ' (sudah tercatat sebelumnya, tidak digandakan)' : ''}. Saldo kini ${rupiah(r.saldo_sesudah)}.`); kosongkanNilai(); void load(); }
+      if (r) {
+        const jenis = r.jenis ?? kirim.jenis;
+        setHasil({
+          judul: `${jenis} tercatat`, menunggu: false,
+          pesan: `${jenis} ${rupiah(Number(kirim.nominal))} tercatat sah${r.replayed ? ' (sudah tercatat sebelumnya, tidak digandakan)' : ''}. Saldo kini ${rupiah(r.saldo_sesudah)}.`,
+          baris: [
+            ...(r.nomor_kuitansi ? [{ label: 'No. kuitansi', value: r.nomor_kuitansi }] : []),
+            { label: 'Santri', value: `${santri.nama} · NIS ${santri.nis}` },
+            { label: 'Jenis', value: `${jenis} (${kirim.metode.toLowerCase()})` },
+            { label: 'Tujuan', value: kirim.tujuan },
+            { label: 'Nominal', value: `−${rupiah(Number(kirim.nominal))}` },
+            { label: 'Saldo sesudah', value: rupiah(r.saldo_sesudah), emphasis: true },
+          ],
+        });
+        kosongkanNilai(); void load();
+      }
       return;
     }
     const kirim = { ...setoran, nominal: nominalKirim(setoran.nominal), referensi: setoran.referensi.trim(), catatan: setoran.catatan.trim() };
     const r = await guard.run(sidikJari('setoran', santriId, kirim), key => keuangan.setoran(santriId, kirim, key));
     if (r) {
-      setHasil(r.status_setoran === 'Menunggu'
-        ? `Setoran transfer ${rupiah(Number(kirim.nominal))} masuk antrean verifikasi. Saldo belum berubah (${rupiah(r.saldo_sesudah)}).`
-        : `Setoran ${rupiah(Number(kirim.nominal))} tercatat sah${r.replayed ? ' (sudah tercatat sebelumnya, tidak digandakan)' : ''}. Saldo kini ${rupiah(r.saldo_sesudah)}.`);
+      const menunggu = r.status_setoran === 'Menunggu';
+      setHasil({
+        judul: menunggu ? 'Menunggu verifikasi' : 'Setoran tercatat', menunggu,
+        pesan: menunggu
+          ? `Setoran transfer ${rupiah(Number(kirim.nominal))} masuk antrean verifikasi. Saldo belum berubah (${rupiah(r.saldo_sesudah)}).`
+          : `Setoran ${rupiah(Number(kirim.nominal))} tercatat sah${r.replayed ? ' (sudah tercatat sebelumnya, tidak digandakan)' : ''}. Saldo kini ${rupiah(r.saldo_sesudah)}.`,
+        baris: [
+          ...(r.nomor_kuitansi ? [{ label: 'No. kuitansi', value: r.nomor_kuitansi }] : []),
+          { label: 'Santri', value: `${santri.nama} · NIS ${santri.nis}` },
+          { label: 'Cara', value: kirim.metode },
+          { label: 'Nominal', value: menunggu ? rupiah(Number(kirim.nominal)) : `+${rupiah(Number(kirim.nominal))}` },
+          { label: menunggu ? 'Saldo (belum berubah)' : 'Saldo sesudah', value: rupiah(r.saldo_sesudah), emphasis: true },
+        ],
+      });
       kosongkanNilai(); void load();
     }
   }
@@ -84,28 +118,38 @@ function Form({ santriId, keluar }: { santriId: number; keluar: boolean }) {
     : setSetoran({ ...setoran, ...ganti } as IsianSetoran);
 
   return (
-    <Halaman>
-      <Panel style={{ gap: 6 }}>
-        <ThemedText type="h3">{keluar ? 'Penarikan atau belanja' : 'Setoran tabungan'}</ThemedText>
-        <ThemedText>{d.santri.nama} · NIS {d.santri.nis}</ThemedText>
-        <ThemedText type="bodyBold">Saldo saat ini {rupiah(d.saldo)}</ThemedText>
-      </Panel>
-      <Panel style={{ gap: 12 }}>
+    <Halaman title={judul}
+      bawah={(
+        <>
+          <AppButton label="Kembali ke santri" variant="secondary" disabled={guard.isBusy} onPress={() => router.back()} style={styles.flex} />
+          <AppButton label={keluar ? `Catat ${pengeluaran.jenis.toLowerCase()}` : 'Catat setoran'} loading={guard.isBusy} disabled={guard.isBusy} onPress={() => void simpan()} style={styles.flex} />
+        </>
+      )}>
+      {hasil ? (
+        <>
+          <SuccessPanel title={hasil.judul} message={hasil.pesan} tone={hasil.menunggu ? 'menunggu' : 'berhasil'} />
+          <ReceiptCard title={keluar ? 'Bukti pengeluaran tabungan' : 'Bukti setoran tabungan'} rows={hasil.baris}
+            footer={hasil.menunggu ? 'Menunggu verifikasi Petugas BSA; belum menambah saldo.' : 'Cetak/PDF kuitansi tersedia di website BSA.'} />
+          <ThemedText selectable type="label">Transaksi berikutnya</ThemedText>
+        </>
+      ) : null}
+      <KartuSantri nama={santri.nama} keterangan={`NIS ${santri.nis}${santri.kelas ? ` · ${santri.kelas}` : ''}`}
+        angka={[{ label: 'Saldo saat ini', nilai: rupiah(d.saldo) }]} />
+      <Kartu>
         {keluar ? (
-          <ChipRow>
-            <Chip label="Penarikan" accessibilityRole="radio" selected={pengeluaran.jenis === 'Penarikan'} onPress={() => ubah({ jenis: 'Penarikan' })} />
-            <Chip label="Belanja" accessibilityRole="radio" selected={pengeluaran.jenis === 'Belanja'} onPress={() => ubah({ jenis: 'Belanja' })} />
-          </ChipRow>
+          <>
+            <ThemedText type="label">Jenis</ThemedText>
+            <FilterPills accessibilityLabel="Jenis pengeluaran" value={pengeluaran.jenis} onChange={v => ubah({ jenis: v })}
+              options={[{ value: 'Penarikan', label: 'Penarikan' }, { value: 'Belanja', label: 'Belanja' }]} />
+          </>
         ) : null}
         <ThemedText type="label">{keluar ? 'Cara pengeluaran' : 'Cara penerimaan'}</ThemedText>
-        <ChipRow>
-          <Chip label="Tunai" accessibilityRole="radio" selected={isi.metode === 'Tunai'} onPress={() => ubah({ metode: 'Tunai' })} />
-          <Chip label="Transfer" accessibilityRole="radio" selected={isi.metode === 'Transfer'} onPress={() => ubah({ metode: 'Transfer' })} />
-        </ChipRow>
-        <PrivateField label="Nominal (rupiah)" value={isi.nominal} onChangeText={v => ubah({ nominal: v })} keyboardType="number-pad" maxLength={16} editable={!guard.isBusy} placeholder="mis. 100.000" />
-        {keluar ? <PrivateField label="Tujuan (wajib)" value={pengeluaran.tujuan} onChangeText={v => ubah({ tujuan: v })} maxLength={255} editable={!guard.isBusy} /> : null}
-        {transfer ? <PrivateField label="Referensi transfer (wajib)" value={isi.referensi} onChangeText={v => ubah({ referensi: v })} maxLength={100} editable={!guard.isBusy} /> : null}
-        <PrivateField label="Catatan internal" hint="Opsional" value={isi.catatan} onChangeText={v => ubah({ catatan: v })} multiline maxLength={500} editable={!guard.isBusy} />
+        <FilterPills accessibilityLabel={keluar ? 'Cara pengeluaran' : 'Cara penerimaan'} value={isi.metode} onChange={v => ubah({ metode: v })}
+          options={[{ value: 'Tunai', label: 'Tunai' }, { value: 'Transfer', label: 'Transfer' }]} />
+        <PrivateField label="Nominal (rupiah)" awalan="Rp" value={isi.nominal} onChangeText={v => ubah({ nominal: v })} keyboardType="number-pad" maxLength={16} editable={!guard.isBusy} placeholder="mis. 100.000" />
+        {keluar ? <PrivateField label="Tujuan (wajib)" icon="pin" value={pengeluaran.tujuan} onChangeText={v => ubah({ tujuan: v })} maxLength={255} editable={!guard.isBusy} /> : null}
+        {transfer ? <PrivateField label="Referensi transfer (wajib)" icon="text-size" value={isi.referensi} onChangeText={v => ubah({ referensi: v })} maxLength={100} editable={!guard.isBusy} /> : null}
+        <PrivateField label="Catatan internal" hint={`Opsional · ${isi.catatan.length}/500`} value={isi.catatan} onChangeText={v => ubah({ catatan: v })} multiline maxLength={500} editable={!guard.isBusy} />
         {!keluar && transfer ? (
           <>
             <Centang label="Saya sudah memeriksa dana transfer ini masuk." checked={setoran.terverifikasi} onChange={v => ubah({ terverifikasi: v })} disabled={guard.isBusy} />
@@ -113,11 +157,12 @@ function Form({ santriId, keluar }: { santriId: number; keluar: boolean }) {
           </>
         ) : null}
         {keluar ? <ThemedText type="caption" themeColor="textSecondary">Pengeluaran melebihi saldo ditolak server. Petugas pencatat sekaligus menyetujui.</ThemedText> : null}
-      </Panel>
+      </Kartu>
       <Pesan text={guard.error} tone="danger" />
-      <Pesan text={hasil} tone="success" />
-      <AppButton label={keluar ? `Catat ${pengeluaran.jenis.toLowerCase()}` : 'Catat setoran'} loading={guard.isBusy} disabled={guard.isBusy} onPress={() => void simpan()} />
-      <AppButton label="Kembali ke santri" variant="secondary" disabled={guard.isBusy} onPress={() => router.back()} />
     </Halaman>
   );
 }
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+});

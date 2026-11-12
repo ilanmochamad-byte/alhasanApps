@@ -1,21 +1,23 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { View } from 'react-native';
 
 import { actionableError, ApiError } from '@/api/client';
 import { keuangan, type Pratinjau } from '@/api/keuangan';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { Baris, Pesan } from '@/components/kesehatan-shared';
-import { Halaman } from '@/components/keuangan-shared';
+import { tanggalPanjang } from '@/components/kesehatan-shared';
+import { Halaman, HalamanKeadaan, Kartu, KartuSantri, Pesan } from '@/components/keuangan-shared';
 import { PrivateField } from '@/components/private-field';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { DateField } from '@/components/ui/date-field';
-import { Divider, Panel } from '@/components/ui/surface';
+import { Notice } from '@/components/ui/notice';
+import { ReceiptCard } from '@/components/ui/receipt-card';
 import { useKeuanganMutation } from '@/hooks/use-keuangan-mutation';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { labelPeriode, periodeKini, pratinjauSatuSantriSah, rupiah, sidikJari } from '@/keuangan/forms';
+
+const JUDUL = 'Tagihan satu santri';
 
 /**
  * Terbitkan tagihan bulanan untuk SATU santri dari tarif unit dan
@@ -52,8 +54,8 @@ function Form({ santriId }: { santriId: number }) {
   }, [santriId]);
   const { data: santri, error, load, reject, active, generation } = usePrivateResource(fetcher, bersihkan);
   const guard = useKeuanganMutation('bsa-terbit-santri', reject);
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!santri) return <LoadingState label="Memeriksa hak penerbitan…" />;
+  if (error) return <HalamanKeadaan title={JUDUL}><ErrorState message={error} onRetry={() => void load()} /></HalamanKeadaan>;
+  if (!santri) return <HalamanKeadaan title={JUDUL}><LoadingState label="Memeriksa hak penerbitan…" /></HalamanKeadaan>;
 
   async function lihat() {
     bersihkan(); guard.reset();
@@ -92,43 +94,42 @@ function Form({ santriId }: { santriId: number }) {
   }
   const r = pratinjau?.rows[0];
   return (
-    <Halaman>
-      <Panel style={{ gap: 12 }}>
-        <ThemedText type="h3">{santri.nama}</ThemedText>
-        <ThemedText type="caption" themeColor="textSecondary">NIS {santri.nis}{santri.kelas ? ` · ${santri.kelas}` : ''}{santri.unit ? ` · ${santri.unit}` : ''}</ThemedText>
-        <PrivateField label="Periode (TTTT-BB)" value={periode} onChangeText={v => { setPeriode(v); bersihkan(); }} editable={!guard.isBusy} maxLength={7} autoCapitalize="none" />
+    <Halaman title={JUDUL}
+      bawah={pratinjau && r && r.hasil === 'Terbit'
+        ? <AppButton label={`Terbitkan tagihan ${rupiah(r.total)}`} loading={guard.isBusy} disabled={guard.isBusy} onPress={() => void terbitkan()} style={{ flex: 1 }} />
+        : undefined}>
+      <KartuSantri nama={santri.nama} keterangan={`NIS ${santri.nis}${santri.kelas ? ` · ${santri.kelas}` : ''}${santri.unit ? ` · ${santri.unit}` : ''}`} />
+      <Kartu>
+        <PrivateField label="Periode (TTTT-BB)" icon="calendar" value={periode} onChangeText={v => { setPeriode(v); bersihkan(); }} editable={!guard.isBusy} maxLength={7} autoCapitalize="none" />
         <DateField label="Jatuh tempo" value={jatuhTempo} onChange={v => { setJatuhTempo(v); bersihkan(); }} disabled={guard.isBusy} />
-        <AppButton label="Tampilkan tagihan" variant="secondary" loading={memuat} disabled={memuat || guard.isBusy} onPress={() => void lihat()} />
+        <AppButton label="Tampilkan tagihan" variant="secondary" icon="eye" loading={memuat} disabled={memuat || guard.isBusy} onPress={() => void lihat()} />
         <ThemedText type="caption" themeColor="textSecondary">Nominal diambil dari tarif unit dan penyesuaian santri. Tarif diatur di website.</ThemedText>
-      </Panel>
+      </Kartu>
       <Pesan text={galat} tone="danger" />
       {pratinjau && r ? (
-        <Panel style={{ gap: 10 }}>
-          <ThemedText type="h3">Tagihan {labelPeriode(pratinjau.periode)}</ThemedText>
-          {r.hasil === 'Terbit' ? (
-            <>
-              {(r.komponen ?? []).map((k, i) => <Baris key={`k${i}`} label={`${k.nama} (tarif unit ${r.unit ?? ''})`} value={rupiah(k.nominal)} />)}
-              {r.penyesuaian.map((p, i) => <Baris key={`p${i}`} label={`${p.jenis} · ${p.nama}`} value={`${p.jenis === 'Potongan' ? '−' : '+'}${rupiah(p.nominal)}`} />)}
-              <Divider />
-              <Baris label="Total tagihan" value={<ThemedText type="bodyBold">{rupiah(r.total)}</ThemedText>} />
-              <ThemedText type="caption" themeColor="textSecondary">Tagihan menyalin rincian ini dan tidak memotong tabungan.</ThemedText>
-              <Pesan text={guard.error} tone="danger" />
-              <AppButton label={`Terbitkan tagihan ${rupiah(r.total)}`} loading={guard.isBusy} disabled={guard.isBusy} onPress={() => void terbitkan()} />
-            </>
-          ) : r.hasil === 'SudahAda' ? (
-            <View style={{ gap: 8 }}>
-              <ThemedText>{r.keterangan ?? 'Tagihan periode ini sudah ada'}. Perubahan nominal dilakukan lewat koreksi tagihan.</ThemedText>
-              {r.tagihan_id ? <AppButton label="Buka tagihan" variant="secondary"
-                onPress={() => router.push({ pathname: '/keuangan/tagihan/[id]', params: { id: String(r.tagihan_id) } })} /> : null}
-            </View>
-          ) : (
-            <ThemedText>
-              Tidak ada tagihan dari tarif: {(r.keterangan ?? 'tarif tidak dapat dipakai').toLowerCase()}.
-              {r.keterangan === 'Belum ditempatkan di kelas' || r.keterangan === 'Belum ada tarif unit untuk periode ini'
-                ? ' Tagihan dengan komponen manual atau penetapan tarif dilakukan di website.' : ''}
-            </ThemedText>
-          )}
-        </Panel>
+        r.hasil === 'Terbit' ? (
+          <>
+            <ReceiptCard title={`Tagihan ${labelPeriode(pratinjau.periode)}`} subtitle={`Untuk ${santri.nama} · jatuh tempo ${tanggalPanjang(pratinjau.jatuh_tempo)}`}
+              rows={[
+                ...(r.komponen ?? []).map(k => ({ label: `${k.nama} (tarif unit ${r.unit ?? ''})`, value: rupiah(k.nominal) })),
+                ...r.penyesuaian.map(p => ({ label: `${p.jenis} · ${p.nama}`, value: `${p.jenis === 'Potongan' ? '−' : '+'}${rupiah(p.nominal)}` })),
+                { label: 'Total tagihan', value: rupiah(r.total), emphasis: true },
+              ]}
+              footer="Pratinjau: belum ada tagihan yang ditulis." />
+            <ThemedText type="caption" themeColor="textSecondary">Tagihan menyalin rincian ini dan tidak memotong tabungan.</ThemedText>
+            <Pesan text={guard.error} tone="danger" />
+          </>
+        ) : r.hasil === 'SudahAda' ? (
+          <Notice tone="info" title={`Tagihan ${labelPeriode(pratinjau.periode)}`}
+            text={`${r.keterangan ?? 'Tagihan periode ini sudah ada'}. Perubahan nominal dilakukan lewat koreksi tagihan.`}>
+            {r.tagihan_id ? <AppButton label="Buka tagihan" variant="line" size="sm"
+              onPress={() => router.push({ pathname: '/keuangan/tagihan/[id]', params: { id: String(r.tagihan_id) } })} /> : null}
+          </Notice>
+        ) : (
+          <Notice tone="warning" title={`Tagihan ${labelPeriode(pratinjau.periode)}`}
+            text={`Tidak ada tagihan dari tarif: ${(r.keterangan ?? 'tarif tidak dapat dipakai').toLowerCase()}.${r.keterangan === 'Belum ditempatkan di kelas' || r.keterangan === 'Belum ada tarif unit untuk periode ini'
+              ? ' Tagihan dengan komponen manual atau penetapan tarif dilakukan di website.' : ''}`} />
+        )
       ) : null}
     </Halaman>
   );

@@ -1,0 +1,11 @@
+# Redesain tampilan aplikasi gelombang 2 — Fase 3 (Keuangan santri/BSA)
+
+13 November 2026 · Implementator: Claude Code · Auditor berikutnya: Codex · Status: **siap audit Codex** (bukan izin merge, deploy, atau rilis).
+
+Branch `claude/redesain-tampilan-v2-fase-3` dari `origin/main` `50d2842` (PR #31; isi sama dengan koreksi audit Fase 2 `749384a`); versi **1.6.0 → 1.7.0** (minor, `versi:periksa --kerja` LULUS).
+
+Hanya tampilan, seluruh `src/app/keuangan/*` (18 layar) sesuai rencana §4.9: kerangka `Halaman`/`HalamanKeadaan` di atas `StackScreen` (← · judul · ⋯ di luar area gulir, K-7/K-10; kepala native dimatikan), menu per peran (`MenuTile`; orang tua `HeroCard` saldo + sisa tagihan per anak), rincian santri `ProfileHeader` + strip Saldo · Sisa tagihan · Transfer menunggu + `SegmentTabs`, invoice tagihan, formulir dengan `KartuSantri`, `SuccessPanel` + `ReceiptCard` (transfer menunggu = jam), mutasi bertanda + ikon arah, verifikasi, tunggakan, penerbitan/terbit satu santri, rekonsiliasi dan laporan (istilah BSA; `BarChart` hanya bila respons memuat seri ≥ 2 bulan). Cetak/PDF tetap dari website (keputusan T-1 V6), tanpa tombol Bagikan.
+
+Tidak berubah: endpoint, payload, nominal, hash pratinjau, idempotensi, versi optimistik, `pratinjauSatuSantriSah`, penjaga respons basi/latar, penanganan 401/403/404 (`use-keuangan-mutation.ts` dan `api/keuangan.ts` tidak disentuh), perlindungan `expo-screen-capture` navigator Keuangan. Tanpa dependensi baru. Perluasan aditif komponen bersama: `ProfileHeader statsNominal`, `StatCard labelDulu`, `EntityRow valueCaption/iconRotate`, `AppIcon rotate`, `Field awalan`, `HeroCard action.accessibilityLabel`. Perubahan `package.json`/`package-lock.json` milik pekerjaan lain tidak di-commit.
+
+Bukti (tsc/lint 0, unit 104/0, Expo web keuangan 45/0 · 20/0 · 27/0 · 3/0 · F-1 16/0 · V-1 5/0 = baseline, suite fase 258/0, regresi 837/0, jaringan 32 langkah sama / 0 berbeda / 158 permintaan, Android emulator dev client Debug 1.7.0, iOS simulator Release 1.7.0), penafsiran P3-1…P3-18, temuan T3-1…T3-4 (T3-1: tautan saat aplikasi mati menumpuk layar dua kali lewat `notification-context.tsx`, di luar cakupan), dan batas uji ada di `docs/redesain-tampilan-v2/fase-3/README.md` repo WebAlHasan.
