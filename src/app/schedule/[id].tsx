@@ -7,14 +7,21 @@ import type { ScheduleOccurrence } from '@/api/types';
 import { AppButton } from '@/components/app-button';
 import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { formatDate } from '@/components/schedule-card';
+import { StackScreen } from '@/components/screen-shell';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { ActionBar } from '@/components/ui/action-bar';
 import { Field } from '@/components/ui/app-field';
-import { Badge } from '@/components/ui/chip';
-import { Divider, Overline, Panel } from '@/components/ui/surface';
+import { Badge, ChipRow } from '@/components/ui/chip';
+import { InfoRow } from '@/components/ui/info-row';
+import { Notice } from '@/components/ui/notice';
+import { StatusPill } from '@/components/ui/status-pill';
+import { Overline, Panel } from '@/components/ui/surface';
+import { Layout, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { daftarKelas } from '@/lib/kelas-jadwal';
+
+const JUDUL = 'Rincian tugas';
 
 export default function ScheduleDetailScreen() {
   const params = useLocalSearchParams<{ id: string; date?: string }>();
@@ -86,75 +93,82 @@ export default function ScheduleDetailScreen() {
 
   if (loading && !schedule) {
     return (
-      <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: theme.background }}>
-        <LoadingState label="Memuat detail tugas…" />
-      </ScrollView>
+      <StackScreen title={JUDUL}>
+        <ScrollView contentInsetAdjustmentBehavior="never" style={{ backgroundColor: theme.background }}>
+          <LoadingState label="Memuat detail tugas…" />
+        </ScrollView>
+      </StackScreen>
     );
   }
   if (error && !schedule) {
     return (
-      <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: theme.background }}>
-        <ErrorState message={error} onRetry={() => void load()} />
-      </ScrollView>
+      <StackScreen title={JUDUL}>
+        <ScrollView contentInsetAdjustmentBehavior="never" style={{ backgroundColor: theme.background }}>
+          <ErrorState message={error} onRetry={() => void load()} />
+        </ScrollView>
+      </StackScreen>
     );
   }
-  if (!schedule) return null;
+  if (!schedule) return <StackScreen title={JUDUL}>{null}</StackScreen>;
 
   const sudahAda = Boolean(schedule.meeting);
   const kelas = daftarKelas(schedule);
   const gabungan = kelas.length > 1;
+  const selesai = schedule.meeting?.status === 'Selesai';
 
   return (
-    <View style={styles.screen}>
+    <StackScreen title={JUDUL}>
       <KeyboardAwareScrollView
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         style={{ backgroundColor: theme.background }}
         contentContainerStyle={styles.content}>
-        <Panel>
-          <View style={styles.headerRow}>
-            <View style={styles.time}>
-              <ThemedText selectable style={styles.timeStart}>
-                {schedule.start_time}
-              </ThemedText>
-              <ThemedText selectable style={[styles.timeEnd, { color: theme.textMuted }]}>
-                {schedule.end_time}
-              </ThemedText>
-            </View>
-            <View style={[styles.rail, { backgroundColor: theme.primary }]} />
-            <View style={styles.headerText}>
-              <ThemedText selectable type="h2">
-                {schedule.subject}
-              </ThemedText>
-              <ThemedText selectable type="caption" themeColor="textSecondary">
-                {formatDate(schedule.occurrence_date)}
-              </ThemedText>
-            </View>
-            <Badge label={schedule.meeting ? schedule.meeting.status : 'Belum dibuka'} tone={sudahAda ? 'primary' : 'warning'} />
-          </View>
+        {/* Kartu kepala hijau pucat: kitab, jam, status pertemuan. */}
+        <View style={[styles.kepala, { backgroundColor: theme.primarySoft, borderColor: theme.primaryBorder }]}>
+          <ThemedText selectable type="h2">
+            {schedule.subject}
+          </ThemedText>
+          <ThemedText selectable type="caption" themeColor="textSecondary">
+            {formatDate(schedule.occurrence_date)}
+          </ThemedText>
+          <ThemedText selectable type="numeralCard" style={styles.jam}>
+            {schedule.start_time} – {schedule.end_time}
+          </ThemedText>
+          <StatusPill
+            label={schedule.meeting ? schedule.meeting.status : 'Belum dibuka'}
+            tone={selesai ? 'success' : 'warning'}
+            icon={selesai ? 'check' : 'clock'}
+          />
+        </View>
 
-          <Divider />
-
+        <Panel style={styles.rincian}>
+          <InfoRow icon="person" label="Guru" value={schedule.teacher.name} />
           {gabungan ? (
-            <Detail
-              label="Kelas gabungan"
-              value={kelas.map((k) => (k.level ? `${k.name} · ${k.level}` : k.name)).join('\n')}
-            />
+            <InfoRow icon="users" label="Kelas gabungan" value={kelas.map((k) => (k.level ? `${k.name} · ${k.level}` : k.name)).join(', ')}>
+              <ChipRow>
+                {kelas.map((k) => (
+                  <Badge key={k.id} label={k.level ? `${k.name} · ${k.level}` : k.name} tone="primary" />
+                ))}
+              </ChipRow>
+            </InfoRow>
           ) : (
-            <Detail label="Kelas" value={`${schedule.class.name} · ${schedule.class.level}`} />
+            <InfoRow icon="users" label="Kelas" value={`${schedule.class.name} · ${schedule.class.level}`} />
           )}
-          <Detail label="Kitab" value={schedule.book} />
-          <Detail label="Tempat" value={schedule.place} />
-          <Detail label="Tahun ajaran" value={`${schedule.academic_year.year} · ${schedule.academic_year.semester}`} />
-          <Detail label="Guru" value={schedule.teacher.name} />
+          <InfoRow icon="book" label="Kitab" value={schedule.book} />
+          <InfoRow icon="pin" label="Tempat" value={schedule.place} />
+          <InfoRow
+            icon="calendar"
+            label="Tahun ajaran"
+            value={`${schedule.academic_year.year} · ${schedule.academic_year.semester}`}
+            last
+          />
         </Panel>
 
         {sudahAda ? (
-          <Panel>
-            <Overline>Pertemuan sudah tersedia</Overline>
-            <ThemedText selectable type="caption" themeColor="textSecondary">
-              Status pertemuan: {schedule.meeting?.status}.
-            </ThemedText>
-          </Panel>
+          <Notice
+            tone={selesai ? 'success' : 'info'}
+            title="Pertemuan sudah tersedia"
+            text={`Status pertemuan: ${schedule.meeting?.status}.`}
+          />
         ) : (
           <Panel>
             <Overline>Buka pertemuan</Overline>
@@ -172,17 +186,13 @@ export default function ScheduleDetailScreen() {
           </Panel>
         )}
 
-        {error ? (
-          <ThemedText selectable type="caption" themeColor="danger" accessibilityLiveRegion="assertive">
-            {error}
-          </ThemedText>
-        ) : null}
+        <Notice tone="danger" text={error} />
       </KeyboardAwareScrollView>
 
       <ActionBar>
         {sudahAda ? (
           <AppButton
-            label={schedule.meeting?.status === 'Selesai' ? 'Buka absensi tersimpan' : 'Isi absensi'}
+            label={selesai ? 'Buka absensi tersimpan' : 'Isi absensi'}
             icon="check"
             style={styles.grow}
             onPress={() =>
@@ -199,41 +209,22 @@ export default function ScheduleDetailScreen() {
           />
         )}
       </ActionBar>
-    </View>
-  );
-}
-
-function Detail({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.detail}>
-      <ThemedText selectable type="caption" themeColor="textMuted" style={styles.detailLabel}>
-        {label}
-      </ThemedText>
-      <ThemedText selectable type="caption" style={styles.detailValue}>
-        {value}
-      </ThemedText>
-    </View>
+    </StackScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
   content: {
-    padding: 16,
+    paddingHorizontal: Layout.screen,
+    paddingTop: 12,
     paddingBottom: 28,
     gap: 14,
     maxWidth: 760,
     width: '100%',
     alignSelf: 'center',
   },
-  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 13 },
-  time: { width: 52, gap: 2 },
-  timeStart: { fontSize: 16, lineHeight: 20, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  timeEnd: { fontSize: 12, lineHeight: 15, fontWeight: '500', fontVariant: ['tabular-nums'] },
-  rail: { width: 2, borderRadius: 2, alignSelf: 'stretch' },
-  headerText: { flex: 1, gap: 3 },
-  detail: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  detailLabel: { width: 112 },
-  detailValue: { flex: 1, minWidth: 140, fontWeight: '600' },
+  kepala: { borderWidth: 1, borderRadius: Radius.xxl, borderCurve: 'continuous', padding: 16, gap: 6 },
+  jam: { fontVariant: ['tabular-nums'], paddingVertical: 2 },
+  rincian: { gap: 0, paddingVertical: 4 },
   grow: { flex: 1 },
 });

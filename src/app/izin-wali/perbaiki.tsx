@@ -5,16 +5,23 @@ import { View } from 'react-native';
 import { izinWali, type DetailWali, type IsianIzin } from '@/api/izin-wali';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { Baris, Halaman, Pesan } from '@/components/izin-wali-shared';
+import { Halaman, Pesan } from '@/components/izin-wali-shared';
 import { waktuPendek } from '@/components/kesehatan-shared';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
+import { ActionBar } from '@/components/ui/action-bar';
 import { Field } from '@/components/ui/app-field';
+import { AvatarInisial } from '@/components/ui/avatar-inisial';
 import { DateField } from '@/components/ui/date-field';
+import { Notice } from '@/components/ui/notice';
 import { Overline, Panel } from '@/components/ui/surface';
+import { useTheme } from '@/hooks/use-theme';
+
 import { useIzinWaliMutation } from '@/hooks/use-izin-wali-mutation';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { isianBerubah, periksaIsian, rapikan } from '@/izin-wali/forms';
+
+const JUDUL = 'Perbaiki pengajuan';
 
 /**
  * Wali pengaju memperbaiki isi dan mengirim ulang — hanya saat pembimbing
@@ -30,6 +37,7 @@ export default function PerbaikiIzinWaliScreen() {
 
 function Perbaiki({ id }: { id: number }) {
   const router = useRouter();
+  const theme = useTheme();
   // Draf melekat pada isi dan versi yang benar-benar dilihat saat mulai menyunting.
   const [draf, setDraf] = useState<{ isian: IsianIzin; asal: IsianIzin; version: number } | null>(null);
   const [validasi, setValidasi] = useState<string | null>(null);
@@ -42,10 +50,10 @@ function Perbaiki({ id }: { id: number }) {
   const { data, error, load, reject } = usePrivateResource(fetcher, bersihkan, true);
   const guard = useIzinWaliMutation('izin-wali-perbaiki', reject, () => setKonflik(true));
 
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!data) return <LoadingState label="Memuat pengajuan…" />;
+  if (error) return <Halaman title={JUDUL}><ErrorState message={error} onRetry={() => void load()} /></Halaman>;
+  if (!data) return <Halaman title={JUDUL}><LoadingState label="Memuat pengajuan…" /></Halaman>;
   if (data.peran_akses !== 'wali' || !data.tindakan.perbaiki || data.pengajuan.version === undefined) {
-    return <Halaman><EmptyState title="Perbaikan tidak tersedia" message="Perbaikan hanya dapat dikirim wali pengaju saat pembimbing memintanya." /></Halaman>;
+    return <Halaman title={JUDUL}><EmptyState title="Perbaikan tidak tersedia" message="Perbaikan hanya dapat dikirim wali pengaju saat pembimbing memintanya." /></Halaman>;
   }
   const detail = data as DetailWali;
   const p = detail.pengajuan;
@@ -66,14 +74,27 @@ function Perbaiki({ id }: { id: number }) {
   }
 
   return (
-    <Halaman>
-      <ThemedText type="h3">{p.santri.nama}</ThemedText>
+    <Halaman
+      title={JUDUL}
+      footer={
+        <ActionBar>
+          <AppButton label="Kirim perbaikan" style={{ flex: 1 }} loading={guard.isBusy} disabled={guard.isBusy} onPress={() => void kirim()} />
+        </ActionBar>
+      }>
+      {/* Catatan pembimbing di atas, dalam kartu peringatan. */}
       {permintaan ? (
-        <Panel style={{ gap: 6 }}>
-          <Overline>Permintaan pembimbing</Overline>
-          <Baris label={`${permintaan.pembimbing} · ${waktuPendek(permintaan.waktu)}`} value={permintaan.catatan} />
-        </Panel>
+        <Notice tone="warning" icon="info" title="Permintaan pembimbing" selectable={false}>
+          <ThemedText type="caption" themeColor="textSecondary">{permintaan.pembimbing} · {waktuPendek(permintaan.waktu)}</ThemedText>
+          <ThemedText>{permintaan.catatan || '—'}</ThemedText>
+        </Notice>
       ) : null}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 20, borderCurve: 'continuous', padding: 12, backgroundColor: theme.primarySoft, borderColor: theme.primaryBorder }}>
+        <AvatarInisial nama={p.santri.nama} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <ThemedText type="h3">{p.santri.nama}</ThemedText>
+          <ThemedText type="caption" themeColor="textSecondary">NIS {p.santri.nis} · pengajuan #{p.id}</ThemedText>
+        </View>
+      </View>
       <Panel style={{ gap: 10 }}>
         <Overline>Rentang izin</Overline>
         <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
@@ -86,11 +107,10 @@ function Perbaiki({ id }: { id: number }) {
           </View>
         </View>
       </Panel>
-      <Field label="Alasan izin" accessibilityLabel="Alasan izin" value={nilai.alasan} onChangeText={alasan => ubah({ alasan })} multiline />
-      <Field label="Catatan" accessibilityLabel="Catatan" hint="Opsional" value={nilai.catatan} onChangeText={catatan => ubah({ catatan })} multiline />
+      <Field label="Alasan izin" accessibilityLabel="Alasan izin" icon="izin" value={nilai.alasan} onChangeText={alasan => ubah({ alasan })} multiline />
+      <Field label="Catatan" accessibilityLabel="Catatan" hint="Opsional" icon="info" value={nilai.catatan} onChangeText={catatan => ubah({ catatan })} multiline />
       <Pesan text={validasi ?? guard.error} tone="danger" />
       {konflik ? <AppButton label="Muat versi terbaru" variant="secondary" onPress={() => { setKonflik(false); setDraf(null); void load(); }} /> : null}
-      <AppButton label="Kirim perbaikan" loading={guard.isBusy} disabled={guard.isBusy} onPress={() => void kirim()} />
     </Halaman>
   );
 }

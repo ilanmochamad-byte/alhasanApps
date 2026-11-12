@@ -1,6 +1,6 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { actionableError, api, createIdempotencyKey } from '@/api/client';
 import type { AttendancePayload, AttendanceStatus, MeetingDetail, StudentMeetingRow } from '@/api/types';
@@ -8,15 +8,20 @@ import { AppButton } from '@/components/app-button';
 import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { PesertaKosong, PesertaSaring } from '@/components/peserta-saring';
 import { formatDate } from '@/components/schedule-card';
+import type { HeaderMenuItem } from '@/components/screen-header';
+import { StackScreen } from '@/components/screen-shell';
 import { ErrorState, LoadingState } from '@/components/screen-state';
-import { StatusSelector } from '@/components/status-selector';
+import { IKON_KEHADIRAN, StatusSelector } from '@/components/status-selector';
 import { ThemedText } from '@/components/themed-text';
 import { ActionBar } from '@/components/ui/action-bar';
 import { Field } from '@/components/ui/app-field';
-import { Badge } from '@/components/ui/chip';
-import { StatusRecap } from '@/components/ui/status-recap';
+import { AvatarInisial } from '@/components/ui/avatar-inisial';
+import { Notice } from '@/components/ui/notice';
+import { StatusPill } from '@/components/ui/status-pill';
+import { StatusRecap, statusPalette } from '@/components/ui/status-recap';
 import { Divider, Overline, Panel } from '@/components/ui/surface';
-import { Radius } from '@/constants/theme';
+import { AppIcon } from '@/components/app-icon';
+import { Elevation, Layout, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { daftarKelas, labelKelas, namaKelasAsal } from '@/lib/kelas-jadwal';
 import { gabungDrafPeserta, ringkasPerubahanPeserta } from '@/lib/perbarui-peserta';
@@ -24,10 +29,16 @@ import { nomorUrut, saringPeserta, tabKelas, TAB_SEMUA } from '@/lib/peserta-sar
 
 type StudentDraft = Record<number, { status: AttendanceStatus; notes: string }>;
 
+const JUDUL = 'Absensi pertemuan';
+/** Urutan ringkasan mini = urutan `StatusRecap` (lolos uji keterbedaan warna). */
+const URUTAN_RINGKAS: AttendanceStatus[] = ['Hadir', 'Izin', 'Terlambat', 'Sakit', 'Alpa'];
+
 export default function MeetingScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const meetingId = Number(params.id);
   const theme = useTheme();
+  // Teks sistem sangat besar: ringkasan mini menjadi kisi 3 + 2 agar label tidak terpotong.
+  const ringkasBesar = useWindowDimensions().fontScale > 1.35;
   const [meeting, setMeeting] = useState<MeetingDetail | null>(null);
   const [teacherStatus, setTeacherStatus] = useState<AttendanceStatus>('Hadir');
   const [teacherNotes, setTeacherNotes] = useState('');
@@ -199,19 +210,23 @@ export default function MeetingScreen() {
 
   if (loading && !meeting) {
     return (
-      <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: theme.background }}>
-        <LoadingState label="Memuat absensi…" />
-      </ScrollView>
+      <StackScreen title={JUDUL}>
+        <ScrollView contentInsetAdjustmentBehavior="never" style={{ backgroundColor: theme.background }}>
+          <LoadingState label="Memuat absensi…" />
+        </ScrollView>
+      </StackScreen>
     );
   }
   if (error && !meeting) {
     return (
-      <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: theme.background }}>
-        <ErrorState message={error} onRetry={() => void load()} />
-      </ScrollView>
+      <StackScreen title={JUDUL}>
+        <ScrollView contentInsetAdjustmentBehavior="never" style={{ backgroundColor: theme.background }}>
+          <ErrorState message={error} onRetry={() => void load()} />
+        </ScrollView>
+      </StackScreen>
     );
   }
-  if (!meeting) return null;
+  if (!meeting) return <StackScreen title={JUDUL}>{null}</StackScreen>;
 
   const total = meeting.students.length;
   const progres = total > 0 ? Math.round((tercatat / total) * 100) : 0;
@@ -228,35 +243,51 @@ export default function MeetingScreen() {
   // tidak berubah saat dicari atau berpindah tab.
   const nomor = nomorUrut(meeting.students, kelas);
   const tersaring = tampil < total;
+  const dibuka = meeting.status === 'Dibuka';
+  const palette = statusPalette(theme);
+  // "Perbarui daftar" adalah tindakan sekunder: pindah ke ⋯ (gelombang 2 §4.3).
+  // Hanya ditawarkan pada pertemuan Dibuka, sama seperti sebelumnya.
+  const menu: HeaderMenuItem[] = dibuka
+    ? [{ label: 'Perbarui daftar', icon: 'refresh', onPress: () => { if (!submitting) void refreshParticipants(); } }]
+    : [];
 
   return (
-    <View style={styles.screen}>
+    <StackScreen title={JUDUL} menu={menu}>
       <KeyboardAwareScrollView
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         style={{ backgroundColor: theme.background }}
         contentContainerStyle={styles.content}>
-        <Panel>
-          <View style={styles.headerRow}>
-            <View style={styles.time}>
-              <ThemedText selectable style={styles.timeStart}>
-                {meeting.task.start_time}
+        {/* Kepala ringkas: kitab, kelas, tanggal, tempat, status pertemuan. */}
+        <View style={[styles.kepala, { backgroundColor: theme.primarySoft, borderColor: theme.primaryBorder }]}>
+          <ThemedText selectable type="h2">
+            {meeting.task.subject} · {labelKelas(meeting.task)}
+          </ThemedText>
+          <ThemedText selectable type="caption" themeColor="textSecondary">
+            {formatDate(meeting.date)} · {meeting.task.start_time}–{meeting.task.end_time} · {meeting.task.place}
+          </ThemedText>
+          <StatusPill
+            label={meeting.status}
+            tone={meeting.status === 'Selesai' ? 'success' : 'warning'}
+            icon={meeting.status === 'Selesai' ? 'check' : 'clock'}
+          />
+        </View>
+
+        {/* Ringkasan mini yang ikut draf: seluruh peserta, bukan hasil saringan. */}
+        <View
+          accessibilityLabel="Ringkasan isian kehadiran santri"
+          style={[styles.ringkas, { backgroundColor: theme.card, borderColor: theme.border, boxShadow: Elevation.card }]}>
+          {URUTAN_RINGKAS.map((status) => (
+            <View key={status} accessible accessibilityLabel={`${status}: ${counts[status]}`} style={[styles.ringkasSel, ringkasBesar && styles.ringkasSelBesar]}>
+              <AppIcon name={IKON_KEHADIRAN[status]} size={16} color={palette[status]} />
+              <ThemedText type="numeralCard" style={styles.ringkasAngka}>
+                {counts[status]}
               </ThemedText>
-              <ThemedText selectable style={[styles.timeEnd, { color: theme.textMuted }]}>
-                {meeting.task.end_time}
+              <ThemedText type="caption" themeColor="textSecondary" numberOfLines={ringkasBesar ? undefined : 1}>
+                {status}
               </ThemedText>
             </View>
-            <View style={[styles.rail, { backgroundColor: theme.primary }]} />
-            <View style={styles.headerText}>
-              <ThemedText selectable type="h2">
-                {meeting.task.subject} · {labelKelas(meeting.task)}
-              </ThemedText>
-              <ThemedText selectable type="caption" themeColor="textSecondary">
-                {formatDate(meeting.date)} · {meeting.task.place}
-              </ThemedText>
-            </View>
-            <Badge label={meeting.status} tone={meeting.status === 'Selesai' ? 'primary' : 'warning'} />
-          </View>
-        </Panel>
+          ))}
+        </View>
 
         <Panel>
           <Overline>Kehadiran Anda</Overline>
@@ -299,39 +330,22 @@ export default function MeetingScreen() {
               </ThemedText>
             </View>
           </View>
-          <AppButton
-            label={`Semua hadir (${total})`}
-            icon="check"
-            variant="secondary"
-            size="sm"
-            onPress={markAllPresent}
-            accessibilityHint={`Menandai seluruh ${total} santri pertemuan ini hadir, termasuk yang tidak sedang ditampilkan.`}
-          />
         </View>
-        {meeting.status === 'Dibuka' ? (
-          <View style={styles.refreshRow}>
-            <ThemedText selectable type="caption" themeColor="textSecondary" style={styles.refreshText}>
-              Daftar santri berbeda dengan kelas saat ini? Perbarui sesuai penempatan kelas terbaru.
-            </ThemedText>
-            <AppButton
-              label="Perbarui daftar"
-              icon="refresh"
-              variant="secondary"
-              size="sm"
-              onPress={() => void refreshParticipants()}
-              loading={refreshing}
-              disabled={submitting}
-              accessibilityHint="Menambahkan santri yang baru ditempatkan di kelas ini dan mengeluarkan santri yang sudah keluar, pindah kelas, atau dinonaktifkan."
-            />
-          </View>
+        <AppButton
+          label={`Semua hadir (${total})`}
+          icon="check"
+          variant="line"
+          size="sm"
+          onPress={markAllPresent}
+          accessibilityHint={`Menandai seluruh ${total} santri pertemuan ini hadir, termasuk yang tidak sedang ditampilkan.`}
+        />
+        {dibuka && refreshing ? <Notice tone="neutral" icon="refresh" text="Memperbarui daftar santri…" /> : null}
+        {dibuka && refreshInfo ? (
+          <Notice tone={refreshInfo.error ? 'danger' : 'success'} text={refreshInfo.text} />
         ) : null}
-        {meeting.status === 'Dibuka' && refreshInfo ? (
-          <ThemedText
-            selectable
-            type="caption"
-            themeColor={refreshInfo.error ? 'danger' : 'success'}
-            accessibilityLiveRegion={refreshInfo.error ? 'assertive' : 'polite'}>
-            {refreshInfo.text}
+        {dibuka ? (
+          <ThemedText selectable type="caption" themeColor="textSecondary">
+            Daftar santri berbeda dengan kelas saat ini? Pilih “Perbarui daftar” dari tombol ⋯ di kanan atas.
           </ThemedText>
         ) : null}
         {gabungan || tersaring ? (
@@ -398,16 +412,8 @@ export default function MeetingScreen() {
               />
             </>
           ) : null}
-          {error ? (
-            <ThemedText selectable type="caption" themeColor="danger" accessibilityLiveRegion="assertive">
-              {error}
-            </ThemedText>
-          ) : null}
-          {success ? (
-            <ThemedText selectable type="caption" themeColor="success" accessibilityLiveRegion="polite">
-              {success}
-            </ThemedText>
-          ) : null}
+          <Notice tone="danger" text={error} />
+          <Notice tone="success" title={success ? 'Absensi tersimpan' : undefined} text={success} />
         </Panel>
       </KeyboardAwareScrollView>
 
@@ -420,7 +426,7 @@ export default function MeetingScreen() {
           disabled={refreshing || meeting.students.some((student) => !students[student.student_id])}
         />
       </ActionBar>
-    </View>
+    </StackScreen>
   );
 }
 
@@ -440,24 +446,23 @@ function StudentCard({
 }) {
   const theme = useTheme();
   return (
-    <View style={[styles.studentCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+    <View style={[styles.studentCard, { backgroundColor: theme.card, borderColor: theme.border, boxShadow: Elevation.card }]}>
       <View style={styles.studentTitle}>
-        <View style={[styles.number, { backgroundColor: theme.backgroundElement }]}>
-          <ThemedText selectable type="caption" themeColor="textSecondary">
-            {String(number).padStart(2, '0')}
-          </ThemedText>
-        </View>
+        <AvatarInisial nama={student.name} />
         <View style={styles.studentText}>
-          <ThemedText selectable type="h3">
+          <ThemedText selectable type="bodyBold">
             {student.name}
           </ThemedText>
-          <ThemedText selectable type="caption" themeColor="textMuted">
+          <ThemedText selectable type="caption" themeColor="textSecondary">
             NIS {student.nis}
             {kelasAsal ? ` · Kelas ${kelasAsal}` : ''}
           </ThemedText>
         </View>
+        <ThemedText type="caption" themeColor="textMuted" accessibilityLabel={`Nomor urut ${number}`} style={styles.number}>
+          {String(number).padStart(2, '0')}
+        </ThemedText>
       </View>
-      <StatusSelector value={draft.status} onChange={(status) => onChange({ status })} />
+      <StatusSelector compact value={draft.status} onChange={(status) => onChange({ status })} />
       <Field
         value={draft.notes}
         onChangeText={(notes) => onChange({ notes })}
@@ -468,47 +473,46 @@ function StudentCard({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
   content: {
-    padding: 16,
+    paddingHorizontal: Layout.screen,
+    paddingTop: 12,
     paddingBottom: 28,
     gap: 14,
     maxWidth: 760,
     width: '100%',
     alignSelf: 'center',
   },
-  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 13 },
-  time: { width: 52, gap: 2 },
-  timeStart: { fontSize: 16, lineHeight: 20, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  timeEnd: { fontSize: 12, lineHeight: 15, fontWeight: '500', fontVariant: ['tabular-nums'] },
-  rail: { width: 2, borderRadius: 2, alignSelf: 'stretch' },
-  headerText: { flex: 1, gap: 3 },
+  kepala: { borderWidth: 1, borderRadius: Radius.xxl, borderCurve: 'continuous', padding: 16, gap: 6 },
+  ringkas: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    borderWidth: 1,
+    borderRadius: Radius.xxl,
+    borderCurve: 'continuous',
+    paddingVertical: 12,
+    paddingHorizontal: 6,
+    rowGap: 10,
+  },
+  ringkasSel: { flexGrow: 1, flexBasis: 56, alignItems: 'center', gap: 2, paddingHorizontal: 2 },
+  ringkasSelBesar: { flexBasis: '30%' },
+  ringkasAngka: { fontVariant: ['tabular-nums'] },
   santriHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 4 },
   santriHeaderText: { flex: 1, gap: 5 },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   progressTrack: { flex: 1, height: 5, borderRadius: 999, overflow: 'hidden' },
   progressFill: { height: 5, borderRadius: 999 },
   progressText: { fontVariant: ['tabular-nums'] },
-  group: { gap: 14 },
-  refreshRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  refreshText: { flex: 1 },
+  group: { gap: 12 },
   groupHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingTop: 4 },
   studentCard: {
     borderWidth: 1,
-    borderRadius: Radius.xl,
+    borderRadius: Radius.xxl,
     borderCurve: 'continuous',
     padding: 14,
     gap: 11,
   },
   studentTitle: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  number: {
-    width: 34,
-    height: 34,
-    borderRadius: 11,
-    borderCurve: 'continuous',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  number: { fontVariant: ['tabular-nums'] },
   studentText: { flex: 1, gap: 1 },
   grow: { flex: 1 },
 });

@@ -2,14 +2,15 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppIcon } from '@/components/app-icon';
 import { ThemedText } from '@/components/themed-text';
-import { SearchField } from '@/components/ui/app-field';
-import { Chip } from '@/components/ui/chip';
+import { FilterPills } from '@/components/ui/filter-pills';
+import { SearchBar } from '@/components/ui/search-bar';
 import { TAB_SEMUA, type TabKelas } from '@/lib/peserta-saring';
 
 /**
- * Kolom cari nama/NIS dan tab kelas asal untuk daftar peserta pertemuan.
- * Hanya mengubah tampilan; pemanggil tetap menyimpan dan mengirim seluruh
- * peserta. Penyaringan lokal (tanpa permintaan ke server per ketikan).
+ * Kolom cari nama/NIS dan tab kelas asal untuk daftar peserta pertemuan
+ * (redesain gelombang 2: `SearchBar` + pil yang dapat digeser). Hanya
+ * mengubah tampilan; pemanggil tetap menyimpan dan mengirim seluruh peserta.
+ * Penyaringan lokal (tanpa permintaan ke server per ketikan).
  */
 export function PesertaSaring({
   kataKunci,
@@ -33,13 +34,11 @@ export function PesertaSaring({
   const aktif = kataKunci.trim() !== '' || tab !== TAB_SEMUA;
   return (
     <View style={styles.wrap}>
-      <SearchField
+      <SearchBar
         accessibilityLabel="Cari santri menurut nama atau NIS"
         placeholder="Cari nama atau NIS"
         value={kataKunci}
         onChangeText={onKataKunci}
-        autoCorrect={false}
-        autoCapitalize="none"
         autoComplete="off"
         maxLength={100}
         trailing={
@@ -47,7 +46,7 @@ export function PesertaSaring({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Hapus pencarian"
-              hitSlop={10}
+              hitSlop={14}
               onPress={() => onKataKunci('')}>
               <AppIcon name="close" size={16} themeColor="textMuted" />
             </Pressable>
@@ -55,17 +54,13 @@ export function PesertaSaring({
         }
       />
       {tabs ? (
-        <View accessibilityRole="tablist" accessibilityLabel="Pilih kelas asal" style={styles.tabs}>
-          {tabs.map((item) => (
-            <Chip
-              key={item.key}
-              accessibilityRole="tab"
-              label={`${item.label} · ${item.count}`}
-              selected={tab === item.key}
-              onPress={() => onTab(item.key)}
-            />
-          ))}
-        </View>
+        <FilterPills
+          role="tab"
+          accessibilityLabel="Pilih kelas asal"
+          value={tab}
+          onChange={onTab}
+          options={tabs.map((item) => ({ value: item.key, label: `${item.label} · ${item.count}` }))}
+        />
       ) : null}
       {aktif ? (
         <ThemedText selectable type="caption" themeColor="textSecondary" accessibilityLiveRegion="polite">
@@ -83,7 +78,7 @@ export function PesertaKosong({ onReset }: { onReset: () => void }) {
       <ThemedText selectable themeColor="textSecondary">
         Tidak ada santri yang cocok dengan pencarian atau kelas yang dipilih.
       </ThemedText>
-      <Pressable accessibilityRole="button" onPress={onReset} hitSlop={8}>
+      <Pressable accessibilityRole="button" onPress={onReset} hitSlop={8} style={styles.reset}>
         <ThemedText type="bodyBold" themeColor="primary">
           Tampilkan semua santri
         </ThemedText>
@@ -94,6 +89,6 @@ export function PesertaKosong({ onReset }: { onReset: () => void }) {
 
 const styles = StyleSheet.create({
   wrap: { gap: 10 },
-  tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   empty: { gap: 8, paddingVertical: 12 },
+  reset: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
 });

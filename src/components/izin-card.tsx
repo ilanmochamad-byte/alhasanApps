@@ -4,8 +4,8 @@ import type { IzinStatus, Pengajuan } from '@/api/types';
 import { AppIcon } from '@/components/app-icon';
 import { ThemedText } from '@/components/themed-text';
 import { Badge } from '@/components/ui/chip';
-import { Card } from '@/components/ui/surface';
-import { Radius } from '@/constants/theme';
+import { EntityRow } from '@/components/ui/entity-row';
+import { StatusPill, type StatusTone } from '@/components/ui/status-pill';
 import { useTheme } from '@/hooks/use-theme';
 
 export function formatTanggal(value: string) {
@@ -58,12 +58,31 @@ function statusTone(status: IzinStatus) {
   }
 }
 
+/** Nada pil status izin (gelombang 2): disetujui hijau, ditolak merah, batal netral, lainnya menunggu. */
+export function statusPillTone(status: IzinStatus): StatusTone {
+  switch (status) {
+    case 'Disetujui':
+      return 'success';
+    case 'Ditolak':
+      return 'danger';
+    case 'Dibatalkan':
+      return 'neutral';
+    default:
+      return 'warning';
+  }
+}
+
+/** Pil status izin: ikon + teks status dari server. */
+export function IzinStatusPill({ status }: { status: IzinStatus }) {
+  return <StatusPill label={status} tone={statusPillTone(status)} icon={statusIcon(status)} />;
+}
+
 export function StatusBadge({ status }: { status: IzinStatus }) {
   return <Badge label={status} tone={statusTone(status)} />;
 }
 
 /** Ikon status izin; selalu berpasangan dengan teks status. */
-function statusIcon(status: IzinStatus) {
+export function statusIcon(status: IzinStatus) {
   switch (status) {
     case 'Disetujui':
       return 'check' as const;
@@ -83,25 +102,21 @@ export function inisial(nama: string) {
 }
 
 /**
- * Kartu pengajuan izin (redesain tampilan Fase 2, gabungan A + C): avatar
- * inisial, nama, status berupa ikon + teks, rentang tanggal, alasan, dan
- * petunjuk tindakan. Keputusan selalu diambil di layar detail karena server
- * mewajibkan alasan keputusan; kartu hanya mengarahkan ke sana ("Tinjau").
+ * Baris pengajuan izin (redesain gelombang 2 §4.2, pola `EntityRow`): avatar
+ * inisial, nama, NIS · nomor, rentang tanggal, alasan, pil status ikon + teks,
+ * dan petunjuk tindakan. Keputusan selalu diambil di layar rincian karena
+ * server mewajibkan alasan keputusan; baris hanya mengarahkan ke sana.
  */
 export function IzinCard({ item, onPress }: { item: Pengajuan; onPress: () => void }) {
-  const theme = useTheme();
   const { fontScale } = useWindowDimensions();
   // Teks sistem sangat besar: keterangan pengurus/murobi dan petunjuk
   // tindakan ditumpuk agar keduanya tidak saling memeras.
   const bertumpuk = fontScale > 1.35;
   const hari = lamaHari(item.tgl_izin, item.tgl_kembali);
-  const warna = statusColor(item.status, theme);
 
-  // Kartu antrean memberi tahu tindakan apa yang menunggu. Nilainya berasal
-  // dari `aksi` yang dihitung server, bukan dari tebakan di sisi aplikasi.
-  // `aksi` dibaca dengan penjagaan opsional: bila suatu saat muatan daftar
-  // tidak menyertakannya, kartu tetap tampil tanpa petunjuk tindakan alih-alih
-  // menggagalkan seluruh daftar.
+  // Petunjuk tindakan berasal dari `aksi` yang dihitung server, bukan tebakan
+  // aplikasi. `aksi` dibaca dengan penjagaan opsional: bila muatan daftar tidak
+  // menyertakannya, baris tetap tampil tanpa petunjuk tindakan.
   const tindakan = item.aksi?.tetapkan_murobi
     ? 'Tetapkan murobi'
     : item.aksi?.putuskan_murobi || item.aksi?.putuskan_admin
@@ -109,7 +124,11 @@ export function IzinCard({ item, onPress }: { item: Pengajuan; onPress: () => vo
       : null;
 
   return (
-    <Card
+    <EntityRow
+      avatarName={item.santri.nama}
+      title={item.santri.nama}
+      subtitle={`NIS ${item.santri.nis} · #${item.id}`}
+      highlight={tindakan ? 'warning' : undefined}
       onPress={onPress}
       accessibilityLabel={[
         `Pengajuan ${item.id} untuk ${item.santri.nama}`,
@@ -118,100 +137,58 @@ export function IzinCard({ item, onPress }: { item: Pengajuan; onPress: () => vo
       ]
         .filter(Boolean)
         .join(', ')}
-      style={[styles.card, tindakan && { borderColor: theme.warningBorder }]}>
-      <View style={styles.header}>
-        <View style={[styles.avatar, { backgroundColor: theme.primarySoft }]}>
-          <ThemedText style={[styles.avatarText, { color: theme.primary }]}>{inisial(item.santri.nama)}</ThemedText>
-        </View>
-        <View style={styles.identity}>
-          <ThemedText selectable type="h3" style={styles.name}>
-            {item.santri.nama}
-          </ThemedText>
-          <ThemedText selectable type="caption" themeColor="textSecondary">
-            NIS {item.santri.nis} · #{item.id}
-          </ThemedText>
-        </View>
-      </View>
-
-      <View style={styles.statusRow}>
-        <AppIcon name={statusIcon(item.status)} size={16} color={warna} />
-        <ThemedText selectable style={[styles.statusText, { color: warna }]}>
-          {item.status}
-        </ThemedText>
-      </View>
-
-      <View style={styles.range}>
-        <ThemedText selectable style={styles.rangeText}>
-          {formatTanggalPendek(item.tgl_izin)}
-        </ThemedText>
-        <AppIcon name="arrow-right" size={14} themeColor="textMuted" />
-        <ThemedText selectable style={styles.rangeText}>
-          {formatTanggal(item.tgl_kembali)}
-        </ThemedText>
-        {hari ? (
-          <ThemedText selectable type="caption" themeColor="textSecondary">
-            · {hari} hari
-          </ThemedText>
-        ) : null}
-      </View>
-
-      <ThemedText selectable type="caption" themeColor="textSecondary" numberOfLines={2}>
-        {item.alasan}
-      </ThemedText>
-
-      <View style={[styles.footer, bertumpuk && styles.footerStacked, { borderTopColor: theme.divider }]}>
-        <ThemedText selectable type="caption" themeColor="textSecondary" style={styles.footerText}>
-          {item.pengurus_label ? `${item.pengurus_label} · ` : ''}
-          {item.murobi_label ? `Murobi ${item.murobi_label}` : 'Murobi belum ditetapkan'}
-        </ThemedText>
-        {tindakan ? (
-          <View style={styles.action}>
-            <ThemedText selectable style={[styles.actionText, { color: theme.primary }]}>
-              {tindakan}
+      detail={
+        <View style={styles.detail}>
+          <View style={styles.range}>
+            <AppIcon name="calendar" size={14} themeColor="textMuted" />
+            <ThemedText selectable style={styles.rangeText}>
+              {formatTanggalPendek(item.tgl_izin)}
             </ThemedText>
-            <AppIcon name="chevron-right" size={16} themeColor="primary" />
+            <AppIcon name="arrow-right" size={14} themeColor="textMuted" />
+            <ThemedText selectable style={styles.rangeText}>
+              {formatTanggal(item.tgl_kembali)}
+            </ThemedText>
+            {hari ? (
+              <ThemedText selectable type="caption" themeColor="textSecondary">
+                · {hari} hari
+              </ThemedText>
+            ) : null}
           </View>
-        ) : null}
-      </View>
-
-      {item.is_legacy ? (
-        <ThemedText selectable type="caption" themeColor="warning">
-          {item.sumber_label} — hanya dapat dibaca
-        </ThemedText>
-      ) : null}
-    </Card>
+          <ThemedText selectable type="caption" themeColor="textSecondary" numberOfLines={2}>
+            {item.alasan}
+          </ThemedText>
+          <ThemedText selectable type="caption" themeColor="textSecondary">
+            {item.pengurus_label ? `${item.pengurus_label} · ` : ''}
+            {item.murobi_label ? `Murobi ${item.murobi_label}` : 'Murobi belum ditetapkan'}
+          </ThemedText>
+          {item.is_legacy ? (
+            <ThemedText selectable type="caption" themeColor="warning">
+              {item.sumber_label} — hanya dapat dibaca
+            </ThemedText>
+          ) : null}
+        </View>
+      }
+      pill={
+        <View style={[styles.pills, bertumpuk && styles.pillsStacked]}>
+          <IzinStatusPill status={item.status} />
+          {tindakan ? (
+            <View style={styles.action}>
+              <ThemedText selectable type="label" themeColor="primary">
+                {tindakan}
+              </ThemedText>
+            </View>
+          ) : null}
+        </View>
+      }
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  card: { gap: 8 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { fontSize: 15, lineHeight: 19, fontWeight: '800' },
-  identity: { flex: 1, gap: 1 },
-  name: { fontSize: 16, lineHeight: 21 },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statusText: { fontSize: 13, lineHeight: 17, fontWeight: '800' },
-  range: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 7 },
+  detail: { gap: 4, paddingTop: 4 },
+  range: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
   rangeText: { fontSize: 13, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  footer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    columnGap: 8,
-    rowGap: 4,
-    borderTopWidth: 1,
-    marginTop: 2,
-    paddingTop: 8,
-  },
-  footerStacked: { flexDirection: 'column', alignItems: 'flex-start' },
-  footerText: { flexGrow: 1, flexShrink: 1 },
-  action: { flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 24 },
-  actionText: { fontSize: 13, lineHeight: 17, fontWeight: '800' },
+  pills: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 10, rowGap: 4 },
+  pillsStacked: { flexDirection: 'column', alignItems: 'flex-start' },
+  action: { minHeight: 24, justifyContent: 'center' },
 });

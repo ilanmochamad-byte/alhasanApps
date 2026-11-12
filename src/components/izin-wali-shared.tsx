@@ -5,9 +5,15 @@ import { ApiError } from '@/api/client';
 import { izinWali, type PengajuanPetugas, type PengajuanWali } from '@/api/izin-wali';
 import { AppButton } from '@/components/app-button';
 import { tanggalPanjang } from '@/components/kesehatan-shared';
+import type { HeaderMenuItem } from '@/components/screen-header';
+import { StackScreen } from '@/components/screen-shell';
 import { ThemedText } from '@/components/themed-text';
-import { Badge, ChipRow } from '@/components/ui/chip';
-import { Card } from '@/components/ui/surface';
+import { ChipRow } from '@/components/ui/chip';
+import { EntityRow } from '@/components/ui/entity-row';
+import { InfoRow } from '@/components/ui/info-row';
+import { Notice } from '@/components/ui/notice';
+import { StatusPill, type StatusTone } from '@/components/ui/status-pill';
+import { Layout } from '@/constants/theme';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { useTheme } from '@/hooks/use-theme';
 import { LABEL_TAHAP, nadaStatus } from '@/izin-wali/forms';
@@ -28,11 +34,31 @@ export function useIzinWaliAkses() {
 }
 
 /**
- * Halaman izin wali. Saat aplikasi tidak aktif (pengalih aplikasi, layar
+ * Halaman izin wali (redesain gelombang 2): kepala stack ← · judul · ⋯ di luar
+ * area gulir (K-10), isi bergulir, dan `footer` (ActionBar) atau `overlay`
+ * (FAB) di luar gulir. Saat aplikasi tidak aktif (pengalih aplikasi, layar
  * kunci), isi ditutup agar cuplikan layar OS tidak memuat nama atau alasan;
  * isian formulir tetap utuh di bawah penutup.
  */
-export function Halaman({ children }: PropsWithChildren) {
+export function Halaman({
+  title,
+  menu,
+  onBack,
+  footer,
+  overlay,
+  bottomSpace = 0,
+  children,
+}: PropsWithChildren<{
+  title: string;
+  menu?: HeaderMenuItem[];
+  onBack?: () => void;
+  /** Bilah tindakan tetap di bawah, di luar area gulir. */
+  footer?: ReactNode;
+  /** Lapisan di atas isi (FAB). */
+  overlay?: ReactNode;
+  /** Ruang kosong tambahan di dasar daftar (mis. setinggi FAB + 16). */
+  bottomSpace?: number;
+}>) {
   const theme = useTheme();
   const [aktif, setAktif] = useState(AppState.currentState === 'active' || AppState.currentState === undefined);
   useEffect(() => {
@@ -40,63 +66,68 @@ export function Halaman({ children }: PropsWithChildren) {
     return () => sub.remove();
   }, []);
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: theme.background }}
-        contentContainerStyle={styles.page}>
-        {children}
-      </ScrollView>
-      {!aktif ? (
-        <View style={[StyleSheet.absoluteFill, styles.cover, { backgroundColor: theme.background }]} accessibilityElementsHidden>
-          <ThemedText themeColor="textSecondary">Informasi perizinan disembunyikan.</ThemedText>
-        </View>
-      ) : null}
-    </View>
+    <StackScreen title={title} menu={menu} onBack={onBack}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="never" style={{ backgroundColor: theme.background }}
+          contentContainerStyle={[styles.page, { paddingBottom: 40 + bottomSpace }]}>
+          {children}
+        </ScrollView>
+        {footer}
+        {overlay}
+        {!aktif ? (
+          <View style={[StyleSheet.absoluteFill, styles.cover, { backgroundColor: theme.background }]} accessibilityElementsHidden>
+            <ThemedText themeColor="textSecondary">Informasi perizinan disembunyikan.</ThemedText>
+          </View>
+        ) : null}
+      </View>
+    </StackScreen>
   );
 }
 
+/** Pesan hasil/galat: ikon + teks di kotak lunak; tidak dapat diseleksi. */
 export function Pesan({ text, tone = 'info' }: { text: string | null; tone?: 'info' | 'danger' | 'success' }) {
   if (!text) return null;
-  return <ThemedText accessibilityRole="alert" themeColor={tone === 'danger' ? 'danger' : tone === 'success' ? 'success' : 'textSecondary'}>{text}</ThemedText>;
+  return <Notice text={text} tone={tone === 'info' ? 'neutral' : tone} selectable={false} />;
 }
 
-/** Label + nilai. Nilai kosong ditampilkan "—", sama dengan web. */
-export function Baris({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <View style={styles.row}>
-      <ThemedText type="caption" themeColor="textSecondary">{label}</ThemedText>
-      {typeof value === 'string' || value === null || value === undefined
-        ? <ThemedText>{value === null || value === undefined || value === '' ? '—' : value}</ThemedText>
-        : value}
-    </View>
-  );
+/** Label + nilai (pola `InfoRow`). Nilai kosong ditampilkan "—", sama dengan web. Tidak dapat diseleksi. */
+export function Baris({ label, value, icon, last }: { label: string; value: ReactNode; icon?: Parameters<typeof InfoRow>[0]['icon']; last?: boolean }) {
+  if (typeof value === 'string' || value === null || value === undefined) {
+    return <InfoRow icon={icon} label={label} value={value === null || value === undefined || value === '' ? '—' : value} last={last} selectable={false} />;
+  }
+  return <InfoRow icon={icon} label={label} value="" last={last}>{value}</InfoRow>;
 }
 
+const NADA_PIL: Record<ReturnType<typeof nadaStatus>, StatusTone> = { neutral: 'neutral', primary: 'success', warning: 'warning', danger: 'danger' };
+
+/** Pil status tahap: ikon + teks; nada dari status server. */
 export function StatusIzin({ status, label }: { status: string; label: string }) {
-  return <Badge label={label} tone={nadaStatus(status)} />;
+  return <StatusPill label={label} tone={NADA_PIL[nadaStatus(status)]} />;
 }
 
 export function rentang(tglIzin: string, tglKembali: string): string {
   return tglIzin === tglKembali ? tanggalPanjang(tglIzin) : `${tanggalPanjang(tglIzin)} – ${tanggalPanjang(tglKembali)}`;
 }
 
-/** Kartu daftar untuk wali (pengaju/ringkas) dan petugas. */
+/** Baris daftar (pola `EntityRow`) untuk wali (pengaju/ringkas) dan petugas. */
 export function KartuPengajuan({ item, onPress }: { item: PengajuanWali | PengajuanPetugas; onPress: () => void }) {
   const ringkas = 'ringkas' in item && item.ringkas;
   const pengaju = 'pengaju' in item ? item.pengaju : item.wali.nama ?? item.wali.akun ?? 'Wali';
   return (
-    <Card accessibilityLabel={`Buka pengajuan izin ${item.santri.nama} nomor ${item.id}`} onPress={onPress}>
-      <View style={{ gap: 6 }}>
-        <ThemedText type="bodyBold">{item.santri.nama}</ThemedText>
-        <ThemedText type="caption" themeColor="textSecondary">
-          #{item.id} · {rentang(item.tgl_izin, item.tgl_kembali)} · diajukan {ringkas ? 'wali lain' : pengaju}
-        </ThemedText>
+    <EntityRow
+      avatarName={item.santri.nama}
+      title={item.santri.nama}
+      subtitle={`#${item.id} · ${rentang(item.tgl_izin, item.tgl_kembali)} · diajukan ${ringkas ? 'wali lain' : pengaju}`}
+      accessibilityLabel={`Buka pengajuan izin ${item.santri.nama} nomor ${item.id}`}
+      onPress={onPress}
+      pill={
         <ChipRow>
           <StatusIzin status={item.status} label={item.status_label} />
-          {LABEL_TAHAP[item.tahap] !== undefined && LABEL_TAHAP[item.tahap].toLowerCase() !== item.status_label.toLowerCase() ? <Badge label={LABEL_TAHAP[item.tahap]} /> : null}
-          {ringkas ? <Badge label="Status ringkas" /> : null}
+          {LABEL_TAHAP[item.tahap] !== undefined && LABEL_TAHAP[item.tahap].toLowerCase() !== item.status_label.toLowerCase() ? <StatusPill label={LABEL_TAHAP[item.tahap]} /> : null}
+          {ringkas ? <StatusPill label="Status ringkas" icon="lock" /> : null}
         </ChipRow>
-      </View>
-    </Card>
+      }
+    />
   );
 }
 
@@ -113,7 +144,6 @@ export function Pager({ page, total, perPage, onChange }: { page: number; total:
 }
 
 const styles = StyleSheet.create({
-  page: { padding: 18, gap: 14, maxWidth: 800, width: '100%', alignSelf: 'center', paddingBottom: 70 },
-  row: { gap: 3 },
+  page: { paddingHorizontal: Layout.screen, paddingTop: 12, gap: Layout.cardGap, maxWidth: 760, width: '100%', alignSelf: 'center' },
   cover: { alignItems: 'center', justifyContent: 'center' },
 });

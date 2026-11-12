@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Keyboard, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { SafeAreaView as TabSafeAreaView } from 'react-native-screens/experimental';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppIcon, type IconName } from '@/components/app-icon';
@@ -66,4 +68,50 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   teks: { fontWeight: '800', flexShrink: 1 },
+  area: { flex: 1 },
 });
+
+/** `true` selama papan ketik perangkat lunak terbuka (native). */
+export function useKeyboardVisible() {
+  const [tampak, setTampak] = useState(false);
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const buka = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setTampak(true));
+    const tutup = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setTampak(false));
+    return () => {
+      buka.remove();
+      tutup.remove();
+    };
+  }, []);
+  return tampak;
+}
+
+/**
+ * Lapisan FAB layar tab (K-8). Jarak ke bilah tab TIDAK memakai angka tetap:
+ *  - iOS: `SafeAreaView` milik react-native-screens membaca area aman bawah
+ *    dari sistem, termasuk bilah tab Liquid Glass (ikut turun saat bilah
+ *    menyusut ketika digulir);
+ *  - Android: isi layar tab sudah dibungkus area aman bawah oleh native tabs,
+ *    sehingga dasar wadah = tepi atas bilah Material 3;
+ *  - web: bilah navigasi berada di atas isi, dasar wadah = dasar jendela.
+ * FAB tidak digambar saat papan ketik terbuka atau `hidden` (kotak cari aktif).
+ * Lapisan tidak menangkap sentuhan di luar tombol.
+ */
+export function FabArea({ hidden, children }: { hidden?: boolean; children: ReactNode }) {
+  const papanKetik = useKeyboardVisible();
+  if (hidden || papanKetik) return null;
+  if (Platform.OS === 'ios') {
+    return (
+      <TabSafeAreaView edges={{ bottom: true }} pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+        <View pointerEvents="box-none" style={styles.area}>
+          {children}
+        </View>
+      </TabSafeAreaView>
+    );
+  }
+  return (
+    <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+      {children}
+    </View>
+  );
+}

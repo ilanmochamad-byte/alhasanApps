@@ -5,7 +5,8 @@ import { ThemedText } from '@/components/themed-text';
 import { Elevation, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-type Variant = 'primary' | 'secondary' | 'danger' | 'outline';
+/** `outline` = garis merah (tindakan berisiko); `line` = garis hijau (tindakan sekunder). */
+type Variant = 'primary' | 'secondary' | 'danger' | 'outline' | 'line';
 
 type Props = {
   label: string;
@@ -40,12 +41,12 @@ export function AppButton({
       ? theme.primary
       : variant === 'danger'
         ? theme.danger
-        : variant === 'outline'
+        : variant === 'outline' || variant === 'line'
           ? theme.card
           : theme.backgroundElement;
   const foreground =
-    variant === 'secondary' ? theme.text : variant === 'outline' ? theme.danger : theme.onPrimary;
-  const borderColor = variant === 'outline' ? theme.danger : 'transparent';
+    variant === 'secondary' ? theme.text : variant === 'outline' ? theme.danger : variant === 'line' ? theme.primary : theme.onPrimary;
+  const borderColor = variant === 'outline' ? theme.danger : variant === 'line' ? theme.primary : 'transparent';
   const busy = Boolean(disabled || loading);
 
   return (
@@ -61,7 +62,7 @@ export function AppButton({
         variant === 'primary' && !busy && { boxShadow: Elevation.brand },
         {
           backgroundColor: pressed && variant === 'primary' ? theme.primaryPressed : background,
-          borderWidth: variant === 'outline' ? 1.5 : 0,
+          borderWidth: variant === 'outline' || variant === 'line' ? 1.5 : 0,
           borderColor,
           opacity: busy ? 0.55 : pressed ? 0.9 : 1,
         },

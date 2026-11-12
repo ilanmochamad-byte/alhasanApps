@@ -16,6 +16,8 @@ export function InfoRow({
   locked,
   last,
   trailing,
+  children,
+  selectable = true,
 }: {
   icon?: IconName;
   label: string;
@@ -24,6 +26,10 @@ export function InfoRow({
   /** Baris terakhir tidak menggambar garis pemisah. */
   last?: boolean;
   trailing?: ReactNode;
+  /** Isi di bawah label, menggantikan `value` (mis. chip per kelas). `value` tetap dibacakan. */
+  children?: ReactNode;
+  /** Matikan untuk teks pribadi (alasan izin). */
+  selectable?: boolean;
 }) {
   const theme = useTheme();
   const { fontScale } = useWindowDimensions();
@@ -41,9 +47,11 @@ export function InfoRow({
         <ThemedText selectable type="labelSmall" themeColor="textSecondary">
           {label}
         </ThemedText>
-        <ThemedText selectable type="bodyBold">
-          {value}
-        </ThemedText>
+        {children ?? (
+          <ThemedText selectable={selectable} type="bodyBold">
+            {value}
+          </ThemedText>
+        )}
       </View>
       {trailing}
       {locked ? <AppIcon name="lock" size={16} themeColor="textMuted" /> : null}

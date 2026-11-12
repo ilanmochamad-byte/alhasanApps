@@ -38,7 +38,8 @@ export function WeekStrip({
   return (
     <View style={styles.wrap}>
       <View style={styles.header}>
-        <ThemedText selectable type="h2" style={styles.month}>
+        {/* Satu baris yang menyusut bila perlu agar nama bulan tidak terpecah di tengah kata. */}
+        <ThemedText selectable type="h2" style={styles.month} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
           {bulan}
         </ThemedText>
         <IconButton

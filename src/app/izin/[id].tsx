@@ -7,14 +7,19 @@ import type { GuruPilihan, IzinCapability, IzinDetailResponse, RoutingResponse }
 import { AppButton } from '@/components/app-button';
 import { AppIcon } from '@/components/app-icon';
 import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
-import { StatusBadge, formatTanggal, statusColor } from '@/components/izin-card';
+import { formatTanggal, statusIcon, statusPillTone } from '@/components/izin-card';
+import { StackScreen } from '@/components/screen-shell';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { ActionBar } from '@/components/ui/action-bar';
 import { Field } from '@/components/ui/app-field';
+import { AvatarInisial } from '@/components/ui/avatar-inisial';
 import { Chip, ChipRow } from '@/components/ui/chip';
+import { InfoRow } from '@/components/ui/info-row';
+import { Notice } from '@/components/ui/notice';
+import { StatusPill } from '@/components/ui/status-pill';
 import { Divider, Overline, Panel } from '@/components/ui/surface';
-import { Radius } from '@/constants/theme';
+import { Layout, Radius } from '@/constants/theme';
 import { useIzinWaliMutation } from '@/hooks/use-izin-wali-mutation';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { IzinWaliProtection } from '@/components/izin-wali-protection';
@@ -32,27 +37,32 @@ import { useTheme } from '@/hooks/use-theme';
  * Redesain V2: pasangan Setujui/Tolak pindah ke bilah tetap di dasar layar
  * supaya selalu terjangkau; kolom alasannya tetap berada di badan layar dan
  * tetap wajib diisi — server yang memvalidasinya, persis seperti sebelumnya.
+ *
+ * Redesain gelombang 2 (§4.4, K-7, K-10): kepala stack ← · judul, kartu kepala
+ * (avatar, nama, pil status besar), `InfoRow`, garis waktu riwayat, dan satu
+ * tindakan utama di bilah bawah sesuai `aksi` server.
  */
+const JUDUL = 'Rincian izin';
 export default function IzinDetailScreen() {
   const { fontScale } = useWindowDimensions();
   const { profile } = useAuth();
-  const { id, mode } = useLocalSearchParams<{ id: string; mode?: string }>();
+  const { id, mode } = useLocalSearchParams<{ id: string; mode?: string; baru?: string }>();
 
   // iOS dapat mempertahankan pengukuran ScrollView lama ketika Dynamic Type
   // diubah saat layar aktif. Remount terarah mencegah judul/status terpotong.
-  return <IzinDetailSession key={`${profile?.id}:${id}:${mode}:${fontScale}`} fontScale={fontScale} />;
+  return <IzinDetailSession key={`${profile?.id}:${id}:${mode}:${fontScale}`} />;
 }
 
-function IzinDetailSession({ fontScale }: { fontScale: number }) {
+function IzinDetailSession() {
   const router = useRouter();
   const theme = useTheme();
-  const teksBesar = fontScale >= 1.6;
-  const params = useLocalSearchParams<{ id: string; mode?: string }>();
+  const params = useLocalSearchParams<{ id: string; mode?: string; baru?: string }>();
   const id = Number(params.id);
   const mode = (params.mode || undefined) as IzinCapability | undefined;
 
   const [refreshing, setRefreshing] = useState(false);
-  const [pesan, setPesan] = useState<string | null>(null);
+  // `baru=1` dari formulir pengajuan: hasil kirim tampil sebagai panel sukses di sini.
+  const [pesan, setPesan] = useState<string | null>(params.baru === '1' ? 'Pengajuan terkirim. Status dan riwayatnya dapat dipantau di halaman ini.' : null);
 
   const [alasan, setAlasan] = useState('');
   const [alasanPenggantian, setAlasanPenggantian] = useState('');
@@ -147,8 +157,20 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
     }
   }, [alasanTetapkan, detail, id, load, tujuanMurobi, tetapkanGuard]);
 
-  if (error && !detail) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!detail) return <LoadingState label="Memuat detail pengajuan…" />;
+  if (error && !detail) {
+    return (
+      <StackScreen title={JUDUL}>
+        <ErrorState message={error} onRetry={() => void load()} />
+      </StackScreen>
+    );
+  }
+  if (!detail) {
+    return (
+      <StackScreen title={JUDUL}>
+        <LoadingState label="Memuat detail pengajuan…" />
+      </StackScreen>
+    );
+  }
 
   const { pengajuan, keputusan, riwayat, koreksi, aksi, scope } = detail;
   const adminPengganti = aksi.putuskan_admin && !aksi.putuskan_murobi;
@@ -158,64 +180,66 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
       ? routing.kandidat
       : routing.murobi_berhak
     : [];
+  // Satu tindakan utama di bilah bawah, mengikuti `aksi` server: keputusan
+  // lebih dulu; tanpa keputusan → penetapan murobi; tanpa keduanya → batal.
+  const tetapkanDiBilah = !dapatMemutuskan && aksi.tetapkan_murobi;
+  const batalDiBilah = !dapatMemutuskan && !aksi.tetapkan_murobi && aksi.batalkan;
+  const adaBilah = dapatMemutuskan || tetapkanDiBilah || batalDiBilah;
+  const tombolTetapkan = (
+    <AppButton
+      label="Tetapkan murobi"
+      icon="users"
+      style={tetapkanDiBilah ? styles.barButton : undefined}
+      loading={tetapkanGuard.isBusy}
+      disabled={sedangMutasi || tujuanMurobi === null}
+      onPress={() => void tetapkanMurobi()}
+    />
+  );
+  const tombolBatal = (
+    <AppButton
+      label="Batalkan pengajuan"
+      variant={batalDiBilah ? 'outline' : 'danger'}
+      style={batalDiBilah ? styles.barButton : undefined}
+      loading={batalGuard.isBusy}
+      disabled={sedangMutasi}
+      onPress={() => void batalkan()}
+    />
+  );
 
   const content = (
-    <View style={styles.screen}>
+    <StackScreen title={JUDUL} subtitle={`#${pengajuan.id}`}>
       <KeyboardAwareScrollView
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         style={{ backgroundColor: theme.background }}
-        contentContainerStyle={[styles.content, dapatMemutuskan && styles.contentWithBar]}
+        contentContainerStyle={[styles.content, adaBilah && styles.contentWithBar]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
         }>
-        {/* Kepala: status besar, identitas santri, dan rentang izin. */}
+        {/* Kartu kepala: santri, pil status besar, dan rentang izin. */}
         <Panel>
-          <View style={styles.statusRow}>
-            <View
-              style={[styles.statusIcon, { backgroundColor: theme.backgroundElement }]}>
-              <AppIcon
-                name={
-                  pengajuan.status === 'Disetujui'
-                    ? 'check'
-                    : pengajuan.status === 'Ditolak' || pengajuan.status === 'Dibatalkan'
-                      ? 'close'
-                      : 'clock'
-                }
-                size={22}
-                color={statusColor(pengajuan.status, theme)}
-              />
-            </View>
-            <View style={styles.statusText}>
-              <ThemedText selectable type="h2" style={{ color: statusColor(pengajuan.status, theme) }}>
-                {pengajuan.status}
-              </ThemedText>
-              <ThemedText selectable type="caption" themeColor="textSecondary">
-                #{pengajuan.id} · {pengajuan.sumber_label}
-                {pengajuan.diajukan_pada ? ` · diajukan ${pengajuan.diajukan_pada}` : ''}
-              </ThemedText>
-            </View>
-            {teksBesar ? null : <StatusBadge status={pengajuan.status} />}
-          </View>
-
-          <Divider />
-
           <View style={styles.santriRow}>
-            <View style={[styles.avatar, { backgroundColor: theme.primarySoft }]}>
-              <ThemedText selectable type="label" themeColor="primary">
-                {pengajuan.santri.nama.slice(0, 2).toUpperCase()}
-              </ThemedText>
-            </View>
+            <AvatarInisial nama={pengajuan.santri.nama} ukuran={52} />
             <View style={styles.statusText}>
-              <ThemedText selectable type="h3">
+              <ThemedText selectable type="h2">
                 {pengajuan.santri.nama}
               </ThemedText>
-              <ThemedText selectable type="caption" themeColor="textMuted">
+              <ThemedText selectable type="caption" themeColor="textSecondary">
                 NIS {pengajuan.santri.nis}
               </ThemedText>
             </View>
           </View>
+          <View style={styles.statusBesar}>
+            <StatusPill label={pengajuan.status} tone={statusPillTone(pengajuan.status)} icon={statusIcon(pengajuan.status)} />
+          </View>
+          <ThemedText selectable type="caption" themeColor="textSecondary">
+            #{pengajuan.id} · {pengajuan.sumber_label}
+            {pengajuan.diajukan_pada ? ` · diajukan ${pengajuan.diajukan_pada}` : ''}
+          </ThemedText>
+
+          <Divider />
 
           <View style={styles.rangeRow}>
+            <AppIcon name="calendar" size={18} themeColor="primary" />
             <ThemedText selectable type="bodyBold">
               {formatTanggal(pengajuan.tgl_izin)}
             </ThemedText>
@@ -226,31 +250,19 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
           </View>
         </Panel>
 
-        {pesan ? (
-          <View style={[styles.notice, { borderColor: theme.success, backgroundColor: theme.primarySoft }]}>
-            <ThemedText selectable type="caption" themeColor="success">
-              {pesan}
-            </ThemedText>
-          </View>
-        ) : null}
-        {error ? (
-          <View style={[styles.notice, { borderColor: theme.danger, backgroundColor: theme.dangerSoft }]}>
-            <ThemedText selectable type="caption" themeColor="danger">
-              {error}
-            </ThemedText>
-          </View>
-        ) : null}
+        <Notice tone="success" text={pesan} />
+        <Notice tone="danger" text={error} />
 
-        <Panel>
+        <Panel style={styles.rincian}>
           <Overline>Rincian</Overline>
-          <Baris label="Alasan" nilai={pengajuan.alasan} />
+          <InfoRow icon="izin" label="Alasan" value={pengajuan.alasan} />
           {pengajuan.catatan_pengurus ? (
-            <Baris label="Catatan pengurus" nilai={pengajuan.catatan_pengurus} />
+            <InfoRow icon="info" label="Catatan pengurus" value={pengajuan.catatan_pengurus} />
           ) : null}
-          <Baris label="Pengurus" nilai={pengajuan.pengurus_label || '—'} />
-          <Baris label="Murobi" nilai={pengajuan.murobi_label || '—'} />
-          <Baris label="Routing" nilai={pengajuan.routing.catatan ?? '—'} />
-          <Baris label="Cakupan Anda" nilai={scope.label} />
+          <InfoRow icon="person" label="Pengurus" value={pengajuan.pengurus_label || '—'} />
+          <InfoRow icon="users" label="Murobi" value={pengajuan.murobi_label || '—'} />
+          <InfoRow icon="arrow-right" label="Routing" value={pengajuan.routing.catatan ?? '—'} />
+          <InfoRow icon="eye" label="Cakupan Anda" value={scope.label} last />
         </Panel>
 
         {pengajuan.asal === 'Wali' ? (
@@ -273,26 +285,25 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
         ) : null}
 
         {keputusan ? (
-          <Panel>
+          <Panel style={styles.rincian}>
             <Overline>Keputusan</Overline>
-            <Baris label="Hasil" nilai={keputusan.hasil} />
-            <Baris label="Kapasitas" nilai={keputusan.kapasitas} />
-            <Baris label="Alasan" nilai={keputusan.alasan} />
+            <InfoRow icon={keputusan.hasil === 'Disetujui' ? 'check' : 'close'} label="Hasil" value={keputusan.hasil} />
+            <InfoRow icon="person" label="Kapasitas" value={keputusan.kapasitas} />
+            <InfoRow icon="izin" label="Alasan" value={keputusan.alasan} />
             {keputusan.alasan_penggantian ? (
-              <Baris label="Alasan penggantian" nilai={keputusan.alasan_penggantian} />
+              <InfoRow icon="info" label="Alasan penggantian" value={keputusan.alasan_penggantian} />
             ) : null}
-            <Baris label="Pemberi keputusan" nilai={keputusan.pemberi_keputusan ?? 'Data warisan'} />
-            <Baris label="Waktu" nilai={keputusan.diputus_pada} />
+            <InfoRow icon="users" label="Pemberi keputusan" value={keputusan.pemberi_keputusan ?? 'Data warisan'} />
+            <InfoRow icon="clock" label="Waktu" value={keputusan.diputus_pada} last />
           </Panel>
         ) : null}
 
         {scope.hanya_baca ? (
-          <View style={[styles.notice, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
-            <ThemedText selectable type="caption" themeColor="textSecondary">
-              Akun orang tua bersifat baca-saja: tidak tersedia tombol pengajuan, keputusan,
-              pembatalan, atau koreksi.
-            </ThemedText>
-          </View>
+          <Notice
+            tone="neutral"
+            icon="lock"
+            text="Akun orang tua bersifat baca-saja: tidak tersedia tombol pengajuan, keputusan, pembatalan, atau koreksi."
+          />
         ) : null}
 
         {dapatMemutuskan ? (
@@ -306,6 +317,7 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
             ) : null}
             <Field
               label="Alasan keputusan"
+              hint="Wajib"
               value={alasan}
               onChangeText={setAlasan}
               editable={!sedangMutasi}
@@ -315,6 +327,7 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
             {adminPengganti ? (
               <Field
                 label="Alasan penggantian murobi"
+                hint="Wajib"
                 value={alasanPenggantian}
                 onChangeText={setAlasanPenggantian}
                 editable={!sedangMutasi}
@@ -322,11 +335,7 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
                 placeholder="Wajib diisi"
               />
             ) : null}
-            {keputusanGuard.error ? (
-              <ThemedText selectable type="caption" themeColor="danger">
-                {keputusanGuard.error}
-              </ThemedText>
-            ) : null}
+            <Notice tone="danger" text={keputusanGuard.error} />
             <ThemedText selectable type="caption" themeColor="textMuted">
               Tombol Setujui dan Tolak berada di bawah layar.
             </ThemedText>
@@ -350,36 +359,32 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
                     label={guru.nama}
                     selected={guru.guru_id === tujuanMurobi}
                     disabled={sedangMutasi}
+                    style={styles.pilihan}
                     onPress={() => setMurobiTerpilih(guru.guru_id)}
                   />
                 ))}
               </ChipRow>
             </View>
             {daftarMurobi.length === 0 ? (
-              <ThemedText selectable type="caption" themeColor="warning">
-                Belum ada guru dengan penugasan murobi aktif pada tahun ajaran ini.
-              </ThemedText>
+              <Notice tone="warning" text="Belum ada guru dengan penugasan murobi aktif pada tahun ajaran ini." />
             ) : null}
             <Field
               label="Alasan penetapan"
+              hint="Wajib"
               value={alasanTetapkan}
               onChangeText={setAlasanTetapkan}
               editable={!sedangMutasi}
               multiline
               placeholder="Wajib diisi"
             />
-            {tetapkanGuard.error ? (
-              <ThemedText selectable type="caption" themeColor="danger">
-                {tetapkanGuard.error}
+            <Notice tone="danger" text={tetapkanGuard.error} />
+            {tetapkanDiBilah ? (
+              <ThemedText selectable type="caption" themeColor="textMuted">
+                Tombol Tetapkan murobi berada di bawah layar.
               </ThemedText>
-            ) : null}
-            <AppButton
-              label="Tetapkan murobi"
-              icon="users"
-              loading={tetapkanGuard.isBusy}
-              disabled={sedangMutasi || tujuanMurobi === null}
-              onPress={() => void tetapkanMurobi()}
-            />
+            ) : (
+              tombolTetapkan
+            )}
           </Panel>
         ) : null}
 
@@ -396,18 +401,14 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
               multiline
               placeholder="Alasan pembatalan"
             />
-            {batalGuard.error ? (
-              <ThemedText selectable type="caption" themeColor="danger">
-                {batalGuard.error}
+            <Notice tone="danger" text={batalGuard.error} />
+            {batalDiBilah ? (
+              <ThemedText selectable type="caption" themeColor="textMuted">
+                Tombol Batalkan pengajuan berada di bawah layar.
               </ThemedText>
-            ) : null}
-            <AppButton
-              label="Batalkan pengajuan"
-              variant="danger"
-              loading={batalGuard.isBusy}
-              disabled={sedangMutasi}
-              onPress={() => void batalkan()}
-            />
+            ) : (
+              tombolBatal
+            )}
           </Panel>
         ) : null}
 
@@ -441,7 +442,7 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
                     {baris.peristiwa}
                     {baris.status_sesudah ? ` → ${baris.status_sesudah}` : ''}
                   </ThemedText>
-                  <ThemedText selectable type="caption" themeColor="textMuted">
+                  <ThemedText selectable type="caption" themeColor="textSecondary">
                     {baris.pelaku_nama ?? 'Data warisan'}
                     {baris.pelaku_kapasitas ? ` (${baris.pelaku_kapasitas})` : ''} · {baris.waktu}
                   </ThemedText>
@@ -464,7 +465,7 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
                 <ThemedText selectable type="label">
                   {baris.hasil_sebelum} → {baris.hasil_sesudah}
                 </ThemedText>
-                <ThemedText selectable type="caption" themeColor="textMuted">
+                <ThemedText selectable type="caption" themeColor="textSecondary">
                   {baris.pelaku_nama ?? 'Data warisan'} · {baris.waktu}
                 </ThemedText>
                 <ThemedText selectable type="caption" themeColor="textSecondary">
@@ -474,10 +475,6 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
             ))}
           </Panel>
         ) : null}
-
-        {dapatMemutuskan ? null : (
-          <AppButton label="Kembali ke daftar" variant="secondary" onPress={() => router.back()} />
-        )}
       </KeyboardAwareScrollView>
 
       {dapatMemutuskan ? (
@@ -500,76 +497,38 @@ function IzinDetailSession({ fontScale }: { fontScale: number }) {
             onPress={() => void putuskan('Disetujui')}
           />
         </ActionBar>
+      ) : tetapkanDiBilah ? (
+        <ActionBar>{tombolTetapkan}</ActionBar>
+      ) : batalDiBilah ? (
+        <ActionBar>{tombolBatal}</ActionBar>
       ) : null}
-    </View>
+    </StackScreen>
   );
   return pengajuan.asal === 'Wali' ? <IzinWaliProtection>{content}</IzinWaliProtection> : content;
 }
 
-function Baris({ label, nilai }: { label: string; nilai: string }) {
-  const { fontScale } = useWindowDimensions();
-  const teksBesar = fontScale >= 1.6;
-  return (
-    <View style={[styles.baris, teksBesar && styles.barisLarge]}>
-      <ThemedText
-        selectable
-        type="caption"
-        themeColor="textMuted"
-        style={[styles.barisLabel, teksBesar && styles.barisLabelLarge]}>
-        {label}
-      </ThemedText>
-      <ThemedText
-        selectable
-        type="caption"
-        style={[styles.barisNilai, teksBesar && styles.barisNilaiLarge]}>
-        {nilai}
-      </ThemedText>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
   content: {
-    padding: 16,
-    paddingBottom: 60,
+    paddingHorizontal: Layout.screen,
+    paddingTop: 12,
+    paddingBottom: 48,
     gap: 14,
     maxWidth: 760,
     width: '100%',
     alignSelf: 'center',
   },
   contentWithBar: { paddingBottom: 24 },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  statusIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.md,
-    borderCurve: 'continuous',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   statusText: { flex: 1, gap: 2 },
   santriRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.md,
-    borderCurve: 'continuous',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  // Pil status diperbesar (datar, ikon + teks) sebagai penanda utama kartu.
+  statusBesar: { transform: [{ scale: 1.15 }], transformOrigin: 'left center', paddingVertical: 2 },
   rangeRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 9 },
-  baris: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  barisLarge: { flexDirection: 'column', gap: 2 },
-  barisLabel: { width: 116 },
-  barisLabelLarge: { width: 'auto' },
-  barisNilai: { flex: 1, minWidth: 140, fontWeight: '600' },
-  barisNilaiLarge: { flex: 0, minWidth: 0, width: '100%' },
-  notice: { borderWidth: 1, borderRadius: Radius.md, borderCurve: 'continuous', padding: 12 },
+  rincian: { gap: 0 },
+  pilihan: { minHeight: 44 },
   timelineHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   timelineRow: { flexDirection: 'row', gap: 12 },
   timelineRail: { width: 10, alignItems: 'center' },
-  timelineDot: { width: 9, height: 9, borderRadius: 999, marginTop: 5 },
+  timelineDot: { width: 9, height: 9, borderRadius: Radius.pill, marginTop: 5 },
   timelineLine: { flex: 1, width: 2, marginTop: 3 },
   timelineBody: { flex: 1, gap: 2, paddingBottom: 12 },
   koreksiItem: { borderTopWidth: 1, paddingTop: 9, gap: 2 },

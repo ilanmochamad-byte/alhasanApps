@@ -22,8 +22,12 @@ export function EntityRow({
   value,
   valueTone,
   pill,
+  detail,
+  highlight,
   onPress,
   accessibilityLabel,
+  accessibilityRole,
+  selected,
 }: {
   /** Nama untuk avatar inisial (santri/orang). */
   avatarName?: string;
@@ -37,8 +41,15 @@ export function EntityRow({
   valueTone?: 'text' | 'primary' | 'warning' | 'danger';
   /** Biasanya `<StatusPill />`. */
   pill?: ReactNode;
+  /** Isi tambahan di bawah subjudul (rentang tanggal, alasan, keterangan). */
+  detail?: ReactNode;
+  /** Garis tepi penanda "perlu tindakan" (selalu disertai teks di `pill`/`detail`). */
+  highlight?: 'warning' | 'primary';
   onPress?: () => void;
   accessibilityLabel?: string;
+  /** `radio` untuk baris pilihan tunggal (mis. pilih santri). */
+  accessibilityRole?: 'button' | 'radio';
+  selected?: boolean;
 }) {
   const theme = useTheme();
   const { fontScale } = useWindowDimensions();
@@ -57,15 +68,24 @@ export function EntityRow({
   ) : null;
   return (
     <Pressable
-      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityRole={onPress ? (accessibilityRole ?? 'button') : undefined}
+      accessibilityState={accessibilityRole === 'radio' ? { selected: Boolean(selected) } : undefined}
+      aria-checked={accessibilityRole === 'radio' ? Boolean(selected) : undefined}
       accessibilityLabel={accessibilityLabel ?? [title, subtitle, value].filter(Boolean).join(', ')}
       disabled={!onPress}
       onPress={onPress}
       style={({ pressed }) => [
         styles.baris,
-        { backgroundColor: theme.card, borderColor: theme.border, boxShadow: Elevation.card, opacity: pressed ? 0.85 : 1 },
+        {
+          backgroundColor: selected ? theme.primarySoft : theme.card,
+          borderColor: selected ? theme.primary : highlight === 'warning' ? theme.warningBorder : highlight === 'primary' ? theme.primary : theme.border,
+          boxShadow: Elevation.card,
+          opacity: pressed ? 0.85 : 1,
+        },
       ]}>
-      {avatarName ? (
+      {/* Teks sistem sangat besar: avatar/ikon (hiasan) disembunyikan agar judul
+          mendapat lebar penuh dan tidak terpecah di tengah kata. */}
+      {bertumpuk ? null : avatarName ? (
         <AvatarInisial nama={avatarName} tone={tone} />
       ) : icon ? (
         <View style={[styles.ikon, { backgroundColor: warna.bg }]}>
@@ -82,10 +102,15 @@ export function EntityRow({
           </ThemedText>
         ) : null}
         {bertumpuk ? nilai : null}
+        {detail}
         {pill ? <View style={styles.pil}>{pill}</View> : null}
       </View>
       {bertumpuk ? null : nilai}
-      {onPress ? <AppIcon name="chevron-right" size={18} themeColor="textMuted" /> : null}
+      {selected ? (
+        <AppIcon name="check" size={20} themeColor="primary" />
+      ) : onPress && accessibilityRole !== 'radio' ? (
+        <AppIcon name="chevron-right" size={18} themeColor="textMuted" />
+      ) : null}
     </Pressable>
   );
 }

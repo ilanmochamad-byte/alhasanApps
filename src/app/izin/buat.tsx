@@ -5,18 +5,23 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { actionableError, api } from '@/api/client';
 import type { IzinCapability, SantriPilihan } from '@/api/types';
 import { AppButton } from '@/components/app-button';
-import { AppIcon } from '@/components/app-icon';
 import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
+import { StackScreen } from '@/components/screen-shell';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { formatTanggal } from '@/components/izin-card';
 import { ThemedText } from '@/components/themed-text';
 import { ActionBar } from '@/components/ui/action-bar';
-import { Field, SearchField } from '@/components/ui/app-field';
+import { Field } from '@/components/ui/app-field';
+import { AvatarInisial } from '@/components/ui/avatar-inisial';
 import { DateField } from '@/components/ui/date-field';
 import { Badge } from '@/components/ui/chip';
+import { EntityRow } from '@/components/ui/entity-row';
+import { InfoRow } from '@/components/ui/info-row';
+import { Notice } from '@/components/ui/notice';
+import { SearchBar } from '@/components/ui/search-bar';
 import { Stepper } from '@/components/ui/stepper';
 import { Overline, Panel } from '@/components/ui/surface';
-import { Radius } from '@/constants/theme';
+import { Layout, Radius } from '@/constants/theme';
 import { useMutationGuard } from '@/hooks/use-mutation-guard';
 import { useTheme } from '@/hooks/use-theme';
 import { lamaHari as hitungLamaHari } from '@/lib/date';
@@ -26,6 +31,9 @@ type Langkah = 'pilih' | 'isi' | 'konfirmasi';
 const POLA_TANGGAL = /^\d{4}-\d{2}-\d{2}$/;
 const LANGKAH: Langkah[] = ['pilih', 'isi', 'konfirmasi'];
 const LABEL_LANGKAH = ['Pilih santri', 'Data izin', 'Tinjau'];
+const JUDUL = 'Ajukan izin';
+/** Batas tampilan penghitung alasan; server yang memvalidasi isi. */
+const PANJANG_ALASAN = 500;
 
 /**
  * Alur pengurus membuat pengajuan (PRD V2 Fase 3 §5):
@@ -108,31 +116,49 @@ export default function BuatPengajuanScreen() {
       (key) => api.izinBuat(payload, key, mode),
     );
     if (hasil) {
-      router.replace({ pathname: '/izin/[id]', params: { id: String(hasil.id), mode: mode ?? '' } });
+      // P-Sukses: rincian pengajuan menampilkan panel "Pengajuan terkirim".
+      router.replace({ pathname: '/izin/[id]', params: { id: String(hasil.id), mode: mode ?? '', baru: '1' } });
     }
   }, [alasan, catatan, guard, mode, periksaIsian, router, terpilih, tglIzin, tglKembali]);
 
   // Keterangan lama izin; murni tampilan, tidak ikut dikirim ke server.
   const lamaHari = useMemo(() => hitungLamaHari(tglIzin, tglKembali), [tglIzin, tglKembali]);
 
+  // K-10: ← kembali ke langkah sebelumnya dulu, baru ke halaman sebelumnya.
+  const kembaliLangkah =
+    langkah === 'isi' ? () => setLangkah('pilih') : langkah === 'konfirmasi' && !guard.isBusy ? () => setLangkah('isi') : undefined;
+
+  // Layar ini punya kolom tanggal berlabel "Kembali"; label ← dibuat spesifik
+  // agar pembaca layar tidak mendengar dua kontrol bernama sama.
+  const labelKembali = kembaliLangkah ? 'Kembali ke langkah sebelumnya' : 'Kembali ke halaman sebelumnya';
+
   if (loading && santri.length === 0 && langkah === 'pilih') {
-    return <LoadingState label="Memuat santri dalam cakupan Anda…" />;
+    return (
+      <StackScreen title={JUDUL} backLabel={labelKembali}>
+        <LoadingState label="Memuat santri dalam cakupan Anda…" />
+      </StackScreen>
+    );
   }
   if (error && santri.length === 0) {
-    return <ErrorState message={error} onRetry={() => void muatSantri()} />;
+    return (
+      <StackScreen title={JUDUL} backLabel={labelKembali}>
+        <ErrorState message={error} onRetry={() => void muatSantri()} />
+      </StackScreen>
+    );
   }
 
   return (
-    <View style={styles.screen}>
+    <StackScreen title={JUDUL} onBack={kembaliLangkah} backLabel={labelKembali}>
       <KeyboardAwareScrollView
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         style={{ backgroundColor: theme.background }}
         contentContainerStyle={styles.content}>
         <Stepper steps={LABEL_LANGKAH} current={LANGKAH.indexOf(langkah)} />
 
         {langkah === 'pilih' ? (
           <>
-            <SearchField
+            <SearchBar
+              accessibilityLabel="Cari santri"
               value={pencarian}
               onChangeText={setPencarian}
               placeholder="Cari nama santri atau NIS"
@@ -143,7 +169,8 @@ export default function BuatPengajuanScreen() {
                     accessibilityRole="button"
                     accessibilityLabel="Cari santri"
                     onPress={() => setKataKunci(pencarian.trim())}
-                    hitSlop={8}>
+                    hitSlop={8}
+                    style={styles.cari}>
                     <ThemedText selectable type="label" themeColor="primary">
                       Cari
                     </ThemedText>
@@ -159,36 +186,17 @@ export default function BuatPengajuanScreen() {
               />
             ) : (
               <View accessibilityRole="radiogroup" accessibilityLabel="Pilih santri" style={styles.list}>
-                {santri.map((item) => {
-                  const dipilih = terpilih?.id === item.id;
-                  return (
-                    <Pressable
-                      key={item.id}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: dipilih }}
-                      onPress={() => setTerpilih(item)}
-                      style={({ pressed }) => [
-                        styles.santriCard,
-                        {
-                          backgroundColor: dipilih ? theme.primarySoft : theme.card,
-                          borderColor: dipilih ? theme.primary : theme.border,
-                          borderWidth: dipilih ? 1.5 : 1,
-                          opacity: pressed ? 0.85 : 1,
-                        },
-                      ]}>
-                      <View style={styles.santriText}>
-                        <ThemedText selectable type="h3">
-                          {item.nama}
-                        </ThemedText>
-                        <ThemedText selectable type="caption" themeColor="textMuted">
-                          NIS {item.nis}
-                          {item.cakupan ? ` · ${item.cakupan}` : ''}
-                        </ThemedText>
-                      </View>
-                      {dipilih ? <AppIcon name="check" size={20} themeColor="primary" /> : null}
-                    </Pressable>
-                  );
-                })}
+                {santri.map((item) => (
+                  <EntityRow
+                    key={item.id}
+                    accessibilityRole="radio"
+                    selected={terpilih?.id === item.id}
+                    avatarName={item.nama}
+                    title={item.nama}
+                    subtitle={`NIS ${item.nis}${item.cakupan ? ` · ${item.cakupan}` : ''}`}
+                    onPress={() => setTerpilih(item)}
+                  />
+                ))}
               </View>
             )}
           </>
@@ -196,16 +204,13 @@ export default function BuatPengajuanScreen() {
 
         {langkah === 'isi' ? (
           <>
+            {/* Kartu santri terpilih di atas formulir. */}
             <View
               style={[
                 styles.selected,
                 { backgroundColor: theme.primarySoft, borderColor: theme.primaryBorder },
               ]}>
-              <View style={[styles.avatar, { backgroundColor: theme.card }]}>
-                <ThemedText selectable type="label" themeColor="primary">
-                  {(terpilih?.nama ?? '').slice(0, 2).toUpperCase()}
-                </ThemedText>
-              </View>
+              <AvatarInisial nama={terpilih?.nama ?? ''} />
               <View style={styles.santriText}>
                 <ThemedText selectable type="bodyBold">
                   {terpilih?.nama}
@@ -218,7 +223,8 @@ export default function BuatPengajuanScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Ubah pilihan santri"
                 onPress={() => setLangkah('pilih')}
-                hitSlop={8}>
+                hitSlop={8}
+                style={styles.cari}>
                 <ThemedText selectable type="label" themeColor="primary">
                   Ubah
                 </ThemedText>
@@ -263,6 +269,8 @@ export default function BuatPengajuanScreen() {
 
             <Field
               label="Alasan izin"
+              hint={`${alasan.length}/${PANJANG_ALASAN}`}
+              icon="izin"
               value={alasan}
               onChangeText={setAlasan}
               multiline
@@ -277,42 +285,31 @@ export default function BuatPengajuanScreen() {
               placeholder="Catatan tambahan"
             />
 
-            {validasi ? (
-              <ThemedText selectable type="caption" themeColor="danger" accessibilityLiveRegion="polite">
-                {validasi}
-              </ThemedText>
-            ) : null}
+            <Notice tone="danger" text={validasi} />
 
-            <View
-              style={[styles.hint, { backgroundColor: theme.backgroundElement }]}>
-              <AppIcon name="info" size={17} themeColor="textSecondary" />
-              <ThemedText selectable type="caption" themeColor="textSecondary" style={styles.hintText}>
-                Setelah dikirim, pengajuan diteruskan ke murobi santri. Bila kandidatnya tidak
-                tunggal, admin akan menetapkannya.
-              </ThemedText>
-            </View>
+            <Notice
+              tone="neutral"
+              text="Setelah dikirim, pengajuan diteruskan ke murobi santri. Bila kandidatnya tidak tunggal, admin akan menetapkannya."
+            />
           </>
         ) : null}
 
         {langkah === 'konfirmasi' ? (
-          <Panel>
+          <Panel style={styles.tinjau}>
             <Overline>Tinjau sebelum mengirim</Overline>
-            <Baris label="Santri" nilai={`${terpilih?.nama} (NIS ${terpilih?.nis})`} />
-            <Baris
+            <InfoRow icon="person" label="Santri" value={`${terpilih?.nama} (NIS ${terpilih?.nis})`} />
+            <InfoRow
+              icon="calendar"
               label="Rentang"
-              nilai={`${formatTanggal(tglIzin)} → ${formatTanggal(tglKembali)}${lamaHari ? ` · ${lamaHari} hari` : ''}`}
+              value={`${formatTanggal(tglIzin)} → ${formatTanggal(tglKembali)}${lamaHari ? ` · ${lamaHari} hari` : ''}`}
             />
-            <Baris label="Alasan" nilai={alasan.trim()} />
-            {catatan.trim() ? <Baris label="Catatan" nilai={catatan.trim()} /> : null}
+            <InfoRow icon="izin" label="Alasan" value={alasan.trim()} last={!catatan.trim()} />
+            {catatan.trim() ? <InfoRow icon="info" label="Catatan" value={catatan.trim()} last /> : null}
             <ThemedText selectable type="caption" themeColor="textSecondary">
               Setelah dikirim, sistem menentukan murobi tujuan secara otomatis. Bila kandidatnya
               tidak tunggal, pengajuan masuk ke antrean penetapan admin.
             </ThemedText>
-            {guard.error ? (
-              <ThemedText selectable type="caption" themeColor="danger">
-                {guard.error}
-              </ThemedText>
-            ) : null}
+            <Notice tone="danger" text={guard.error} />
           </Panel>
         ) : null}
       </KeyboardAwareScrollView>
@@ -362,27 +359,14 @@ export default function BuatPengajuanScreen() {
           </>
         )}
       </ActionBar>
-    </View>
-  );
-}
-
-function Baris({ label, nilai }: { label: string; nilai: string }) {
-  return (
-    <View style={styles.baris}>
-      <ThemedText selectable type="caption" themeColor="textMuted" style={styles.barisLabel}>
-        {label}
-      </ThemedText>
-      <ThemedText selectable type="caption" style={styles.barisNilai}>
-        {nilai}
-      </ThemedText>
-    </View>
+    </StackScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
   content: {
-    padding: 16,
+    paddingHorizontal: Layout.screen,
+    paddingTop: 12,
     paddingBottom: 28,
     gap: 16,
     maxWidth: 760,
@@ -390,47 +374,21 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   list: { gap: 8 },
-  santriCard: {
-    borderRadius: Radius.lg,
-    borderCurve: 'continuous',
-    padding: 13,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
+  cari: { minHeight: 44, justifyContent: 'center' },
   santriText: { flex: 1, gap: 2 },
   selected: {
     borderWidth: 1,
-    borderRadius: Radius.xl,
+    borderRadius: Radius.xxl,
     borderCurve: 'continuous',
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.sm,
-    borderCurve: 'continuous',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   row: { flexDirection: 'row', gap: 10 },
   field: { flex: 1 },
   durasi: { flexDirection: 'row', alignItems: 'center', gap: 9, flexWrap: 'wrap' },
-  hint: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    borderRadius: Radius.md,
-    borderCurve: 'continuous',
-    padding: 12,
-  },
-  hintText: { flex: 1 },
-  baris: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  barisLabel: { width: 92 },
-  barisNilai: { flex: 1, minWidth: 140, fontWeight: '600' },
+  tinjau: { gap: 0 },
   grow: { flex: 1 },
   narrow: { width: 118 },
 });

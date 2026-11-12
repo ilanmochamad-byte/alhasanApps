@@ -16,12 +16,15 @@ export function SearchBar({
   filter,
   filterTitle = 'Saring',
   filterActive,
+  trailing,
   accessibilityLabel = 'Cari',
   ...input
 }: TextInputProps & {
   filter?: ReactNode | ((tutup: () => void) => ReactNode);
   filterTitle?: string;
   filterActive?: boolean;
+  /** Isi di kanan dalam kolom (mis. tombol "Terapkan" atau hapus). */
+  trailing?: ReactNode;
 }) {
   const theme = useTheme();
   const [terbuka, setTerbuka] = useState(false);
@@ -39,6 +42,7 @@ export function SearchBar({
           style={[styles.input, { color: theme.text }]}
           {...input}
         />
+        {trailing}
       </View>
       {filter ? (
         <Pressable

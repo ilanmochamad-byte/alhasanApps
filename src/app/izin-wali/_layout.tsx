@@ -6,7 +6,8 @@ export default function IzinWaliLayout() {
   const theme = useTheme();
   return (
     <IzinWaliProtection>
-    <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal', contentStyle: { backgroundColor: theme.background } }}>
+    {/* Redesain gelombang 2: setiap layar menggambar kepala `stack` sendiri. */}
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
       <Stack.Screen name="index" options={{ title: 'Izin melalui pembimbing' }} />
       <Stack.Screen name="buat" options={{ title: 'Ajukan izin anak' }} />
       <Stack.Screen name="[id]" options={{ title: 'Pengajuan izin wali' }} />

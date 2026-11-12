@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { actionableError, api } from '@/api/client';
@@ -13,19 +13,27 @@ import { MODE_LABEL, ModeSwitcher } from '@/components/mode-switcher';
 import { ScreenHeader } from '@/components/screen-header';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { SearchField } from '@/components/ui/app-field';
-import { Chip, ChipRow } from '@/components/ui/chip';
+import { EntityRow } from '@/components/ui/entity-row';
+import { Fab, FabArea, FAB_RUANG_BAWAH } from '@/components/ui/fab';
+import { FilterPills } from '@/components/ui/filter-pills';
 import { IconButton } from '@/components/ui/icon-button';
+import { Notice } from '@/components/ui/notice';
+import { SearchBar } from '@/components/ui/search-bar';
 import { Overline, Panel } from '@/components/ui/surface';
 import { AppButton } from '@/components/app-button';
-import { AppIcon } from '@/components/app-icon';
-import { BottomTabInset, Radius } from '@/constants/theme';
+import { BottomTabInset, Layout } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { fabMelewatiSetengahLayar, jarakAtasLayarTab } from '@/lib/tampilan';
 
 /**
  * Redesain tampilan Fase 2: segmen antrean/semua dan deret ringkasan angka
  * diganti pil filter (Konsep B). "Disetujui" dan "Ditolak" memakai parameter
  * `status` yang sudah didukung API daftar; tidak ada perubahan server.
+ *
+ * Redesain gelombang 2 (§4.2, K-8, K-10): pola P-Akar + P-Daftar — ← ke
+ * Beranda, judul besar + penjelas cakupan, SearchBar, FilterPills, baris
+ * entitas, dan FAB "Ajukan izin" di kanan bawah di atas bilah tab. Parameter
+ * dan urutan permintaan API tidak berubah.
  */
 type Tampilan = 'antrean' | 'semua' | 'Disetujui' | 'Ditolak';
 
@@ -59,20 +67,18 @@ function PerizinanSession() {
   const adaAksesWali = Boolean(aksesWali && (aksesWali.wali || aksesWali.pembimbing || aksesWali.admin || aksesWali.murobi));
   const antreanWali = (aksesWali?.antrean_pembimbing ?? 0) + (aksesWali?.antrean_admin ?? 0);
   const pintuWali = adaAksesWali ? (
-    <Pressable
-      accessibilityRole="button"
+    <EntityRow
+      icon="users"
+      tone="info"
+      title="Izin orang tua melalui pembimbing"
+      subtitle={`${
+        aksesWali?.wali
+          ? 'Ajukan izin anak, perbaiki saat diminta pembimbing, dan pantau statusnya.'
+          : 'Tinjau, tetapkan, atau pantau pengajuan yang dibuat orang tua.'
+      }${antreanWali > 0 ? ` ${antreanWali} menunggu tindakan.` : ''}`}
       accessibilityLabel="Buka izin orang tua melalui pembimbing"
-      onPress={() => router.push('/izin-wali')}>
-      <Panel>
-        <Overline>Izin orang tua melalui pembimbing</Overline>
-        <ThemedText selectable type="caption" themeColor="textSecondary">
-          {aksesWali?.wali
-            ? 'Ajukan izin anak, perbaiki saat diminta pembimbing, dan pantau statusnya.'
-            : 'Tinjau, tetapkan, atau pantau pengajuan yang dibuat orang tua.'}
-          {antreanWali > 0 ? ` ${antreanWali} menunggu tindakan.` : ''}
-        </ThemedText>
-      </Panel>
-    </Pressable>
+      onPress={() => router.push('/izin-wali')}
+    />
   ) : null;
 
   const modes = capabilities.list;
@@ -137,31 +143,18 @@ function PerizinanSession() {
         ? data.pagination.total
         : null;
 
-  const { fontScale } = useWindowDimensions();
-  // Teks sistem sangat besar: tombol pengajuan ikut mengalir di dalam daftar
-  // (di atas pencarian) agar tidak menutupi separuh layar sebagai tombol tetap.
-  const teksBesar = fontScale > 1.35;
+  const { fontScale, width } = useWindowDimensions();
+  const [cariAktif, setCariAktif] = useState(false);
+  // K-8: FAB ikon + teks di kanan bawah. Pada teks sistem sangat besar tombol
+  // melebar; bila lebarnya dapat melewati setengah layar, dipakai alternatif
+  // yang disetujui: tombol pil lebar penuh di bawah judul, sebelum kotak cari.
+  const fabTerlaluLebar = fabMelewatiSetengahLayar(fontScale, width);
   const dapatMengajukan = capabilities.aksi.dapat_membuat_pengajuan && !orangTua;
-  const tombolAjukan = (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Ajukan izin baru"
-      onPress={() =>
-        router.push({ pathname: '/izin/buat', params: { mode: modeAktif ?? 'pengurus' } })
-      }
-      style={({ pressed }) => [
-        styles.bottomButton,
-        {
-          backgroundColor: pressed ? theme.primaryPressed : theme.primary,
-          boxShadow: '0 10px 24px rgba(23, 107, 58, 0.30)',
-        },
-      ]}>
-      <AppIcon name="plus" size={20} color={theme.onPrimary} />
-      <ThemedText selectable type="bodyBold" style={[styles.bottomButtonText, { color: theme.onPrimary }]}>
-        Ajukan izin baru
-      </ThemedText>
-    </Pressable>
-  );
+  // Ruang kosong di dasar daftar setinggi FAB + 16 (K-8). Di iOS isi layar tab
+  // bergulir di balik bilah tab, sehingga tinggi bilah ikut ditambahkan; di
+  // Android/web isi sudah berakhir di atas/bawah bilah.
+  const ruangBawah = FAB_RUANG_BAWAH + 16 + 24 + (Platform.OS === 'ios' ? BottomTabInset + insets.bottom : 0);
+  const ajukan = () => router.push({ pathname: '/izin/buat', params: { mode: modeAktif ?? 'pengurus' } });
 
   function terapkanPencarian() {
     setKataKunci(pencarian.trim());
@@ -177,8 +170,8 @@ function PerizinanSession() {
       <ScrollView
         contentInsetAdjustmentBehavior="never"
         style={{ backgroundColor: theme.background }}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}>
-        <ScreenHeader title="Perizinan" />
+        contentContainerStyle={[styles.content, { paddingTop: jarakAtasLayarTab(Platform.OS, insets.top) }]}>
+        <ScreenHeader variant="akar" title="Perizinan" subtitle="Pengajuan izin santri" bell />
         {pintuWali}
         <EmptyState
           title="Belum ada kemampuan perizinan"
@@ -193,12 +186,15 @@ function PerizinanSession() {
       <KeyboardAwareScrollView
         contentInsetAdjustmentBehavior="never"
         style={{ backgroundColor: theme.background }}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
+        contentContainerStyle={[styles.content, { paddingTop: jarakAtasLayarTab(Platform.OS, insets.top), paddingBottom: ruangBawah }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
         }>
         <ScreenHeader
+          variant="akar"
           title="Perizinan"
+          subtitle={data?.scope.label ?? (modeAktif ? MODE_LABEL[modeAktif] : '')}
+          bell
           actions={
             /* V2 Fase 5 — laporan tersedia untuk SELURUH peran perizinan,
                termasuk orang tua. Isi laporan dibatasi cakupan di server,
@@ -215,10 +211,6 @@ function PerizinanSession() {
             setHalaman(1);
           }}
         />
-
-        <ThemedText selectable type="caption" themeColor="textSecondary">
-          {data?.scope.label ?? (modeAktif ? MODE_LABEL[modeAktif] : '')}
-        </ThemedText>
 
         {pintuWali}
 
@@ -251,46 +243,26 @@ function PerizinanSession() {
           </Panel>
         ) : null}
 
-        <ChipRow>
-          {(
-            [
-              ...(orangTua ? [] : [{ value: 'antrean', label: 'Perlu tindakan' }]),
-              { value: 'semua', label: 'Semua' },
-              { value: 'Disetujui', label: 'Disetujui' },
-              { value: 'Ditolak', label: 'Ditolak' },
-            ] as { value: Tampilan; label: string }[]
-          ).map((pilihan) => (
-            <Chip
-              key={pilihan.value}
-              accessibilityRole="radio"
-              label={
-                pilihan.value === 'antrean' && jumlahAntrean !== null
-                  ? `${pilihan.label} · ${jumlahAntrean}`
-                  : pilihan.label
-              }
-              selected={tampilanAktif === pilihan.value}
-              onPress={() => {
-                setTampilan(pilihan.value);
-                setHalaman(1);
-              }}
-            />
-          ))}
-        </ChipRow>
+        {dapatMengajukan && fabTerlaluLebar ? (
+          <AppButton label="Ajukan izin baru" icon="plus" onPress={ajukan} />
+        ) : null}
 
-        {dapatMengajukan && teksBesar ? tombolAjukan : null}
-
-        <SearchField
+        <SearchBar
+          accessibilityLabel="Cari pengajuan izin"
           value={pencarian}
           onChangeText={setPencarian}
           placeholder="Cari santri, NIS, atau alasan"
           onSubmitEditing={terapkanPencarian}
+          onFocus={() => setCariAktif(true)}
+          onBlur={() => setCariAktif(false)}
           trailing={
             pencarian.trim() !== kataKunci ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Terapkan pencarian"
                 onPress={terapkanPencarian}
-                hitSlop={8}>
+                hitSlop={8}
+                style={styles.terapkan}>
                 <ThemedText selectable type="label" themeColor="primary">
                   Terapkan
                 </ThemedText>
@@ -299,17 +271,30 @@ function PerizinanSession() {
           }
         />
 
+        <FilterPills
+          accessibilityLabel="Saring pengajuan"
+          value={tampilanAktif}
+          onChange={(next) => {
+            setTampilan(next);
+            setHalaman(1);
+          }}
+          options={[
+            ...(orangTua
+              ? []
+              : [{ value: 'antrean' as Tampilan, label: jumlahAntrean !== null ? `Perlu tindakan · ${jumlahAntrean}` : 'Perlu tindakan' }]),
+            { value: 'semua' as Tampilan, label: 'Semua' },
+            { value: 'Disetujui' as Tampilan, label: 'Disetujui' },
+            { value: 'Ditolak' as Tampilan, label: 'Ditolak' },
+          ]}
+        />
+
         {loading && !data ? (
           <LoadingState label="Memuat pengajuan izin…" />
         ) : error && !data ? (
           <ErrorState message={error} onRetry={() => void load()} />
         ) : data ? (
           <>
-            {error ? (
-              <ThemedText selectable type="caption" themeColor="danger">
-                {error}
-              </ThemedText>
-            ) : null}
+            <Notice tone="danger" text={error} />
 
             <ThemedText selectable type="caption" themeColor="textSecondary">
               {data.pagination.total} pengajuan
@@ -368,15 +353,12 @@ function PerizinanSession() {
         ) : null}
       </KeyboardAwareScrollView>
 
-      {dapatMengajukan && !teksBesar ? (
-        /* Tombol tetap selebar layar di atas bilah tab (Konsep A + C). */
-        <View
-          style={[
-            styles.bottomBar,
-            { bottom: BottomTabInset + Math.max(insets.bottom, 8) + 8 },
-          ]}>
-          {tombolAjukan}
-        </View>
+      {dapatMengajukan && !fabTerlaluLebar ? (
+        /* K-8: tinggi bilah tab diambil sistem (lihat `FabArea`); di web bilah
+           navigasi berada di atas isi. FAB hilang saat kotak cari aktif. */
+        <FabArea hidden={Platform.OS === 'web' && cariAktif}>
+          <Fab label="Ajukan izin" accessibilityLabel="Ajukan izin baru" onPress={ajukan} bottomOffset={16} />
+        </FabArea>
       ) : null}
     </View>
   );
@@ -385,28 +367,16 @@ function PerizinanSession() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: {
-    padding: 16,
-    paddingBottom: 170,
+    paddingHorizontal: Layout.screen,
+    // K-8: ruang kosong setinggi FAB + 16 agar baris terakhir dan paginasi
+    // tetap dapat diketuk (ditambah jarak dasar layar).
+    paddingBottom: FAB_RUANG_BAWAH + 16 + 24,
     gap: 12,
     maxWidth: 760,
     width: '100%',
     alignSelf: 'center',
   },
-  bottomBar: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
-  bottomButton: {
-    width: '100%',
-    maxWidth: 728,
-    minHeight: 54,
-    borderRadius: Radius.lg,
-    borderCurve: 'continuous',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 9,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  bottomButtonText: { fontSize: 16, flexShrink: 1, textAlign: 'center' },
+  terapkan: { minHeight: 44, justifyContent: 'center' },
   pagerRow: {
     flexDirection: 'row',
     alignItems: 'center',

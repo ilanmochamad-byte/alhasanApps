@@ -1,4 +1,4 @@
-import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, StyleSheet, useWindowDimensions, View } from 'react-native';
 
@@ -12,13 +12,25 @@ import type {
 } from '@/api/types';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { KeyboardAwareScrollView, KeyboardAwareTextInput } from '@/components/keyboard-aware-scroll-view';
+import type { IconName } from '@/components/app-icon';
+import { statusIcon, statusPillTone } from '@/components/izin-card';
+import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view';
 import { ModeSwitcher } from '@/components/mode-switcher';
+import { StackScreen } from '@/components/screen-shell';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
+import { ActionBar } from '@/components/ui/action-bar';
+import { Chip, ChipRow } from '@/components/ui/chip';
 import { DateField } from '@/components/ui/date-field';
+import { EntityRow } from '@/components/ui/entity-row';
+import { Notice } from '@/components/ui/notice';
+import { SearchBar } from '@/components/ui/search-bar';
+import { StatGrid, type StatTone } from '@/components/ui/stat-card';
+import { StatusPill } from '@/components/ui/status-pill';
+import { Overline, Panel } from '@/components/ui/surface';
+import { Layout } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { isoAwalBulan, isoHariIni } from '@/lib/date';
+import { formatPendek, isoAwalBulan, isoHariIni } from '@/lib/date';
 import {
   bagikanLaporanIzinCsv,
   bagikanLaporanIzinPdf,
@@ -26,6 +38,17 @@ import {
 } from '@/report/izin-report-document';
 
 type AksiDokumen = 'cetak' | 'pdf' | 'csv';
+
+const JUDUL = 'Laporan perizinan';
+
+/** Ikon dan nada kartu angka per status; label dan angkanya dari server. */
+function tampilanStatus(nama: string): { icon: IconName; tone: StatTone } {
+  const nada = statusPillTone(nama as IzinStatus);
+  return {
+    icon: statusIcon(nama as IzinStatus),
+    tone: nada === 'success' ? 'primary' : nada === 'danger' ? 'danger' : nada === 'neutral' ? 'info' : 'warning',
+  };
+}
 
 
 
@@ -53,6 +76,8 @@ export default function LaporanIzinScreen() {
 
 function LaporanIzinSession() {
   const theme = useTheme();
+  const { fontScale } = useWindowDimensions();
+  const teksBesar = fontScale > 1.35;
   const { capabilities } = useAuth();
   const params = useLocalSearchParams<{ mode?: string }>();
 
@@ -120,7 +145,8 @@ function LaporanIzinSession() {
     }, [load]),
   );
 
-  function terapkanFilter() {
+  function terapkanFilter(tutup?: () => void) {
+    tutup?.();
     setHalaman(1);
     setInfo(null);
     setTerapkan({
@@ -154,257 +180,237 @@ function LaporanIzinSession() {
 
   const daftarStatus: IzinStatus[] = pilihan?.status ?? [];
 
-  return (
-    <KeyboardAwareScrollView
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} />}>
-      <Stack.Screen options={{ title: 'Laporan Perizinan' }} />
-
-      <ModeSwitcher
-        modes={modes}
-        value={modeAktif ?? null}
-        disabled={loading || aksi !== null}
-        onChange={(pilih) => {
-          setMode(pilih);
-          setHalaman(1);
-          setInfo(null);
-        }}
+  const saringanAktif = status !== undefined || terapkan.status !== undefined;
+  const tombolDokumen = (
+    <>
+      <AppButton
+        label="Cetak"
+        icon="printer"
+        variant="secondary"
+        size="sm"
+        style={teksBesar ? undefined : styles.tombolDokumen}
+        loading={aksi === 'cetak'}
+        disabled={aksi !== null || loading}
+        onPress={() => void jalankanAksi('cetak')}
       />
+      <AppButton
+        label="Bagikan PDF"
+        variant="secondary"
+        size="sm"
+        style={teksBesar ? undefined : styles.tombolDokumen}
+        loading={aksi === 'pdf'}
+        disabled={aksi !== null || loading}
+        onPress={() => void jalankanAksi('pdf')}
+      />
+      <AppButton
+        label="Bagikan CSV"
+        variant="secondary"
+        size="sm"
+        style={teksBesar ? undefined : styles.tombolDokumen}
+        loading={aksi === 'csv'}
+        disabled={aksi !== null || loading}
+        onPress={() => void jalankanAksi('csv')}
+      />
+    </>
+  );
 
-      {data ? (
-        <ThemedText selectable type="small" themeColor="textSecondary">
-          {data.cakupan_label}
-        </ThemedText>
-      ) : null}
+  return (
+    <StackScreen title={JUDUL}>
+      <KeyboardAwareScrollView
+        contentInsetAdjustmentBehavior="never"
+        style={{ backgroundColor: theme.background }}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />}>
+        <ModeSwitcher
+          modes={modes}
+          value={modeAktif ?? null}
+          disabled={loading || aksi !== null}
+          onChange={(pilih) => {
+            setMode(pilih);
+            setHalaman(1);
+            setInfo(null);
+          }}
+        />
 
-      <View style={[styles.panel, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-        <ThemedText selectable style={styles.panelTitle}>
-          Filter
-        </ThemedText>
+        {data ? (
+          <ThemedText selectable type="caption" themeColor="textSecondary">
+            {data.cakupan_label}
+          </ThemedText>
+        ) : null}
 
-        <View style={styles.fieldRow}>
-          <View style={styles.field}>
-            <DateField label="Dari tanggal" value={dari} onChange={setDari} maximumDate={sampai} />
-          </View>
-          <View style={styles.field}>
-            <DateField label="Sampai tanggal" value={sampai} onChange={setSampai} minimumDate={dari} />
-          </View>
-        </View>
-
-        <ThemedText selectable type="small" themeColor="textSecondary">
-          Status
-        </ThemedText>
-        <View style={styles.chipRow}>
-          <Pressable
-            accessibilityRole="radio"
-            accessibilityState={{ selected: status === undefined }}
-            onPress={() => setStatus(undefined)}
-            style={[
-              styles.chip,
-              {
-                backgroundColor: status === undefined ? theme.primary : theme.background,
-                borderColor: status === undefined ? theme.primary : theme.border,
-              },
-            ]}>
-            <ThemedText
-              selectable
-              type="small"
-              style={{ color: status === undefined ? theme.onPrimary : theme.text }}>
-              Semua
-            </ThemedText>
-          </Pressable>
-          {daftarStatus.map((item) => {
-            const dipilih = status === item;
-            return (
-              <Pressable
-                key={item}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: dipilih }}
-                onPress={() => setStatus(dipilih ? undefined : item)}
-                style={[
-                  styles.chip,
-                  {
-                    backgroundColor: dipilih ? theme.primary : theme.background,
-                    borderColor: dipilih ? theme.primary : theme.border,
-                  },
-                ]}>
-                <ThemedText selectable type="small" style={{ color: dipilih ? theme.onPrimary : theme.text }}>
-                  {item}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <ThemedText selectable type="small" themeColor="textSecondary">
-          Pencarian
-        </ThemedText>
-        <KeyboardAwareTextInput
+        <SearchBar
+          accessibilityLabel="Cari dalam laporan"
           value={pencarian}
           onChangeText={setPencarian}
           placeholder="Nama santri, NIS, atau alasan"
-          style={[styles.input, { borderColor: theme.border, color: theme.text }]}
+          onSubmitEditing={() => terapkanFilter()}
+          filterTitle="Filter"
+          filterActive={saringanAktif}
+          trailing={
+            pencarian.trim() !== (terapkan.q ?? '') ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Terapkan pencarian"
+                onPress={() => terapkanFilter()}
+                hitSlop={8}
+                style={styles.terapkan}>
+                <ThemedText selectable type="label" themeColor="primary">
+                  Terapkan
+                </ThemedText>
+              </Pressable>
+            ) : null
+          }
+          filter={(tutup) => (
+            <>
+              <View style={styles.fieldRow}>
+                <View style={styles.field}>
+                  <DateField label="Dari tanggal" value={dari} onChange={setDari} maximumDate={sampai} />
+                </View>
+                <View style={styles.field}>
+                  <DateField label="Sampai tanggal" value={sampai} onChange={setSampai} minimumDate={dari} />
+                </View>
+              </View>
+
+              <ThemedText selectable type="label">
+                Status
+              </ThemedText>
+              <View accessibilityRole="radiogroup" accessibilityLabel="Saring menurut status">
+                <ChipRow>
+                  <Chip accessibilityRole="radio" label="Semua" selected={status === undefined} style={styles.pilihan} onPress={() => setStatus(undefined)} />
+                  {daftarStatus.map((item) => (
+                    <Chip
+                      key={item}
+                      accessibilityRole="radio"
+                      label={item}
+                      selected={status === item}
+                      style={styles.pilihan}
+                      onPress={() => setStatus(status === item ? undefined : item)}
+                    />
+                  ))}
+                </ChipRow>
+              </View>
+
+              <AppButton label="Terapkan filter" onPress={() => terapkanFilter(tutup)} disabled={loading || aksi !== null} />
+            </>
+          )}
         />
 
-        <AppButton label="Terapkan filter" onPress={terapkanFilter} disabled={loading || aksi !== null} />
-      </View>
+        {/* Saringan yang sedang berlaku (dari `terapkan`, bukan draf). */}
+        <ChipRow>
+          <Chip icon="calendar" label={`${formatPendek(terapkan.date_from ?? '')} – ${formatPendek(terapkan.date_to ?? '')}`} />
+          <Chip label={terapkan.status ?? 'Semua status'} />
+        </ChipRow>
 
-      <View style={styles.actionRow}>
-        <View style={styles.actionButton}>
-          <AppButton
-            label="Cetak"
-            variant="secondary"
-            loading={aksi === 'cetak'}
-            disabled={aksi !== null || loading}
-            onPress={() => void jalankanAksi('cetak')}
-          />
-        </View>
-        <View style={styles.actionButton}>
-          <AppButton
-            label="Bagikan PDF"
-            variant="secondary"
-            loading={aksi === 'pdf'}
-            disabled={aksi !== null || loading}
-            onPress={() => void jalankanAksi('pdf')}
-          />
-        </View>
-        <View style={styles.actionButton}>
-          <AppButton
-            label="Bagikan CSV"
-            variant="secondary"
-            loading={aksi === 'csv'}
-            disabled={aksi !== null || loading}
-            onPress={() => void jalankanAksi('csv')}
-          />
-        </View>
-      </View>
+        {teksBesar ? <View style={styles.dokumenBertumpuk}>{tombolDokumen}</View> : null}
 
-      {info ? (
-        <ThemedText selectable type="small" themeColor="textSecondary">
-          {info}
-        </ThemedText>
-      ) : null}
+        <Notice tone="neutral" text={info} />
 
-      {loading && !data ? (
-        <LoadingState label="Memuat laporan…" />
-      ) : error && !data ? (
-        <ErrorState message={error} onRetry={() => void load()} />
-      ) : data ? (
-        <>
-          {error ? (
-            <ThemedText selectable themeColor="danger" type="small">
-              {error}
-            </ThemedText>
-          ) : null}
+        {loading && !data ? (
+          <LoadingState label="Memuat laporan…" />
+        ) : error && !data ? (
+          <ErrorState message={error} onRetry={() => void load()} />
+        ) : data ? (
+          <>
+            <Notice tone="danger" text={error} />
 
-          <View style={styles.summaryRow}>
-            <Ringkasan label="Total" nilai={String(data.ringkasan.total)} />
-            {Object.entries(data.ringkasan.per_status).map(([nama, jumlah]) => (
-              <Ringkasan key={nama} label={nama} nilai={String(jumlah)} />
-            ))}
-          </View>
-
-          <View style={[styles.panel, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-            <ThemedText selectable style={styles.panelTitle}>
-              Durasi keputusan
-            </ThemedText>
-            <ThemedText selectable type="smallBold">
-              Median: {data.durasi.median_label}
-            </ThemedText>
-            <ThemedText selectable type="small" themeColor="textSecondary">
-              Tercepat {data.durasi.min_label} · Terlama {data.durasi.maks_label} · Rata-rata {data.durasi.rata_label}
-            </ThemedText>
-            <ThemedText selectable type="small" themeColor="textSecondary">
-              Dihitung dari {data.durasi.jumlah} keputusan yang memiliki waktu pengajuan dan waktu keputusan.
-            </ThemedText>
-          </View>
-
-          {data.items.length === 0 ? (
-            <EmptyState
-              title="Tidak ada data"
-              message="Tidak ada pengajuan yang cocok dengan filter dalam cakupan Anda."
+            {/* Angka per status dari ringkasan server untuk filter yang sama. */}
+            <StatGrid
+              items={[
+                { icon: 'izin', value: String(data.ringkasan.total), label: 'Total', tone: 'primary' },
+                ...Object.entries(data.ringkasan.per_status).map(([nama, jumlah]) => ({
+                  ...tampilanStatus(nama),
+                  value: String(jumlah),
+                  label: nama,
+                })),
+              ]}
             />
-          ) : (
-            data.items.map((baris) => (
-              <View
-                key={baris.id}
-                style={[styles.row, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-                <ThemedText selectable type="smallBold">
-                  #{baris.id} · {baris.nama_santri}
-                </ThemedText>
-                <ThemedText selectable type="small" themeColor="textSecondary">
-                  {baris.nis} · {baris.kamar_kelas_label} · {baris.sumber_label}
-                </ThemedText>
-                <ThemedText selectable type="small">
-                  {baris.tgl_izin} → {baris.tgl_kembali} · {baris.status}
-                </ThemedText>
-                <ThemedText selectable type="small" themeColor="textSecondary">
-                  Pengurus: {baris.pengurus_label} · Murobi: {baris.murobi_label}
-                </ThemedText>
-                <ThemedText selectable type="small" themeColor="textSecondary">
-                  Keputusan: {baris.keputusan_label} · Durasi: {baris.durasi_label}
-                </ThemedText>
-              </View>
-            ))
-          )}
 
-          {data.pagination.total_pages > 1 ? (
-            <View style={styles.pagerRow}>
-              <View style={styles.pagerButton}>
-                <AppButton
-                  label="Sebelumnya"
-                  variant="secondary"
-                  disabled={data.pagination.current_page <= 1 || aksi !== null}
-                  onPress={() => setHalaman((current) => Math.max(1, current - 1))}
-                />
-              </View>
-              <ThemedText selectable type="small" themeColor="textSecondary">
-                Halaman {data.pagination.current_page} dari {data.pagination.total_pages}
+            <Panel>
+              <Overline>Durasi keputusan</Overline>
+              <ThemedText selectable type="bodyBold">
+                Median: {data.durasi.median_label}
               </ThemedText>
-              <View style={styles.pagerButton}>
-                <AppButton
-                  label="Berikutnya"
-                  variant="secondary"
-                  disabled={data.pagination.current_page >= data.pagination.total_pages || aksi !== null}
-                  onPress={() => setHalaman((current) => current + 1)}
-                />
-              </View>
-            </View>
-          ) : null}
-        </>
-      ) : null}
-    </KeyboardAwareScrollView>
-  );
-}
+              <ThemedText selectable type="caption" themeColor="textSecondary">
+                Tercepat {data.durasi.min_label} · Terlama {data.durasi.maks_label} · Rata-rata {data.durasi.rata_label}
+              </ThemedText>
+              <ThemedText selectable type="caption" themeColor="textSecondary">
+                Dihitung dari {data.durasi.jumlah} keputusan yang memiliki waktu pengajuan dan waktu keputusan.
+              </ThemedText>
+            </Panel>
 
-function Ringkasan({ label, nilai }: { label: string; nilai: string }) {
-  const theme = useTheme();
-  return (
-    <View style={[styles.summaryChip, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-      <ThemedText selectable type="small" themeColor="textSecondary">
-        {label}
-      </ThemedText>
-      <ThemedText selectable type="smallBold">
-        {nilai}
-      </ThemedText>
-    </View>
+            {data.items.length === 0 ? (
+              <EmptyState
+                title="Tidak ada data"
+                message="Tidak ada pengajuan yang cocok dengan filter dalam cakupan Anda."
+              />
+            ) : (
+              data.items.map((baris) => (
+                <EntityRow
+                  key={baris.id}
+                  avatarName={baris.nama_santri}
+                  title={`#${baris.id} · ${baris.nama_santri}`}
+                  subtitle={`${baris.nis} · ${baris.kamar_kelas_label} · ${baris.sumber_label}`}
+                  detail={
+                    <View style={styles.rinci}>
+                      <ThemedText selectable type="caption">
+                        {baris.tgl_izin} → {baris.tgl_kembali}
+                      </ThemedText>
+                      <ThemedText selectable type="caption" themeColor="textSecondary">
+                        Pengurus: {baris.pengurus_label} · Murobi: {baris.murobi_label}
+                      </ThemedText>
+                      <ThemedText selectable type="caption" themeColor="textSecondary">
+                        Keputusan: {baris.keputusan_label} · Durasi: {baris.durasi_label}
+                      </ThemedText>
+                    </View>
+                  }
+                  pill={<StatusPill label={baris.status} tone={statusPillTone(baris.status)} icon={statusIcon(baris.status)} />}
+                />
+              ))
+            )}
+
+            {data.pagination.total_pages > 1 ? (
+              <View style={styles.pagerRow}>
+                <View style={styles.pagerButton}>
+                  <AppButton
+                    label="Sebelumnya"
+                    variant="secondary"
+                    size="sm"
+                    disabled={data.pagination.current_page <= 1 || aksi !== null}
+                    onPress={() => setHalaman((current) => Math.max(1, current - 1))}
+                  />
+                </View>
+                <ThemedText selectable type="caption" themeColor="textSecondary">
+                  Halaman {data.pagination.current_page} dari {data.pagination.total_pages}
+                </ThemedText>
+                <View style={styles.pagerButton}>
+                  <AppButton
+                    label="Berikutnya"
+                    variant="secondary"
+                    size="sm"
+                    disabled={data.pagination.current_page >= data.pagination.total_pages || aksi !== null}
+                    onPress={() => setHalaman((current) => current + 1)}
+                  />
+                </View>
+              </View>
+            ) : null}
+          </>
+        ) : null}
+      </KeyboardAwareScrollView>
+
+      {teksBesar ? null : <ActionBar>{tombolDokumen}</ActionBar>}
+    </StackScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 18, paddingBottom: 120, gap: 14, maxWidth: 760, width: '100%', alignSelf: 'center' },
-  panel: { borderWidth: 1, borderRadius: 18, borderCurve: 'continuous', padding: 16, gap: 10 },
-  panelTitle: { fontSize: 17, fontWeight: '800' },
+  content: { paddingHorizontal: Layout.screen, paddingTop: 12, paddingBottom: 40, gap: 14, maxWidth: 760, width: '100%', alignSelf: 'center' },
   fieldRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   field: { flexGrow: 1, flexBasis: 150, gap: 5 },
-  input: { minHeight: 46, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, fontSize: 15 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 13, paddingVertical: 8 },
-  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  actionButton: { flexGrow: 1, flexBasis: 150 },
-  summaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  summaryChip: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 11, paddingVertical: 7, minWidth: 92 },
-  row: { borderWidth: 1, borderRadius: 16, borderCurve: 'continuous', padding: 14, gap: 4 },
+  pilihan: { minHeight: 44 },
+  terapkan: { minHeight: 44, justifyContent: 'center' },
+  tombolDokumen: { flex: 1 },
+  dokumenBertumpuk: { gap: 8 },
+  rinci: { gap: 2, paddingTop: 2 },
   pagerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 6 },
-  pagerButton: { flexShrink: 1, minWidth: 128 },
+  pagerButton: { flexShrink: 1, minWidth: 124 },
 });

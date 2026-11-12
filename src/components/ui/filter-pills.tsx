@@ -16,11 +16,14 @@ export function FilterPills<T extends string>({
   value,
   onChange,
   accessibilityLabel,
+  role = 'radio',
 }: {
   options: FilterPillOption<T>[];
   value: T;
   onChange: (next: T) => void;
   accessibilityLabel?: string;
+  /** `tab` bila pil mengganti kelompok isi (tab kelas asal); bawaan `radio`. */
+  role?: 'radio' | 'tab';
 }) {
   const { fontScale } = useWindowDimensions();
   const pil = options.map((option) => (
@@ -29,14 +32,14 @@ export function FilterPills<T extends string>({
       label={option.label}
       icon={option.icon}
       selected={option.value === value}
-      accessibilityRole="radio"
+      accessibilityRole={role}
       style={styles.pil}
       onPress={() => onChange(option.value)}
     />
   ));
   if (fontScale > 1.35) {
     return (
-      <View accessibilityRole="radiogroup" accessibilityLabel={accessibilityLabel} style={styles.bungkus}>
+      <View accessibilityRole={role === 'tab' ? 'tablist' : 'radiogroup'} accessibilityLabel={accessibilityLabel} style={styles.bungkus}>
         {pil}
       </View>
     );
@@ -45,7 +48,7 @@ export function FilterPills<T extends string>({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      accessibilityRole="radiogroup"
+      accessibilityRole={role === 'tab' ? 'tablist' : 'radiogroup'}
       accessibilityLabel={accessibilityLabel}
       style={styles.gulir}
       contentContainerStyle={styles.baris}>

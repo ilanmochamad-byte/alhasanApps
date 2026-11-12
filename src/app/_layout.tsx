@@ -59,15 +59,19 @@ function RootNavigator() {
             (← · judul tengah); geser-tepi iOS dan tombol kembali Android tetap. */}
         <Stack.Screen name="akun/edit-profil" options={{ title: 'Edit profil', headerShown: false }} />
         <Stack.Screen name="akun/ganti-password" options={{ title: 'Ganti password', headerShown: false }} />
-        <Stack.Screen name="schedule/[id]" options={{ title: 'Detail Tugas' }} />
-        <Stack.Screen name="meeting/[id]" options={{ title: 'Absensi Pertemuan' }} />
+        {/* Redesain gelombang 2 Fase 2: layar pengajian, perizinan, dan notifikasi
+            menggambar kepala `stack` sendiri (← · judul · ⋯); geser-tepi iOS dan
+            tombol kembali Android tetap bekerja. */}
+        <Stack.Screen name="schedule/[id]" options={{ title: 'Rincian tugas', headerShown: false }} />
+        <Stack.Screen name="meeting/[id]" options={{ title: 'Absensi pertemuan', headerShown: false }} />
         {/* Redesain tampilan: Laporan keluar dari bilah tab (4 tab) dan dibuka
             dari ubin Beranda. Rutenya tetap `/reports`. */}
         <Stack.Screen name="reports" options={{ headerShown: false }} />
-        <Stack.Screen name="report/[id]" options={{ title: 'Detail Pertemuan' }} />
+        <Stack.Screen name="report/[id]" options={{ title: 'Rincian pertemuan', headerShown: false }} />
         {/* V2 Fase 3 — perizinan */}
-        <Stack.Screen name="izin/buat" options={{ title: 'Buat Pengajuan Izin' }} />
-        <Stack.Screen name="izin/[id]" options={{ title: 'Detail Pengajuan Izin' }} />
+        <Stack.Screen name="izin/buat" options={{ title: 'Ajukan izin', headerShown: false }} />
+        <Stack.Screen name="izin/[id]" options={{ title: 'Rincian izin', headerShown: false }} />
+        <Stack.Screen name="izin/laporan" options={{ title: 'Laporan perizinan', headerShown: false }} />
         {/* V7 Fase 4 — izin orang tua melalui pembimbing. Hak tiap layar diperiksa server. */}
         <Stack.Screen name="izin-wali" options={{ headerShown: false }} />
         {/* V2 Fase 4 — notifikasi. Redesain V2 memindahkannya dari tab ke
@@ -88,9 +92,9 @@ function RootNavigator() {
         <Stack.Screen name="keuangan" options={{ headerShown: false }} />
         {/* Penugasan Keamanan (lintas guru/pengurus Fase 4) — hanya baca; hak tiap layar diperiksa server. */}
         <Stack.Screen name="keamanan" options={{ headerShown: false }} />
-        <Stack.Screen name="notifikasi/index" options={{ title: 'Notifikasi' }} />
-        <Stack.Screen name="notifikasi/[id]" options={{ title: 'Detail Notifikasi' }} />
-        <Stack.Screen name="notifikasi/perangkat" options={{ title: 'Perangkat & Push' }} />
+        <Stack.Screen name="notifikasi/index" options={{ title: 'Notifikasi', headerShown: false }} />
+        <Stack.Screen name="notifikasi/[id]" options={{ title: 'Rincian notifikasi', headerShown: false }} />
+        <Stack.Screen name="notifikasi/perangkat" options={{ title: 'Perangkat & push', headerShown: false }} />
       </Stack.Protected>
     </Stack>
   );
