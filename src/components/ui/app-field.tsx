@@ -12,6 +12,7 @@ export function Field({
   label,
   hint,
   icon,
+  awalan,
   trailing,
   multiline,
   style,
@@ -21,6 +22,8 @@ export function Field({
   /** Teks kecil di kanan label (mis. "Opsional" atau hitungan karakter). */
   hint?: string;
   icon?: IconName;
+  /** Teks tetap di depan isian (mis. "Rp" pada nominal); tidak ikut terkirim. */
+  awalan?: string;
   trailing?: ReactNode;
 }) {
   const theme = useTheme();
@@ -45,6 +48,11 @@ export function Field({
           { backgroundColor: theme.card, borderColor: theme.border },
         ]}>
         {icon ? <AppIcon name={icon} size={18} themeColor="textMuted" /> : null}
+        {awalan ? (
+          <ThemedText type="bodyBold" themeColor="textSecondary" accessibilityElementsHidden importantForAccessibility="no">
+            {awalan}
+          </ThemedText>
+        ) : null}
         <KeyboardAwareTextInput
           multiline={multiline}
           placeholderTextColor={theme.textMuted}

@@ -26,7 +26,7 @@ export function HeroCard({
   title?: string;
   caption?: string;
   children?: ReactNode;
-  action?: { label: string; icon?: IconName; onPress: () => void };
+  action?: { label: string; icon?: IconName; onPress: () => void; /** Nama untuk pembaca layar bila label tampil terlalu umum. */ accessibilityLabel?: string };
   testID?: string;
 }) {
   const theme = useTheme();
@@ -56,7 +56,7 @@ export function HeroCard({
       {action ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={action.label}
+          accessibilityLabel={action.accessibilityLabel ?? action.label}
           onPress={action.onPress}
           style={({ pressed }) => [styles.tombol, { backgroundColor: theme.card, opacity: pressed ? 0.85 : 1 }]}>
           {action.icon ? <AppIcon name={action.icon} size={19} themeColor="primary" /> : null}

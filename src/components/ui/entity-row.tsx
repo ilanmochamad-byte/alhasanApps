@@ -21,6 +21,8 @@ export function EntityRow({
   subtitle,
   value,
   valueTone,
+  valueCaption,
+  iconRotate,
   pill,
   detail,
   highlight,
@@ -39,6 +41,10 @@ export function EntityRow({
   /** Nilai ringkas di kanan (nominal, waktu). */
   value?: string;
   valueTone?: 'text' | 'primary' | 'warning' | 'danger';
+  /** Keterangan kecil di bawah nilai kanan (mis. "Saldo", "Sisa"). */
+  valueCaption?: string;
+  /** Putaran ikon jenis dalam derajat (panah masuk/keluar). */
+  iconRotate?: number;
   /** Biasanya `<StatusPill />`. */
   pill?: ReactNode;
   /** Isi tambahan di bawah subjudul (rentang tanggal, alasan, keterangan). */
@@ -62,9 +68,16 @@ export function EntityRow({
     danger: { bg: theme.dangerSoft, fg: theme.danger },
   }[tone];
   const nilai = value ? (
-    <ThemedText selectable type="bodyBold" themeColor={valueTone ?? 'text'} style={styles.nilai}>
-      {value}
-    </ThemedText>
+    <View style={bertumpuk ? undefined : styles.nilaiKolom}>
+      <ThemedText selectable type="bodyBold" themeColor={valueTone ?? 'text'} style={styles.nilai}>
+        {value}
+      </ThemedText>
+      {valueCaption ? (
+        <ThemedText selectable type="caption" themeColor="textSecondary" style={bertumpuk ? undefined : styles.nilai}>
+          {valueCaption}
+        </ThemedText>
+      ) : null}
+    </View>
   ) : null;
   return (
     <Pressable
@@ -89,7 +102,7 @@ export function EntityRow({
         <AvatarInisial nama={avatarName} tone={tone} />
       ) : icon ? (
         <View style={[styles.ikon, { backgroundColor: warna.bg }]}>
-          <AppIcon name={icon} size={20} color={warna.fg} />
+          <AppIcon name={icon} size={20} color={warna.fg} rotate={iconRotate} />
         </View>
       ) : null}
       <View style={styles.isi}>
@@ -130,6 +143,7 @@ const styles = StyleSheet.create({
   ikon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   isi: { flex: 1, gap: 2 },
   sub: { fontSize: 13, lineHeight: 18 },
-  nilai: { fontVariant: ['tabular-nums'] },
+  nilai: { fontVariant: ['tabular-nums'], textAlign: 'right' },
+  nilaiKolom: { alignItems: 'flex-end', maxWidth: '45%' },
   pil: { paddingTop: 4 },
 });

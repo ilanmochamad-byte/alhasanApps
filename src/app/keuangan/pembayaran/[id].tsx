@@ -1,26 +1,32 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import { keuangan } from '@/api/keuangan';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { Baris, Pesan, tanggalPanjang, waktuPendek } from '@/components/kesehatan-shared';
-import { Halaman, StatusBadge } from '@/components/keuangan-shared';
+import { tanggalPanjang, waktuPendek } from '@/components/kesehatan-shared';
+import { BarisPil, Halaman, HalamanKeadaan, Pesan, StatusBadge, TombolMuatUlang } from '@/components/keuangan-shared';
 import { PrivateField } from '@/components/private-field';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { ChipRow } from '@/components/ui/chip';
-import { Panel } from '@/components/ui/surface';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { Notice } from '@/components/ui/notice';
+import { ReceiptCard, type ReceiptRow } from '@/components/ui/receipt-card';
+import { SuccessPanel } from '@/components/ui/success-panel';
 import { useKeuanganMutation } from '@/hooks/use-keuangan-mutation';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { useNotifications } from '@/notifications/notification-context';
 import { galatAlasan, labelPeriode, rupiah, sidikJari } from '@/keuangan/forms';
 
+const JUDUL = 'Kuitansi pembayaran';
+
 /**
- * Kuitansi satu pembayaran — juga tujuan ketukan notifikasi pembayaran.
- * Angka kuitansi adalah snapshot saat sah dari server. Petugas dapat
- * memverifikasi transfer menunggu, atau membatalkan/menolak dengan alasan;
- * pembatalan pembayaran dari tabungan mengembalikan saldo di server.
+ * Kuitansi satu pembayaran (pola P-Sukses) — juga tujuan ketukan notifikasi
+ * pembayaran. Angka kuitansi adalah snapshot saat sah dari server. Petugas
+ * dapat memverifikasi transfer menunggu, atau membatalkan/menolak dengan
+ * alasan di lembar bawah; pembatalan pembayaran dari tabungan mengembalikan
+ * saldo di server. Cetak/PDF tetap dari website (keputusan T-1 V6).
  */
 export default function PembayaranScreen() {
   const { profile } = useAuth();
@@ -42,10 +48,11 @@ function Detail({ id }: { id: number }) {
   }, [id, tujuanDibuka]);
   const { data: b, error, load, reject } = usePrivateResource(fetcher, () => { setBatal(false); setAlasan(''); });
   const guard = useKeuanganMutation('bsa-putus-bayar', reject);
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!b) return <LoadingState label="Memeriksa akses kuitansi…" />;
+  if (error) return <HalamanKeadaan title={JUDUL}><ErrorState message={error} onRetry={() => void load()} /></HalamanKeadaan>;
+  if (!b) return <HalamanKeadaan title={JUDUL}><LoadingState label="Memeriksa akses kuitansi…" /></HalamanKeadaan>;
   const kelola = b.akses.kelola && b.santri.aktif && b.status !== 'Dibatalkan';
   const internal = b.akses.sumber !== 'wali';
+  const menunggu = b.status === 'Menunggu';
   async function putus(aksi: 'verifikasi' | 'batal') {
     setPesan(null);
     if (aksi === 'batal') { const g = galatAlasan(alasan); if (g) { guard.setError(g); return; } }
@@ -56,58 +63,66 @@ function Detail({ id }: { id: number }) {
       setBatal(false); setAlasan(''); void load();
     }
   }
+  const baris: ReceiptRow[] = [
+    { label: 'No. kuitansi', value: b.nomor_kuitansi },
+    { label: 'Santri', value: `${b.santri.nama} · NIS ${b.santri.nis}` },
+    { label: 'Tagihan', value: labelPeriode(b.periode) },
+    { label: 'Cara', value: b.sumber === 'Tabungan' ? 'Dari tabungan santri' : b.sumber },
+    { label: 'Tanggal pembayaran', value: tanggalPanjang(b.tanggal_transaksi) },
+    ...(b.tabungan ? [{ label: 'Debit tabungan', value: b.tabungan.nomor_kuitansi }] : []),
+    ...(internal && b.referensi ? [{ label: 'Referensi transfer', value: b.referensi }] : []),
+    ...(internal && b.catatan ? [{ label: 'Catatan', value: b.catatan }] : []),
+    { label: 'Dicatat', value: `${b.pencatat.nama}, ${waktuPendek(b.dicatat_pada)}` },
+    ...(b.verifikasi ? [{ label: 'Disahkan', value: `${b.verifikasi.oleh}, ${waktuPendek(b.verifikasi.pada)}` }] : []),
+    ...(b.kuitansi ? [
+      { label: `Total tagihan (versi ${b.kuitansi.tagihan_versi})`, value: rupiah(b.kuitansi.total_tagihan) },
+      { label: 'Dibayar sebelumnya', value: rupiah(b.kuitansi.terbayar_sebelum) },
+      { label: 'Pembayaran ini', value: rupiah(b.nominal) },
+      { label: 'Sisa sesudah pembayaran', value: rupiah(b.kuitansi.sisa_sesudah), emphasis: true },
+    ] : [{ label: 'Nominal', value: rupiah(b.nominal), emphasis: true }]),
+  ];
   return (
-    <Halaman>
-      <Panel style={{ gap: 10 }}>
-        <ThemedText type="h3">{b.nomor_kuitansi}</ThemedText>
-        <ChipRow><StatusBadge status={b.status} /></ChipRow>
-        <Baris label="Santri" value={`${b.santri.nama} · NIS ${b.santri.nis}`} />
-        <Baris label="Tagihan" value={labelPeriode(b.periode)} />
-        <Baris label="Nominal" value={rupiah(b.nominal)} />
-        <Baris label="Cara" value={b.sumber === 'Tabungan' ? 'Dari tabungan santri' : b.sumber} />
-        <Baris label="Tanggal pembayaran" value={tanggalPanjang(b.tanggal_transaksi)} />
-        {b.tabungan ? <Baris label="Debit tabungan" value={b.tabungan.nomor_kuitansi} /> : null}
-        {internal && b.referensi ? <Baris label="Referensi transfer" value={b.referensi} /> : null}
-        {internal && b.catatan ? <Baris label="Catatan" value={b.catatan} /> : null}
-        <Baris label="Dicatat" value={`${b.pencatat.nama}, ${waktuPendek(b.dicatat_pada)}`} />
-        {b.verifikasi ? <Baris label="Disahkan" value={`${b.verifikasi.oleh}, ${waktuPendek(b.verifikasi.pada)}`} /> : null}
-      </Panel>
-      {b.kuitansi ? (
-        <Panel style={{ gap: 8 }}>
-          <ThemedText type="h3">Kuitansi (saat sah)</ThemedText>
-          <Baris label={`Total tagihan (versi ${b.kuitansi.tagihan_versi})`} value={rupiah(b.kuitansi.total_tagihan)} />
-          <Baris label="Dibayar sebelumnya" value={rupiah(b.kuitansi.terbayar_sebelum)} />
-          <Baris label="Pembayaran ini" value={rupiah(b.nominal)} />
-          <Baris label="Sisa sesudah pembayaran" value={rupiah(b.kuitansi.sisa_sesudah)} />
-        </Panel>
-      ) : null}
+    <Halaman title={JUDUL} actions={<TombolMuatUlang onPress={() => { setPesan(null); void load(); }} />}
+      bawah={kelola ? (
+        <View style={styles.bilah}>
+          {menunggu ? <AppButton label="Dana sudah diperiksa — verifikasi" icon="check" loading={guard.isBusy && !batal} disabled={guard.isBusy} onPress={() => void putus('verifikasi')} /> : null}
+          <AppButton label={menunggu ? 'Tolak transfer…' : 'Batalkan pembayaran…'} variant="outline" disabled={guard.isBusy}
+            onPress={() => { setBatal(true); guard.reset(); }} />
+        </View>
+      ) : undefined}>
+      {b.status === 'Sah' ? <SuccessPanel title="Pembayaran sah" message={`${rupiah(b.nominal)} untuk tagihan ${labelPeriode(b.periode)}.`} /> : null}
+      {menunggu ? <SuccessPanel tone="menunggu" title="Menunggu verifikasi" message={`Transfer ${rupiah(b.nominal)} belum mengurangi sisa tagihan sampai dana diperiksa Petugas BSA.`} /> : null}
+      {b.status === 'Dibatalkan' ? <Notice tone="danger" title="Pembayaran dibatalkan" text="Pembayaran ini tidak dihitung dalam tagihan." /> : null}
+      <BarisPil><StatusBadge status={b.status} /></BarisPil>
+      <ReceiptCard title={b.kuitansi ? 'Kuitansi (saat sah)' : 'Bukti pembayaran'} subtitle={b.nomor_kuitansi} rows={baris}
+        footer="Cetak/PDF kuitansi tersedia di website BSA." />
       {b.pembatalan ? (
-        <Panel style={{ gap: 6 }}>
-          <ThemedText type="h3">{b.pembatalan.jenis ?? 'Pembatalan'}</ThemedText>
-          {b.pembatalan.oleh ? <ThemedText>{b.pembatalan.oleh}, {waktuPendek(b.pembatalan.pada ?? null)}</ThemedText> : null}
-          {internal && b.pembatalan.alasan ? <ThemedText>Alasan: {b.pembatalan.alasan}</ThemedText> : null}
-          {b.tabungan?.pengembalian_id ? <ThemedText type="caption" themeColor="textSecondary">Saldo tabungan sudah dikembalikan.</ThemedText> : null}
-        </Panel>
+        <Notice tone="warning" title={b.pembatalan.jenis ?? 'Pembatalan'}>
+          {b.pembatalan.oleh ? <ThemedText selectable type="caption">{b.pembatalan.oleh}, {waktuPendek(b.pembatalan.pada ?? null)}</ThemedText> : null}
+          {internal && b.pembatalan.alasan ? <ThemedText type="caption">Alasan: {b.pembatalan.alasan}</ThemedText> : null}
+          {b.tabungan?.pengembalian_id ? <ThemedText selectable type="caption">Saldo tabungan sudah dikembalikan.</ThemedText> : null}
+        </Notice>
       ) : null}
       <Pesan text={pesan} tone="success" />
-      <Pesan text={guard.error} tone="danger" />
+      {!batal ? <Pesan text={guard.error} tone="danger" /> : null}
+      <View style={styles.tautan}>
+        <AppButton label="Buka tagihan" variant="line" icon="wallet" onPress={() => router.push({ pathname: '/keuangan/tagihan/[id]', params: { id: String(b.tagihan_id) } })} />
+        {b.tabungan ? <AppButton label="Buka debit tabungan" variant="line" icon="arrow-right" onPress={() => router.push({ pathname: '/keuangan/tabungan/[id]', params: { id: String(b.tabungan!.transaksi_id) } })} /> : null}
+      </View>
       {kelola ? (
-        <Panel style={{ gap: 10 }}>
-          {b.status === 'Menunggu' && !batal ? <AppButton label="Dana sudah diperiksa — verifikasi" loading={guard.isBusy} disabled={guard.isBusy} onPress={() => void putus('verifikasi')} /> : null}
-          {batal ? (
-            <>
-              <PrivateField label={b.status === 'Menunggu' ? 'Alasan penolakan (wajib)' : 'Alasan pembatalan (wajib)'} value={alasan} onChangeText={setAlasan} multiline maxLength={500} editable={!guard.isBusy} />
-              <AppButton label={b.status === 'Menunggu' ? 'Tolak transfer' : 'Batalkan pembayaran'} variant="danger" loading={guard.isBusy} disabled={guard.isBusy} onPress={() => void putus('batal')} />
-              <AppButton label="Batal" variant="secondary" disabled={guard.isBusy} onPress={() => { setBatal(false); guard.reset(); }} />
-            </>
-          ) : (
-            <AppButton label={b.status === 'Menunggu' ? 'Tolak transfer…' : 'Batalkan pembayaran…'} variant="outline" disabled={guard.isBusy} onPress={() => { setBatal(true); guard.reset(); }} />
-          )}
-        </Panel>
+        <BottomSheet visible={batal} keyboardAware title={menunggu ? 'Tolak transfer' : 'Batalkan pembayaran'} onClose={() => { if (!guard.isBusy) { setBatal(false); guard.reset(); } }}>
+          <Pesan tone="info" text={menunggu ? 'Transfer ditolak tidak mengurangi sisa tagihan.' : `Pembatalan mengembalikan ${rupiah(b.nominal)} ke sisa tagihan${b.sumber === 'Tabungan' ? ' dan ke saldo tabungan santri' : ''}.`} />
+          <PrivateField label={menunggu ? 'Alasan penolakan (wajib)' : 'Alasan pembatalan (wajib)'} hint={`${alasan.trim().length}/500`} value={alasan} onChangeText={setAlasan} multiline maxLength={500} editable={!guard.isBusy} />
+          <Pesan text={guard.error} tone="danger" />
+          <AppButton label={menunggu ? 'Tolak transfer' : 'Batalkan pembayaran'} variant="danger" loading={guard.isBusy} disabled={guard.isBusy} onPress={() => void putus('batal')} />
+          <AppButton label="Batal" variant="secondary" disabled={guard.isBusy} onPress={() => { setBatal(false); guard.reset(); }} />
+        </BottomSheet>
       ) : null}
-      <AppButton label="Buka tagihan" variant="secondary" onPress={() => router.push({ pathname: '/keuangan/tagihan/[id]', params: { id: String(b.tagihan_id) } })} />
-      {b.tabungan ? <AppButton label="Buka debit tabungan" variant="secondary" onPress={() => router.push({ pathname: '/keuangan/tabungan/[id]', params: { id: String(b.tabungan!.transaksi_id) } })} /> : null}
-      <AppButton label="Muat ulang" variant="secondary" onPress={() => { setPesan(null); void load(); }} />
     </Halaman>
   );
 }
+
+const styles = StyleSheet.create({
+  bilah: { flex: 1, gap: 10 },
+  tautan: { gap: 10 },
+});

@@ -5,15 +5,15 @@ import { ApiError } from '@/api/client';
 import { keuangan } from '@/api/keuangan';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { Pesan } from '@/components/kesehatan-shared';
-import { Centang, Halaman } from '@/components/keuangan-shared';
+import { Centang, Halaman, HalamanKeadaan, Kartu, KartuSantri, Pesan } from '@/components/keuangan-shared';
 import { PrivateField } from '@/components/private-field';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { Panel } from '@/components/ui/surface';
 import { useKeuanganMutation } from '@/hooks/use-keuangan-mutation';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { galatNominal, labelPeriode, nominalKirim, rupiah, sidikJari } from '@/keuangan/forms';
+
+const JUDUL = 'Bayar dari tabungan';
 
 /**
  * Bayar tagihan dari tabungan — tindakan EKSPLISIT dengan persetujuan
@@ -42,8 +42,8 @@ function Form({ tagihanId }: { tagihanId: number }) {
   }, [tagihanId]);
   const { data, error, load, reject } = usePrivateResource(fetcher, bersihkan, true);
   const guard = useKeuanganMutation('bsa-bayar-tabungan', reject);
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!data) return <LoadingState label="Memuat saldo dan sisa tagihan…" />;
+  if (error) return <HalamanKeadaan title={JUDUL}><ErrorState message={error} onRetry={() => void load()} /></HalamanKeadaan>;
+  if (!data) return <HalamanKeadaan title={JUDUL}><LoadingState label="Memuat saldo dan sisa tagihan…" /></HalamanKeadaan>;
   const { t, saldo } = data;
   async function simpan() {
     const g = galatNominal(nominal);
@@ -54,21 +54,20 @@ function Form({ tagihanId }: { tagihanId: number }) {
     if (r) router.replace({ pathname: '/keuangan/pembayaran/[id]', params: { id: String(r.id) } });
   }
   return (
-    <Halaman>
-      <Panel style={{ gap: 6 }}>
-        <ThemedText type="h3">Tagihan {labelPeriode(t.periode)}</ThemedText>
-        <ThemedText>{t.santri.nama} · NIS {t.santri.nis}</ThemedText>
-        <ThemedText type="bodyBold">Sisa tagihan {rupiah(t.sisa)}{t.menunggu > 0 ? ` (transfer menunggu ${rupiah(t.menunggu)})` : ''}</ThemedText>
-        <ThemedText type="bodyBold">Saldo tabungan {rupiah(saldo)}</ThemedText>
-      </Panel>
-      <Panel style={{ gap: 12 }}>
-        <PrivateField label="Nominal dipotong dari tabungan" value={nominal} onChangeText={setNominal} keyboardType="number-pad" maxLength={16} editable={!guard.isBusy} />
-        <PrivateField label="Catatan internal" hint="Opsional" value={catatan} onChangeText={setCatatan} multiline maxLength={500} editable={!guard.isBusy} />
+    <Halaman title={JUDUL}
+      bawah={<AppButton label="Bayar dari tabungan" loading={guard.isBusy} disabled={guard.isBusy} onPress={() => void simpan()} style={{ flex: 1 }} />}>
+      <KartuSantri nama={t.santri.nama} keterangan={`Tagihan ${labelPeriode(t.periode)} · NIS ${t.santri.nis}`}
+        angka={[
+          { label: 'Saldo tabungan', nilai: rupiah(saldo) },
+          { label: t.menunggu > 0 ? `Sisa tagihan (transfer menunggu ${rupiah(t.menunggu)})` : 'Sisa tagihan', nilai: rupiah(t.sisa), tone: t.sisa > 0 ? 'danger' : undefined },
+        ]} />
+      <Kartu>
+        <PrivateField label="Nominal dipotong dari tabungan" awalan="Rp" value={nominal} onChangeText={setNominal} keyboardType="number-pad" maxLength={16} editable={!guard.isBusy} placeholder="mis. 50.000" />
+        <PrivateField label="Catatan internal" hint={`Opsional · ${catatan.length}/500`} value={catatan} onChangeText={setCatatan} multiline maxLength={500} editable={!guard.isBusy} />
         <Centang label="Saya menyetujui tabungan santri ini dipotong untuk membayar tagihan ini." checked={setuju} onChange={setSetuju} disabled={guard.isBusy} />
-        <ThemedText type="caption" themeColor="textSecondary">Debit tabungan dan pembayaran dicatat bersama atau tidak sama sekali. Bukan penerimaan kas baru.</ThemedText>
-      </Panel>
+        <ThemedText type="caption" themeColor="textSecondary">Debit tabungan dan pembayaran dicatat bersama atau tidak sama sekali. Perpindahan internal, bukan penerimaan kas baru.</ThemedText>
+      </Kartu>
       <Pesan text={guard.error} tone="danger" />
-      <AppButton label="Bayar dari tabungan" loading={guard.isBusy} disabled={guard.isBusy} onPress={() => void simpan()} />
     </Halaman>
   );
 }

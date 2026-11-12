@@ -59,9 +59,12 @@ export function AppIcon({
   size = 20,
   color,
   themeColor = 'text',
+  rotate,
 }: {
   name: IconName;
   size?: number;
+  /** Putaran dalam derajat (mis. panah masuk/keluar dari satu ikon panah). */
+  rotate?: number;
   /** Warna eksplisit; menang atas `themeColor`. */
   color?: string;
   themeColor?: ThemeColor;
@@ -70,7 +73,7 @@ export function AppIcon({
   return (
     <Image
       source={ICONS[name]}
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, transform: rotate ? [{ rotate: `${rotate}deg` }] : undefined }}
       tintColor={color ?? theme[themeColor]}
       contentFit="contain"
       accessible={false}
