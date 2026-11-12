@@ -5,7 +5,7 @@
  * Redesain gelombang 2 (K-1, 12 Nov 2026): latar krem hangat, garis hangat,
  * hijau utama dan kartu sorot lebih tua. Warna status kehadiran, `success`,
  * `warning`, `danger`, `info`, dan `violet` TIDAK berubah. `textMuted` terang
- * digelapkan (#8A9990 → #66736A) agar teks kecil di atas latar krem dan kartu
+ * digelapkan (#8A9990 → #5F6D64) agar teks kecil di atas latar krem, kartu, dan kolom cari
  * mencapai 4,5:1.
  */
 export const Colors = {
@@ -13,7 +13,7 @@ export const Colors = {
     text: '#17231C',
     textSecondary: '#5C6B61',
     /** V2: abu-hijau untuk label sekunder, placeholder, dan ikon nonaktif. */
-    textMuted: '#66736A',
+    textMuted: '#5F6D64',
 
     background: '#F6F4EE',
     backgroundElement: '#EEEBE2',

@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native'
 
 import type { IconName } from '@/components/app-icon';
 import { Chip } from '@/components/ui/chip';
+import { TouchTarget } from '@/constants/theme';
 
 export type FilterPillOption<T extends string> = { value: T; label: string; icon?: IconName };
 
@@ -29,6 +30,7 @@ export function FilterPills<T extends string>({
       icon={option.icon}
       selected={option.value === value}
       accessibilityRole="radio"
+      style={styles.pil}
       onPress={() => onChange(option.value)}
     />
   ));
@@ -53,6 +55,7 @@ export function FilterPills<T extends string>({
 }
 
 const styles = StyleSheet.create({
+  pil: { minWidth: TouchTarget, minHeight: TouchTarget },
   gulir: { flexGrow: 0 },
   baris: { flexDirection: 'row', gap: 8, paddingVertical: 4 },
   bungkus: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

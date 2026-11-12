@@ -23,7 +23,7 @@ const IKON_BAWAAN: Record<StatusTone, IconName> = {
 export function StatusPill({ label, tone = 'neutral', icon }: { label: string; tone?: StatusTone; icon?: IconName }) {
   const theme = useTheme();
   const warna = {
-    success: { bg: theme.primarySoft, border: theme.primaryBorder, fg: theme.primary },
+    success: { bg: theme.primarySoft, border: theme.primaryBorder, fg: theme.success },
     warning: { bg: theme.warningSoft, border: theme.warningBorder, fg: theme.warning },
     danger: { bg: theme.dangerSoft, border: theme.dangerBorder, fg: theme.danger },
     info: { bg: theme.infoSoft, border: theme.infoSoft, fg: theme.info },

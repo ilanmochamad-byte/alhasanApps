@@ -9,7 +9,7 @@ import { KeyboardAwareScrollView } from '@/components/keyboard-aware-scroll-view
 import { ThemedText } from '@/components/themed-text';
 import { Field } from '@/components/ui/app-field';
 import { AppIcon } from '@/components/app-icon';
-import { Elevation, Radius } from '@/constants/theme';
+import { Elevation, Radius, TouchTarget } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 const LOGO_LIGHT = require('@/assets/images/Logo_alhasanApps_potrait.png');
@@ -99,7 +99,7 @@ export default function LoginScreen() {
                   accessibilityLabel={lihatPassword ? 'Sembunyikan password' : 'Tampilkan password'}
                   accessibilityState={{ checked: lihatPassword }}
                   onPress={() => setLihatPassword((current) => !current)}
-                  hitSlop={12}>
+                  style={styles.passwordToggle}>
                   <AppIcon name="eye" size={20} themeColor={lihatPassword ? 'primary' : 'textMuted'} />
                 </Pressable>
               }
@@ -150,6 +150,7 @@ const styles = StyleSheet.create({
     gap: 16,
     boxShadow: Elevation.raised,
   },
+  passwordToggle: { width: TouchTarget, height: TouchTarget, alignItems: 'center', justifyContent: 'center' },
   galat: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, borderWidth: 1, borderRadius: Radius.sm, padding: 12 },
   galatTeks: { flex: 1 },
   hint: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 4 },

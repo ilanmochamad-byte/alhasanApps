@@ -43,7 +43,7 @@ export default function HomeScreen() {
   const aksesKeuangan = useKeuanganAkses();
   const aksesKeamanan = useKeamananAkses();
   const { muat: muatProfil, data: pribadi } = useProfil();
-  const { jumlahBelumDibaca } = useNotifications();
+  const { jumlahBelumDibaca, jumlahBelumDibacaTermuat } = useNotifications();
   const [data, setData] = useState<TodayResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -181,7 +181,7 @@ export default function HomeScreen() {
     ...(!aksesJadwal && pribadi
       ? [{ icon: 'users', value: String(pribadi.penugasan.length), label: 'Penugasan aktif' }] satisfies StatItem[]
       : []),
-    ...(!aksesJadwal
+    ...(!aksesJadwal && jumlahBelumDibacaTermuat
       ? [{ icon: 'bell', value: String(jumlahBelumDibaca), label: 'Notifikasi belum dibaca', tone: 'info' }] satisfies StatItem[]
       : []),
   ];

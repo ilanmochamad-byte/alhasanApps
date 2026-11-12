@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
+import { AppIcon } from '@/components/app-icon';
 import { ThemedText } from '@/components/themed-text';
 import { Elevation, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -62,6 +63,7 @@ export function StatusChips({ labels, inverse = false }: { labels: string[]; inv
           style={[styles.chip, inverse
             ? { borderColor: theme.heroAccent }
             : { borderColor: theme.primaryBorder, backgroundColor: theme.primarySoft }]}>
+          <AppIcon name="person" size={14} color={inverse ? theme.heroText : theme.primary} />
           <ThemedText selectable style={[styles.chipText, { color: inverse ? theme.heroText : theme.primary }]}>
             {label}
           </ThemedText>
@@ -151,6 +153,6 @@ const styles = StyleSheet.create({
   avatar: { alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' },
   avatarText: { fontWeight: '800' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingTop: 2 },
-  chip: { borderWidth: 1, borderRadius: Radius.pill, paddingHorizontal: 10, paddingVertical: 2 },
-  chipText: { fontSize: 12, lineHeight: 16, fontWeight: '800' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, maxWidth: '100%', borderWidth: 1, borderRadius: Radius.pill, paddingHorizontal: 10, paddingVertical: 2 },
+  chipText: { flexShrink: 1, fontSize: 12, lineHeight: 16, fontWeight: '800' },
 });

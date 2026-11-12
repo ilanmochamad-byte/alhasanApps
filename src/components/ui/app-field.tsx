@@ -4,7 +4,7 @@ import { StyleSheet, View, type TextInputProps } from 'react-native';
 import { AppIcon, type IconName } from '@/components/app-icon';
 import { KeyboardAwareTextInput } from '@/components/keyboard-aware-scroll-view';
 import { ThemedText } from '@/components/themed-text';
-import { Radius } from '@/constants/theme';
+import { Radius, TouchTarget } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 /** Kolom teks berlabel. */
@@ -77,6 +77,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   boxMultiline: { minHeight: 86, alignItems: 'flex-start', paddingVertical: 12 },
-  input: { flex: 1, fontSize: 15, fontWeight: '500' },
+  input: { flex: 1, minHeight: TouchTarget, fontSize: 15, fontWeight: '500' },
   inputMultiline: { minHeight: 62, textAlignVertical: 'top' },
 });

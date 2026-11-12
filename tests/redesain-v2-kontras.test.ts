@@ -23,8 +23,8 @@ const TEKS: [Nama, Nama, number][] = [
   ['text', 'background', 4.5], ['text', 'backgroundElement', 4.5], ['text', 'card', 4.5],
   ['textSecondary', 'background', 4.5], ['textSecondary', 'backgroundElement', 4.5], ['textSecondary', 'card', 4.5],
   ['textMuted', 'background', 4.5], ['textMuted', 'card', 4.5],
-  // Placeholder dan ikon nonaktif di kolom cari/pil tidak terpilih: ≥ 3:1.
-  ['textMuted', 'backgroundElement', 3],
+  // Placeholder kolom cari adalah teks biasa.
+  ['textMuted', 'backgroundElement', 4.5],
   ['primary', 'background', 4.5], ['primary', 'backgroundElement', 4.5], ['primary', 'card', 4.5], ['primary', 'primarySoft', 4.5],
   ['onPrimary', 'primary', 4.5], ['onPrimary', 'primaryPressed', 4.5],
   ['heroText', 'heroSurface', 4.5], ['heroTextSecondary', 'heroSurface', 4.5], ['heroAccent', 'heroSurface', 4.5],
@@ -33,7 +33,7 @@ const TEKS: [Nama, Nama, number][] = [
   ['danger', 'background', 4.5], ['danger', 'dangerSoft', 4.5], ['danger', 'card', 4.5],
   ['info', 'background', 4.5], ['info', 'infoSoft', 4.5],
   ['violet', 'background', 4.5], ['violet', 'violetSoft', 4.5],
-  ['success', 'background', 4.5],
+  ['success', 'background', 4.5], ['success', 'primarySoft', 4.5], ['success', 'card', 4.5],
   // Status kehadiran tampil sebagai ikon + teks tebal: ≥ 3:1 di latar baru.
   ['statusHadir', 'background', 3], ['statusIzin', 'background', 3], ['statusTerlambat', 'background', 3],
   ['statusSakit', 'background', 3], ['statusAlpa', 'background', 3],
