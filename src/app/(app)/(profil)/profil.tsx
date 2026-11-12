@@ -1,21 +1,24 @@
 import Constants from 'expo-constants';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback } from 'react';
-import { Alert, RefreshControl, ScrollView, StyleSheet, View, useColorScheme, useWindowDimensions } from 'react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View, useColorScheme, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { akun } from '@/api/akun';
 import { ApiError } from '@/api/client';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
+import { AppIcon } from '@/components/app-icon';
 import { ThemedText } from '@/components/themed-text';
 import { MODE_LABEL } from '@/components/mode-switcher';
 import { ProfilAvatar, StatusChips, useStatusProfil } from '@/components/profil-shared';
 import { ScreenHeader } from '@/components/screen-header';
 import { ErrorState } from '@/components/screen-state';
+import { InfoRow } from '@/components/ui/info-row';
 import { ListRow, RowGroup } from '@/components/ui/list-row';
+import { ProfileHeader } from '@/components/ui/profile-header';
 import { Overline } from '@/components/ui/surface';
-import { Radius } from '@/constants/theme';
+import { Layout } from '@/constants/theme';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { useTheme } from '@/hooks/use-theme';
 import { kelompokPenugasan } from '@/keamanan/format';
@@ -51,10 +54,8 @@ export default function ProfilScreen() {
   const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
   const { fontScale } = useWindowDimensions();
-  // Teks sistem sangat besar: avatar ikut membesar dan ditaruh di atas nama
-  // agar inisial tidak meluber dan nama mendapat lebar penuh.
-  const bertumpuk = fontScale > 1.35;
-  const ukuranAvatar = Math.round(56 * Math.min(fontScale, 2));
+  // Avatar besar di tengah; ikut membesar terbatas pada teks sistem besar.
+  const ukuranAvatar = Math.round(96 * Math.min(fontScale, 1.4));
   const { profile, capabilities, logout } = useAuth();
   const { data: pribadi, status: statusPribadi, error: galatPribadi, muat: muatPribadi } = useProfil();
   const labelStatus = useStatusProfil();
@@ -91,40 +92,62 @@ export default function ProfilScreen() {
     ]);
   }
 
+  // Redesain gelombang 2: strip angka hanya bila datanya ada di respons profil.
+  const jumlahKelas = new Set(mengajar.flatMap((m) => m.kelas)).size;
+  const strip = pribadi && (pribadi.penugasan.length > 0 || mengajar.length > 0)
+    ? [
+        { value: String(pribadi.penugasan.length), label: 'Penugasan aktif' },
+        ...(mengajar.length > 0
+          ? [{ value: String(mengajar.length), label: 'Mata pelajaran' }, { value: String(jumlahKelas), label: 'Kelas' }]
+          : []),
+      ]
+    : [];
+  const ttl = pribadi
+    ? [pribadi.pribadi.tempat_lahir, pribadi.pribadi.tanggal_lahir ? formatTanggal(pribadi.pribadi.tanggal_lahir) : null].filter(Boolean).join(', ')
+    : '';
+
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="never"
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
       refreshControl={<RefreshControl refreshing={false} onRefresh={() => void muatPribadi()} tintColor={theme.primary} />}>
-      <ScreenHeader title="Profil" bell={false} />
+      {/* K-10: layar tab memakai ← ke Beranda di atas judul besar. */}
+      <ScreenHeader variant="akar" title="Profil" subtitle="Identitas, penugasan, dan pengaturan akun" />
 
-      {/* Redesain tampilan Fase 3 (Konsep C): kartu identitas hijau memuat
-          nama dan peran; cakupan perizinan menjadi baris menu berketerangan. */}
-      <View
-        style={[
-          styles.identity,
-          bertumpuk && styles.identityStacked,
-          { backgroundColor: theme.heroSurface, borderColor: theme.heroBorder },
-        ]}>
-        <ProfilAvatar nama={nama} ukuran={ukuranAvatar} inverse />
-        <View style={styles.identityText}>
-          <ThemedText selectable type="h2" style={{ color: theme.heroText }}>
-            {nama}
-          </ThemedText>
-          <ThemedText selectable type="caption" style={{ color: theme.heroTextSecondary }}>
-            @{pribadi?.akun.username ?? profile?.username}
-            {!pribadi && profile?.guru?.nip ? ` · NIP ${profile.guru.nip}` : ''}
-          </ThemedText>
-          {labelStatus.length === 0 ? (
-            <ThemedText selectable type="caption" style={{ color: theme.heroTextSecondary }}>
+      <ProfileHeader
+        avatar={
+          pribadi ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={pribadi.foto.ada ? 'Ubah foto profil' : 'Tambahkan foto profil'}
+              accessibilityHint="Membuka Edit profil"
+              onPress={() => router.push('/akun/edit-profil')}
+              style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}>
+              <ProfilAvatar nama={nama} ukuran={ukuranAvatar} />
+              <View style={[styles.lencana, { backgroundColor: theme.primary, borderColor: theme.card }]}>
+                <AppIcon name="camera" size={16} color={theme.onPrimary} />
+              </View>
+            </Pressable>
+          ) : (
+            <ProfilAvatar nama={nama} ukuran={ukuranAvatar} />
+          )
+        }
+        name={nama}
+        caption={`@${pribadi?.akun.username ?? profile?.username}${!pribadi && profile?.guru?.nip ? ` · NIP ${profile.guru.nip}` : ''}`}
+        stats={strip}
+        pills={
+          labelStatus.length === 0 ? (
+            <ThemedText selectable type="caption" themeColor="textSecondary" style={styles.tengah}>
               {statusPribadi === 'memuat' ? 'Memuat status akun…' : 'Belum ada status atau penugasan aktif.'}
             </ThemedText>
           ) : (
-            <StatusChips labels={labelStatus} inverse />
-          )}
-        </View>
-      </View>
+            <View style={styles.pil}>
+              <StatusChips labels={labelStatus} />
+            </View>
+          )
+        }
+      />
 
       {pribadi ? (
         <AppButton label="Edit profil" icon="person" variant="secondary" onPress={() => router.push('/akun/edit-profil')} />
@@ -136,12 +159,12 @@ export default function ProfilScreen() {
         <View style={styles.group}>
           <Overline>Data diri</Overline>
           <RowGroup>
-            {pribadi.pribadi.nip ? <ListRow title="NIP / nomor identitas" subtitle={pribadi.pribadi.nip} /> : null}
-            {pribadi.pribadi.nik ? <ListRow title="NIK" subtitle={pribadi.pribadi.nik} /> : null}
-            <ListRow title="Tempat, tanggal lahir" subtitle={[pribadi.pribadi.tempat_lahir, pribadi.pribadi.tanggal_lahir ? formatTanggal(pribadi.pribadi.tanggal_lahir) : null].filter(Boolean).join(', ') || kosong} />
-            <ListRow title="Alamat rumah" subtitle={alamat ?? kosong} />
-            <ListRow title="No. HP" subtitle={pribadi.pribadi.no_hp ?? kosong} />
-            <ListRow title="Email" subtitle={pribadi.pribadi.email ?? kosong} last />
+            {pribadi.pribadi.nip ? <InfoRow icon="info" label="NIP / nomor identitas" value={pribadi.pribadi.nip} /> : null}
+            {pribadi.pribadi.nik ? <InfoRow icon="info" label="NIK" value={pribadi.pribadi.nik} /> : null}
+            <InfoRow icon="calendar" label="Tempat, tanggal lahir" value={ttl || kosong} />
+            <InfoRow icon="home" label="Alamat rumah" value={alamat ?? kosong} />
+            <InfoRow icon="phone" label="No. HP" value={pribadi.pribadi.no_hp ?? kosong} />
+            <InfoRow icon="mail" label="Email" value={pribadi.pribadi.email ?? kosong} last />
           </RowGroup>
         </View>
       ) : null}
@@ -255,12 +278,18 @@ export default function ProfilScreen() {
         <Overline>Tampilan</Overline>
         <RowGroup>
           <ListRow icon="moon" title="Tema tampilan" value={scheme === 'dark' ? 'Gelap' : 'Terang'} />
-          <ListRow icon="text-size" title="Ukuran teks" value="Ikuti sistem" />
-          <ListRow icon="info" title="Tentang aplikasi" value={`versi ${VERSION}`} last />
+          <ListRow icon="text-size" title="Ukuran teks" value="Ikuti sistem" last />
         </RowGroup>
-        <ThemedText selectable type="caption" themeColor="textMuted">
+        <ThemedText selectable type="caption" themeColor="textSecondary">
           Tema dan ukuran teks mengikuti setelan perangkat Anda.
         </ThemedText>
+      </View>
+
+      <View style={styles.group}>
+        <Overline>Tentang</Overline>
+        <RowGroup>
+          <ListRow icon="info" title="Tentang aplikasi" value={`versi ${VERSION}`} last />
+        </RowGroup>
       </View>
 
       <AppButton label="Keluar dari aplikasi" variant="outline" icon="logout" onPress={confirmLogout} />
@@ -270,25 +299,20 @@ export default function ProfilScreen() {
 
 const styles = StyleSheet.create({
   content: {
-    padding: 16,
+    paddingHorizontal: Layout.screen,
     // Bilah tab iOS 26 mengambang di atas konten; ruang ekstra memastikan
     // tombol Keluar dapat digulir sepenuhnya ke atas bilah itu.
     paddingBottom: 150,
-    gap: 16,
+    gap: Layout.sectionGap,
     maxWidth: 760,
     width: '100%',
     alignSelf: 'center',
   },
-  identity: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderRadius: Radius.hero,
-    borderCurve: 'continuous',
+  lencana: {
+    position: 'absolute', right: 0, bottom: 0, width: 34, height: 34, borderRadius: 17, borderWidth: 3,
+    alignItems: 'center', justifyContent: 'center',
   },
-  identityStacked: { flexDirection: 'column', alignItems: 'flex-start' },
-  identityText: { flexGrow: 1, flexShrink: 1, gap: 3 },
+  pil: { alignItems: 'center' },
+  tengah: { textAlign: 'center' },
   group: { gap: 8 },
 });

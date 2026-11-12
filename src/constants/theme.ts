@@ -1,120 +1,16 @@
 /**
  * Token desain Al Hasan Apps.
  *
- * Nilai warna inti (primary, background, card, border, text, textSecondary,
- * success, warning, danger) DIPERTAHANKAN dari versi sebelumnya. Yang
- * ditambahkan pada redesain V2 hanyalah turunan netral, permukaan lunak,
- * warna status kehadiran, serta skala radius/elevasi/tipografi — supaya nilai
- * yang dulu ditulis ad-hoc di tiap layar punya satu sumber kebenaran.
+ * Warna ada di `constants/colors.ts` (berkas murni agar dapat diuji kontrasnya
+ * di Node). Berkas ini memuat huruf, jarak, radius, elevasi, dan skala
+ * tipografi — satu sumber kebenaran untuk nilai yang dipakai semua layar.
  */
 
 import '@/global.css';
 
 import { Platform } from 'react-native';
 
-export const Colors = {
-  light: {
-    text: '#17231C',
-    textSecondary: '#5C6B61',
-    /** V2: abu-hijau untuk label sekunder, placeholder, dan ikon nonaktif. */
-    textMuted: '#8A9990',
-
-    background: '#F4F7F4',
-    backgroundElement: '#E9EFEA',
-    backgroundSelected: '#D8E8DC',
-    card: '#FFFFFF',
-    border: '#DFE7E1',
-    /** V2: garis pemisah di dalam kartu, lebih halus dari `border`. */
-    divider: '#EEF3EF',
-
-    primary: '#176B3A',
-    onPrimary: '#FFFFFF',
-    /** V2: keadaan tertekan untuk tombol primer. */
-    primaryPressed: '#10552D',
-    /** V2: latar lunak untuk chip, lencana, dan ikon beraksen. */
-    primarySoft: '#E8F2EB',
-    primaryBorder: '#CFE4D6',
-
-    /** V2: permukaan kartu sorot di Beranda. */
-    heroSurface: '#176B3A',
-    heroBorder: '#176B3A',
-    heroText: '#FFFFFF',
-    heroTextSecondary: '#C4E7D1',
-    heroAccent: '#A8DCBB',
-
-    success: '#176B3A',
-    warning: '#8B5A00',
-    warningSoft: '#FDF3E2',
-    warningBorder: '#F0DFBE',
-    danger: '#B42318',
-    dangerSoft: '#FDECEA',
-    dangerBorder: '#F0CFCB',
-
-    /**
-     * Warna status kehadiran. Urutannya sengaja Hadir → Izin → Terlambat →
-     * Sakit → Alpa: pada batang rekap laporan urutan itulah yang lolos uji
-     * keterbedaan bagi pengguna buta warna.
-     */
-    statusHadir: '#176B3A',
-    statusIzin: '#1C82B8',
-    statusTerlambat: '#B07A12',
-    statusSakit: '#8A3FBF',
-    statusAlpa: '#B42318',
-
-    /** Redesain tampilan: aksen ubin menu Beranda (laporan/cetak, pembinaan). */
-    info: '#1C6A96',
-    infoSoft: '#E6F1F8',
-    violet: '#7A35AB',
-    violetSoft: '#F3EAFA',
-  },
-  dark: {
-    text: '#F2F7F3',
-    textSecondary: '#A9BAAE',
-    textMuted: '#7F9187',
-
-    background: '#0D1711',
-    backgroundElement: '#1A2820',
-    backgroundSelected: '#264331',
-    card: '#132019',
-    border: '#2A3B30',
-    divider: '#22322A',
-
-    primary: '#62C985',
-    onPrimary: '#082611',
-    primaryPressed: '#8FE0AB',
-    primarySoft: '#17331F',
-    primaryBorder: '#2F5C3F',
-
-    /** Kartu sorot memakai hijau tua: mengisinya dengan `primary` menyilaukan. */
-    heroSurface: '#1B4E31',
-    heroBorder: '#2F6A45',
-    heroText: '#F2F7F3',
-    heroTextSecondary: '#C4E7D1',
-    heroAccent: '#8FE0AB',
-
-    success: '#62C985',
-    warning: '#F4BE62',
-    warningSoft: '#33280F',
-    warningBorder: '#5C4A1C',
-    danger: '#FF8A80',
-    dangerSoft: '#3A1C19',
-    dangerBorder: '#6B2A24',
-
-    statusHadir: '#62C985',
-    statusIzin: '#6FC2E8',
-    statusTerlambat: '#E0AE4A',
-    statusSakit: '#C08BE8',
-    statusAlpa: '#FF8A80',
-
-    info: '#6FC2E8',
-    infoSoft: '#14293A',
-    violet: '#C08BE8',
-    violetSoft: '#2A1C38',
-  },
-} as const;
-
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
-export type ThemePalette = (typeof Colors)['light'];
+export { Colors, type ThemeColor, type ThemePalette } from './colors';
 
 export const Fonts = Platform.select({
   ios: {
@@ -176,8 +72,10 @@ export const Radius = {
 export const Elevation = {
   card: '0 1px 2px rgba(18, 42, 25, 0.04)',
   raised: '0 10px 32px rgba(18, 42, 25, 0.08)',
-  brand: '0 8px 22px rgba(23, 107, 58, 0.22)',
+  brand: '0 8px 22px rgba(23, 77, 54, 0.22)',
   bar: '0 -6px 20px rgba(18, 42, 25, 0.06)',
+  /** Gelombang 2: tombol mengambang (K-8). */
+  floating: '0 12px 28px rgba(23, 77, 54, 0.28)',
 } as const;
 
 /** V2: skala tipografi. Dipakai lewat `ThemedText type=…`. */
@@ -192,7 +90,18 @@ export const Type = {
   caption: { fontSize: 12, lineHeight: 16, fontWeight: '600' },
   overline: { fontSize: 11, lineHeight: 14, fontWeight: '800', letterSpacing: 0.6 },
   numeral: { fontSize: 30, lineHeight: 34, fontWeight: '800' },
+  /** Gelombang 2 §3.2: judul tengah layar stack. */
+  stackTitle: { fontSize: 18, lineHeight: 24, fontWeight: '700' },
+  /** Gelombang 2 §3.2: angka besar kartu sorot. */
+  numeralLarge: { fontSize: 32, lineHeight: 38, fontWeight: '800', letterSpacing: -0.4 },
+  /** Gelombang 2 §3.2: angka kartu statistik. */
+  numeralCard: { fontSize: 22, lineHeight: 28, fontWeight: '800' },
+  /** Gelombang 2 §3.2: label kecil. */
+  labelSmall: { fontSize: 13, lineHeight: 18, fontWeight: '600' },
 } as const;
+
+/** Gelombang 2 §3.2: jarak tepi layar, antar-kartu, dan antar-bagian. */
+export const Layout = { screen: 20, cardGap: 12, sectionGap: 24 } as const;
 
 /**
  * Redesain tampilan (14 Okt 2026): huruf merek Plus Jakarta Sans.

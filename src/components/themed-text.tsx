@@ -20,6 +20,10 @@ export type ThemedTextType =
   | 'caption'
   | 'overline'
   | 'numeral'
+  | 'stackTitle'
+  | 'numeralLarge'
+  | 'numeralCard'
+  | 'labelSmall'
   | 'default'
   | 'title'
   | 'small'
@@ -67,6 +71,10 @@ const styles = StyleSheet.create({
   caption: Type.caption,
   overline: Type.overline,
   numeral: { ...Type.numeral, fontVariant: ['tabular-nums'] },
+  stackTitle: Type.stackTitle,
+  numeralLarge: { ...Type.numeralLarge, fontVariant: ['tabular-nums'] },
+  numeralCard: { ...Type.numeralCard, fontVariant: ['tabular-nums'] },
+  labelSmall: Type.labelSmall,
 
   // Warisan V1
   small: { fontSize: 14, fontWeight: '500' },

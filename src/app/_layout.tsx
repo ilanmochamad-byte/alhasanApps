@@ -55,8 +55,10 @@ function RootNavigator() {
       <Stack.Protected guard={Boolean(profile)}>
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
         {/* PRD-PROFIL-IMPORT Fase 2 — data diri, foto, dan password akun sendiri. */}
-        <Stack.Screen name="akun/edit-profil" options={{ title: 'Edit Profil' }} />
-        <Stack.Screen name="akun/ganti-password" options={{ title: 'Ganti Password' }} />
+        {/* Redesain gelombang 2: kedua layar menggambar kepala `stack` sendiri
+            (← · judul tengah); geser-tepi iOS dan tombol kembali Android tetap. */}
+        <Stack.Screen name="akun/edit-profil" options={{ title: 'Edit profil', headerShown: false }} />
+        <Stack.Screen name="akun/ganti-password" options={{ title: 'Ganti password', headerShown: false }} />
         <Stack.Screen name="schedule/[id]" options={{ title: 'Detail Tugas' }} />
         <Stack.Screen name="meeting/[id]" options={{ title: 'Absensi Pertemuan' }} />
         {/* Redesain tampilan: Laporan keluar dari bilah tab (4 tab) dan dibuka

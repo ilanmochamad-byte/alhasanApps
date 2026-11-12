@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppIcon, type IconName } from '@/components/app-icon';
 import { ThemedText } from '@/components/themed-text';
-import { Radius } from '@/constants/theme';
+import { Elevation, Layout, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type MenuTileTone = 'primary' | 'warning' | 'info' | 'violet';
@@ -54,7 +54,7 @@ export function MenuTile({ icon, label, tone = 'primary', onPress }: MenuTileIte
       onPress={onPress}
       style={({ pressed }) => [
         styles.tile,
-        { backgroundColor: theme.card, borderColor: theme.border, opacity: pressed ? 0.75 : 1 },
+        { backgroundColor: theme.card, borderColor: theme.border, boxShadow: Elevation.card, opacity: pressed ? 0.75 : 1 },
       ]}>
       <View style={[styles.iconBox, { backgroundColor: palette.bg }]}>
         <AppIcon name={icon} size={26} color={palette.fg} />
@@ -68,14 +68,17 @@ export function MenuTile({ icon, label, tone = 'primary', onPress }: MenuTileIte
 }
 
 const styles = StyleSheet.create({
-  grid: { gap: 12 },
-  row: { flexDirection: 'row', gap: 12 },
-  spacer: { flex: 1 },
+  grid: { gap: Layout.cardGap },
+  row: { flexDirection: 'row', gap: Layout.cardGap },
+  // `flexBasis: 0` + `minWidth: 0`: ubin dan pengganjal sama lebar berapa pun isi labelnya.
+  spacer: { flex: 1, flexBasis: 0, minWidth: 0 },
   tile: {
     flex: 1,
+    flexBasis: 0,
+    minWidth: 0,
     minHeight: 112,
     borderWidth: 1,
-    borderRadius: Radius.xl,
+    borderRadius: Radius.xxl,
     borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
@@ -86,8 +89,7 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 52,
     height: 52,
-    borderRadius: Radius.lg,
-    borderCurve: 'continuous',
+    borderRadius: Radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
