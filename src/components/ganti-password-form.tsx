@@ -7,6 +7,7 @@ import { AppButton } from '@/components/app-button';
 import { AppIcon } from '@/components/app-icon';
 import { ThemedText } from '@/components/themed-text';
 import { Field } from '@/components/ui/app-field';
+import { TouchTarget } from '@/constants/theme';
 import { installationId } from '@/notifications/push-registration';
 import { ATURAN_PASSWORD, galatServer, periksaPassword, type IsianPassword } from '@/profil/format';
 
@@ -41,7 +42,7 @@ function KolomPassword({
             accessibilityLabel={lihat ? `Sembunyikan ${label.toLowerCase()}` : `Tampilkan ${label.toLowerCase()}`}
             accessibilityState={{ checked: lihat }}
             onPress={() => setLihat((v) => !v)}
-            hitSlop={10}>
+            style={styles.passwordToggle}>
             <AppIcon name="eye" size={19} themeColor={lihat ? 'primary' : 'textMuted'} />
           </Pressable>
         }
@@ -122,4 +123,5 @@ export function GantiPasswordForm({ onBerhasil, labelSimpan = 'Simpan password b
 const styles = StyleSheet.create({
   form: { gap: 14 },
   kolom: { gap: 6 },
+  passwordToggle: { width: TouchTarget, height: TouchTarget, alignItems: 'center', justifyContent: 'center' },
 });

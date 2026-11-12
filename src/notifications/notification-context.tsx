@@ -67,6 +67,7 @@ type PushState =
 
 type NotificationContextValue = {
   jumlahBelumDibaca: number;
+  jumlahBelumDibacaTermuat: boolean;
   tujuanDibuka: (tipe: string, id: number) => void;
   segarkanJumlah: () => Promise<void>;
   kurangiJumlah: (banyak?: number) => void;
@@ -142,7 +143,8 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   }, [pathname]);
   const sudahMendaftar = useRef<number | null>(null);
 
-  const jumlahBelumDibaca = cacheJumlah.userId === userId && userId !== null ? cacheJumlah.jumlah : 0;
+  const jumlahBelumDibacaTermuat = cacheJumlah.userId === userId && userId !== null;
+  const jumlahBelumDibaca = jumlahBelumDibacaTermuat ? cacheJumlah.jumlah : 0;
   const pushState: PushState =
     cachePush.userId === userId && userId !== null ? cachePush.state : { status: 'memeriksa' };
 
@@ -349,7 +351,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
 
   return (
     <NotificationContext.Provider
-      value={{ tujuanDibuka, jumlahBelumDibaca, segarkanJumlah, kurangiJumlah, pushState, nyalakanPush, matikanPush }}>
+      value={{ tujuanDibuka, jumlahBelumDibaca, jumlahBelumDibacaTermuat, segarkanJumlah, kurangiJumlah, pushState, nyalakanPush, matikanPush }}>
       {children}
     </NotificationContext.Provider>
   );

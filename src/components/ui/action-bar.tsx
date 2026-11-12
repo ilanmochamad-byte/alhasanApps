@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Elevation } from '@/constants/theme';
+import { Elevation, Layout, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 /**
@@ -59,7 +59,9 @@ function useKeyboardHeight() {
 const styles = StyleSheet.create({
   bar: {
     borderTopWidth: 1,
-    paddingHorizontal: 16,
+    borderTopLeftRadius: Radius.xxl,
+    borderTopRightRadius: Radius.xxl,
+    paddingHorizontal: Layout.screen,
     paddingTop: 12,
     flexDirection: 'row',
     gap: 10,

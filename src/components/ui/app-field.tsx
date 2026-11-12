@@ -4,7 +4,7 @@ import { StyleSheet, View, type TextInputProps } from 'react-native';
 import { AppIcon, type IconName } from '@/components/app-icon';
 import { KeyboardAwareTextInput } from '@/components/keyboard-aware-scroll-view';
 import { ThemedText } from '@/components/themed-text';
-import { Radius } from '@/constants/theme';
+import { Radius, TouchTarget } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 /** Kolom teks berlabel. */
@@ -67,16 +67,16 @@ const styles = StyleSheet.create({
   labelRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   labelText: { flex: 1 },
   box: {
-    minHeight: 48,
+    minHeight: 52,
     borderWidth: 1,
-    borderRadius: Radius.md,
+    borderRadius: Radius.lg,
     borderCurve: 'continuous',
-    paddingHorizontal: 13,
+    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
+    gap: 10,
   },
   boxMultiline: { minHeight: 86, alignItems: 'flex-start', paddingVertical: 12 },
-  input: { flex: 1, fontSize: 15, fontWeight: '500' },
+  input: { flex: 1, minHeight: TouchTarget, fontSize: 15, fontWeight: '500' },
   inputMultiline: { minHeight: 62, textAlignVertical: 'top' },
 });

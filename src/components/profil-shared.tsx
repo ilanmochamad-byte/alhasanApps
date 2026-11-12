@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
-import { NotificationBell } from '@/components/notification-bell';
+import { AppIcon } from '@/components/app-icon';
 import { ThemedText } from '@/components/themed-text';
 import { Elevation, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -37,7 +37,8 @@ export function ProfilAvatar({ nama, ukuran, inverse = false }: { nama: string; 
     <View
       accessibilityLabel={`Inisial ${teks}`}
       style={[styles.avatar, bentuk, { backgroundColor: inverse ? theme.card : theme.primarySoft }]}>
-      <ThemedText selectable={false} style={[styles.avatarText, { color: theme.primary, fontSize: Math.round(ukuran * 0.36) }]}>
+      {/* Ukuran avatar sudah mengikuti skala teks; inisial tidak diskalakan lagi agar tidak meluber. */}
+      <ThemedText selectable={false} maxFontSizeMultiplier={1} style={[styles.avatarText, { color: theme.primary, fontSize: Math.round(ukuran * 0.36) }]}>
         {teks}
       </ThemedText>
     </View>
@@ -62,6 +63,7 @@ export function StatusChips({ labels, inverse = false }: { labels: string[]; inv
           style={[styles.chip, inverse
             ? { borderColor: theme.heroAccent }
             : { borderColor: theme.primaryBorder, backgroundColor: theme.primarySoft }]}>
+          <AppIcon name="person" size={14} color={inverse ? theme.heroText : theme.primary} />
           <ThemedText selectable style={[styles.chipText, { color: inverse ? theme.heroText : theme.primary }]}>
             {label}
           </ThemedText>
@@ -79,7 +81,6 @@ function tanggalHariIni() {
  * Kartu identitas Beranda (PRD-PROFIL-IMPORT Fase 2): isi pertama layar setelah
  * area aman. Foto/inisial, nama lengkap, seluruh status aktif, dan target
  * kamar/kelas Murobi/Pembimbing — semuanya dari server. Ketuk membuka Profil.
- * Lonceng berada di luar area tekan agar tidak ada tombol bersarang.
  */
 export function KartuIdentitas() {
   const router = useRouter();
@@ -97,12 +98,10 @@ export function KartuIdentitas() {
     <View
       testID="kartu-identitas"
       style={[styles.kartu, { backgroundColor: theme.heroSurface, borderColor: theme.heroBorder, boxShadow: Elevation.brand }]}>
-      <View style={styles.atas}>
-        <ThemedText selectable type="caption" style={[styles.tanggal, { color: theme.heroTextSecondary }]}>
-          {tanggalHariIni()}
-        </ThemedText>
-        <NotificationBell />
-      </View>
+      {/* Redesain gelombang 2 (K-9): lonceng pindah ke kepala Beranda. */}
+      <ThemedText selectable type="caption" style={{ color: theme.heroTextSecondary }}>
+        {tanggalHariIni()}
+      </ThemedText>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${nama}. ${labels.join(', ')}. Buka profil`}
@@ -146,8 +145,6 @@ export function KartuIdentitas() {
 
 const styles = StyleSheet.create({
   kartu: { borderWidth: 1, borderRadius: Radius.hero, borderCurve: 'continuous', padding: 16, gap: 10 },
-  atas: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  tanggal: { flex: 1 },
   isi: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
   isiBertumpuk: { flexDirection: 'column' },
   teks: { flexGrow: 1, flexShrink: 1, gap: 4 },
@@ -156,6 +153,6 @@ const styles = StyleSheet.create({
   avatar: { alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' },
   avatarText: { fontWeight: '800' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingTop: 2 },
-  chip: { borderWidth: 1, borderRadius: Radius.pill, paddingHorizontal: 10, paddingVertical: 2 },
-  chipText: { fontSize: 12, lineHeight: 16, fontWeight: '800' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, maxWidth: '100%', borderWidth: 1, borderRadius: Radius.pill, paddingHorizontal: 10, paddingVertical: 2 },
+  chipText: { flexShrink: 1, fontSize: 12, lineHeight: 16, fontWeight: '800' },
 });

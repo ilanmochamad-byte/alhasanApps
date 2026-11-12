@@ -15,7 +15,7 @@ type Props = {
   variant?: Variant;
   /** Ikon opsional di kiri label. */
   icon?: IconName;
-  /** `md` = 48 (baku), `sm` = 40 untuk tombol sekunder yang berdampingan. */
+  /** `md` = 52 (baku, gelombang 2), `sm` = 44 untuk tombol sekunder yang berdampingan. */
   size?: 'md' | 'sm';
   style?: StyleProp<ViewStyle>;
   /** Penjelasan tambahan bagi pembaca layar (mis. jangkauan tindakan). */
@@ -83,12 +83,12 @@ export function AppButton({
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: 48,
-    borderRadius: Radius.md,
+    minHeight: 52,
+    borderRadius: Radius.pill,
     borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
     paddingVertical: 12,
   },
   buttonSm: { minHeight: 44, paddingHorizontal: 14 },

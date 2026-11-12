@@ -44,6 +44,12 @@ const ICONS = {
   pin: require('@/assets/images/icons/pin.png'),
   refresh: require('@/assets/images/icons/refresh.png'),
   wallet: require('@/assets/images/icons/wallet.png'),
+  // Redesain gelombang 2 Fase 1.
+  camera: require('@/assets/images/icons/camera.png'),
+  mail: require('@/assets/images/icons/mail.png'),
+  phone: require('@/assets/images/icons/phone.png'),
+  'arrow-left': require('@/assets/images/icons/arrow-left.png'),
+  'check-circle': require('@/assets/images/icons/check-circle.png'),
 } as const;
 
 export type IconName = keyof typeof ICONS;

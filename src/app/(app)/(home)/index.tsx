@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useRaporAkses } from '@/components/rapor-entry';
@@ -12,18 +12,21 @@ import { actionableError, api } from '@/api/client';
 import type { ScheduleOccurrence, TodayResponse } from '@/api/types';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { AppIcon } from '@/components/app-icon';
 import { KartuIdentitas } from '@/components/profil-shared';
 import { ScheduleCard, formatDate } from '@/components/schedule-card';
+import { ScreenHeader } from '@/components/screen-header';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
+import { HeroCard } from '@/components/ui/hero-card';
 import { MenuTileGrid, type MenuTileItem } from '@/components/ui/menu-tile';
+import { StatGrid, type StatItem } from '@/components/ui/stat-card';
 import { SectionHeader } from '@/components/ui/surface';
-import { Elevation, Radius } from '@/constants/theme';
+import { Layout } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { attendanceShortcut } from '@/lib/attendance-shortcut';
 import { keadaanMenuBeranda } from '@/lib/home-menu';
 import { labelKelas } from '@/lib/kelas-jadwal';
+import { useNotifications } from '@/notifications/notification-context';
 import { useProfil } from '@/profil/profil-context';
 
 /** Skala teks sistem di atas ini dianggap "sangat besar" untuk tata letak berkolom. */
@@ -39,7 +42,8 @@ export default function HomeScreen() {
   const aksesKesehatan = useKesehatanAkses();
   const aksesKeuangan = useKeuanganAkses();
   const aksesKeamanan = useKeamananAkses();
-  const { muat: muatProfil } = useProfil();
+  const { muat: muatProfil, data: pribadi } = useProfil();
+  const { jumlahBelumDibaca, jumlahBelumDibacaTermuat } = useNotifications();
   const [data, setData] = useState<TodayResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -159,16 +163,43 @@ export default function HomeScreen() {
   const keadaanMenu = keadaanMenuBeranda(menu.length, aksesPembinaan.status === 'memuat' || aksesRapor.status === 'memuat' || aksesKesehatan.status === 'memuat' || aksesKeuangan.status === 'memuat' || aksesKeamanan.status === 'memuat' ? 'memuat'
     : aksesPembinaan.error || aksesRapor.error || aksesKesehatan.error || aksesKeuangan.error || aksesKeamanan.error ? 'gagal' : 'siap');
 
+  // Redesain gelombang 2 (K-3): ringkasan HANYA dari data yang sudah dimuat
+  // Beranda — jadwal hari ini (`/today`), profil pribadi, dan hitungan
+  // notifikasi milik lonceng. Tidak ada permintaan API baru.
+  const ringkasan: StatItem[] = [
+    ...(aksesJadwal && data
+      ? [
+          { icon: 'calendar', value: String(data.schedules.length), label: 'Sesi hari ini' },
+          {
+            icon: 'check',
+            value: String(data.schedules.filter((item) => item.meeting?.status !== 'Selesai').length),
+            label: 'Sesi belum selesai diabsen',
+            tone: 'warning',
+          },
+        ] satisfies StatItem[]
+      : []),
+    ...(!aksesJadwal && pribadi
+      ? [{ icon: 'users', value: String(pribadi.penugasan.length), label: 'Penugasan aktif' }] satisfies StatItem[]
+      : []),
+    ...(!aksesJadwal && jumlahBelumDibacaTermuat
+      ? [{ icon: 'bell', value: String(jumlahBelumDibaca), label: 'Notifikasi belum dibaca', tone: 'info' }] satisfies StatItem[]
+      : []),
+  ];
+
   return (
+    <View style={[styles.root, { backgroundColor: theme.background }]}>
+      {/* K-9: kepala Beranda — logo teks + lonceng, tanpa tombol kembali. Di
+          luar area gulir agar kartu identitas tetap isi pertama. */}
+      <View style={[styles.kepala, { paddingTop: insets.top + 6 }]}>
+        <ScreenHeader variant="beranda" />
+      </View>
     <ScrollView
       contentInsetAdjustmentBehavior="never"
-      style={{ backgroundColor: theme.background }}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
+      contentContainerStyle={styles.content}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={() => { void muatProfil(); void load(true); }} tintColor={theme.primary} />
       }>
-      {/* PRD-PROFIL-IMPORT Fase 2: kartu identitas adalah isi pertama Beranda
-          setelah area aman; tanggal dan lonceng ikut di dalam kartu. */}
+      {/* PRD-PROFIL-IMPORT Fase 2: kartu identitas adalah isi pertama Beranda. */}
       <KartuIdentitas />
 
       {sorot ? (
@@ -178,17 +209,28 @@ export default function HomeScreen() {
           onPress={() => openSchedule(sorot)}
         />
       ) : adaPerizinan ? (
-        <HeroPerizinan
-          jumlahCakupan={capabilities.list.length}
-          onPress={() => router.push('/perizinan')}
+        <HeroCard
+          overline="PERIZINAN SANTRI"
+          title="Kelola pengajuan izin"
+          caption={capabilities.list.length > 1
+            ? `Akun Anda memiliki ${capabilities.list.length} cakupan peran.`
+            : 'Antrean tindakan dan riwayat pengajuan ada di sini.'}
+          action={{ label: 'Buka menu perizinan', icon: 'izin', onPress: () => router.push('/perizinan') }}
         />
       ) : null}
 
+      {ringkasan.length > 0 ? (
+        <View style={styles.bagian}>
+          <SectionHeader title="Ringkasan hari ini" />
+          <StatGrid items={ringkasan} />
+        </View>
+      ) : null}
+
       {keadaanMenu === 'ada' ? (
-        <>
+        <View style={styles.bagian}>
           <SectionHeader title="Menu" />
           <MenuTileGrid items={menu} />
-        </>
+        </View>
       ) : keadaanMenu === 'memuat' ? (
         <LoadingState label="Memeriksa menu akun…" />
       ) : keadaanMenu === 'kosong' ? (
@@ -217,7 +259,7 @@ export default function HomeScreen() {
       ) : error && !data ? (
         <ErrorState message={error} onRetry={() => void load()} />
       ) : data ? (
-        <>
+        <View style={styles.bagian}>
           {/* Tanggal sudah tampil di sapaan; mengulanginya di sini memeras
               judul hingga terpecah ketika ukuran teks diperbesar. */}
           <SectionHeader title="Jadwal hari ini" />
@@ -250,9 +292,10 @@ export default function HomeScreen() {
               />
             </>
           ) : null}
-        </>
+        </View>
       ) : null}
     </ScrollView>
+    </View>
   );
 }
 
@@ -273,15 +316,13 @@ function HeroSession({
   const bertumpuk = fontScale > TEKS_BESAR;
   const sudahDibuka = Boolean(schedule.meeting);
   return (
-    <View
-      style={[
-        styles.hero,
-        { backgroundColor: theme.heroSurface, borderColor: theme.heroBorder, boxShadow: Elevation.brand },
-      ]}>
-      <ThemedText selectable type="overline" style={{ color: theme.heroAccent }}>
-        {hariIni ? 'SESI HARI INI' : 'JADWAL BERIKUTNYA'}
-      </ThemedText>
-
+    <HeroCard
+      overline={hariIni ? 'SESI HARI INI' : 'JADWAL BERIKUTNYA'}
+      action={{
+        label: sudahDibuka ? 'Buka absensi' : 'Buka detail tugas',
+        icon: sudahDibuka ? 'check' : 'arrow-right',
+        onPress,
+      }}>
       <View style={[styles.heroBody, bertumpuk && styles.heroBodyStacked]}>
         <View
           style={[
@@ -304,77 +345,23 @@ function HeroSession({
           </ThemedText>
         </View>
       </View>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={sudahDibuka ? 'Buka absensi' : 'Buka detail tugas'}
-        onPress={onPress}
-        style={({ pressed }) => [
-          styles.heroButton,
-          { backgroundColor: theme.card, opacity: pressed ? 0.85 : 1 },
-        ]}>
-        <AppIcon name={sudahDibuka ? 'check' : 'arrow-right'} size={19} themeColor="primary" />
-        <ThemedText selectable type="bodyBold" themeColor="primary" style={styles.heroButtonText}>
-          {sudahDibuka ? 'Buka absensi' : 'Buka detail tugas'}
-        </ThemedText>
-      </Pressable>
-    </View>
-  );
-}
-
-/** Kartu sorot untuk akun tanpa jadwal mengajar. */
-function HeroPerizinan({ jumlahCakupan, onPress }: { jumlahCakupan: number; onPress: () => void }) {
-  const theme = useTheme();
-  return (
-    <View
-      style={[
-        styles.hero,
-        { backgroundColor: theme.heroSurface, borderColor: theme.heroBorder, boxShadow: Elevation.brand },
-      ]}>
-      <ThemedText selectable type="overline" style={{ color: theme.heroAccent }}>
-        PERIZINAN SANTRI
-      </ThemedText>
-      <ThemedText selectable style={[styles.heroTitle, { color: theme.heroText }]}>
-        Kelola pengajuan izin
-      </ThemedText>
-      <ThemedText selectable type="caption" style={{ color: theme.heroTextSecondary }}>
-        {jumlahCakupan > 1
-          ? `Akun Anda memiliki ${jumlahCakupan} cakupan peran.`
-          : 'Antrean tindakan dan riwayat pengajuan ada di sini.'}
-      </ThemedText>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Buka menu perizinan"
-        onPress={onPress}
-        style={({ pressed }) => [
-          styles.heroButton,
-          { backgroundColor: theme.card, opacity: pressed ? 0.85 : 1 },
-        ]}>
-        <AppIcon name="izin" size={19} themeColor="primary" />
-        <ThemedText selectable type="bodyBold" themeColor="primary" style={styles.heroButtonText}>
-          Buka menu perizinan
-        </ThemedText>
-      </Pressable>
-    </View>
+    </HeroCard>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
+  kepala: { paddingHorizontal: Layout.screen, paddingBottom: 6, maxWidth: 760, width: '100%', alignSelf: 'center' },
   content: {
-    padding: 16,
+    paddingHorizontal: Layout.screen,
+    paddingTop: 8,
     paddingBottom: 120,
-    gap: 14,
+    gap: Layout.sectionGap,
     maxWidth: 760,
     width: '100%',
     alignSelf: 'center',
   },
-  hero: {
-    borderWidth: 1,
-    borderRadius: Radius.hero,
-    borderCurve: 'continuous',
-    padding: 18,
-    gap: 12,
-  },
+  bagian: { gap: Layout.cardGap },
   heroBody: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
   heroBodyStacked: { flexDirection: 'column', gap: 8 },
   heroTime: { borderRightWidth: 1, paddingRight: 14, gap: 1 },
@@ -383,17 +370,4 @@ const styles = StyleSheet.create({
   heroEnd: { fontSize: 12, lineHeight: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
   heroText: { flex: 1, gap: 4 },
   heroTitle: { fontSize: 17, lineHeight: 22, fontWeight: '800' },
-  heroButton: {
-    minHeight: 48,
-    borderRadius: Radius.md,
-    borderCurve: 'continuous',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  // Boleh membungkus agar teks tombol tidak terpotong pada teks sistem besar.
-  heroButtonText: { flexShrink: 1, textAlign: 'center' },
 });

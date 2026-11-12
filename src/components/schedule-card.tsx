@@ -36,7 +36,7 @@ export function ScheduleCard({
   const kelas = labelKelas(schedule);
   const status = statusSesi(schedule.meeting, schedule.occurrence_date, today);
   const warnaStatus =
-    status.nada === 'selesai' ? theme.primary : status.nada === 'menunggu' ? theme.warning : theme.textSecondary;
+    status.nada === 'selesai' ? theme.success : status.nada === 'menunggu' ? theme.warning : theme.textSecondary;
 
   return (
     <Card
