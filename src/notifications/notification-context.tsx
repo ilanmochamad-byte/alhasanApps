@@ -307,7 +307,11 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     // Cold start dengan sesi tersimpan: expo-router mungkin sudah membuka URI-nya.
     if (menunggu !== null && lokasi.current !== lokasiTujuan(menunggu.tipe, menunggu.id)) {
       if (!TUJUAN_BERTAHAN.includes(menunggu.tipe)) tertunda.current = null;
-      router.push({ pathname: ruteTujuan(menunggu.tipe), params: { id: String(menunggu.id) } });
+      const tujuan = { pathname: ruteTujuan(menunggu.tipe), params: { id: String(menunggu.id) } };
+      // Saat cold start, aksi tautan Expo Router bisa sudah antre walau pathname
+      // masih lama. Navigasi BSA memakai layar tujuan yang sama bila sudah aktif.
+      if (keuanganTipe(menunggu.tipe)) router.navigate(tujuan);
+      else router.push(tujuan);
     }
 
     return () => {
@@ -324,13 +328,24 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   }, [segarkanJumlah]);
 
   // --- Pengguna mengetuk notifikasi (foreground maupun background) ---------
+  const tanggapanBsaDiproses = useRef<string | null>(null);
+  const bukaTanggapan = useCallback((response: Notifications.NotificationResponse) => {
+    const { identifier, content } = response.notification.request;
+    const target = notificationTarget(content.data);
+    if (target && keuanganTipe(target.tipe)) {
+      // Expo dapat menyampaikan ketukan yang sama lewat listener dan hook.
+      if (tanggapanBsaDiproses.current === identifier) return;
+      tanggapanBsaDiproses.current = identifier;
+    }
+    buka(content.data);
+  }, [buka]);
   useEffect(() => {
     const ditanggapi = Notifications.addNotificationResponseReceivedListener((response) => {
-      buka(response.notification.request.content.data);
+      bukaTanggapan(response);
       void segarkanJumlah();
     });
     return () => ditanggapi.remove();
-  }, [buka, segarkanJumlah]);
+  }, [bukaTanggapan, segarkanJumlah]);
 
   // --- Aplikasi dibuka DARI notifikasi saat sebelumnya tertutup (cold start).
   // `useLastNotificationResponse` mengembalikan tanggapan terakhir, termasuk
@@ -342,8 +357,8 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     const identitas = tanggapanTerakhir.notification.request.identifier;
     if (tanggapanDiproses.current === identitas) return;
     tanggapanDiproses.current = identitas;
-    buka(tanggapanTerakhir.notification.request.content.data);
-  }, [tanggapanTerakhir, buka]);
+    bukaTanggapan(tanggapanTerakhir);
+  }, [tanggapanTerakhir, bukaTanggapan]);
 
   const tujuanDibuka = useCallback((tipe: string, id: number) => {
     if (tertunda.current?.tipe === tipe && tertunda.current.id === id) tertunda.current = null;

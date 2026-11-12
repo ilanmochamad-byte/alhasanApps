@@ -116,7 +116,7 @@ function Detail({ id }: { id: number }) {
       <JudulBagian title={`Pembayaran (${t.pembayaran.length})`} />
       {t.pembayaran.length === 0 ? <EmptyState icon="wallet" title="Belum ada pembayaran" message="Pembayaran tunai, transfer, atau dari tabungan tampil di sini." /> : null}
       {t.pembayaran.map(b => (
-        <EntityRow key={b.id} icon={b.status === 'Menunggu' ? 'clock' : 'check-circle'} tone={b.status === 'Menunggu' ? 'warning' : b.status === 'Dibatalkan' ? 'danger' : 'primary'}
+        <EntityRow key={b.id} icon={b.status === 'Menunggu' ? 'clock' : b.status === 'Dibatalkan' ? 'close' : 'check-circle'} tone={b.status === 'Menunggu' ? 'warning' : b.status === 'Dibatalkan' ? 'danger' : 'primary'}
           title={b.sumber === 'Tabungan' ? 'Dari tabungan' : b.sumber}
           subtitle={`${b.nomor_kuitansi} · ${tanggalPanjang(b.tanggal_transaksi)}`}
           value={rupiah(b.nominal)}
