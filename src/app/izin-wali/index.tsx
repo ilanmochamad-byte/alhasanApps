@@ -59,7 +59,7 @@ function Pintu() {
       bottomSpace={fabWali && !fabTerlaluLebar ? FAB_RUANG_BAWAH + 16 + insets.bottom : 0}
       overlay={fabWali && !fabTerlaluLebar ? (
         <FabArea>
-          <Fab label="Ajukan izin" onPress={ajukan} bottomOffset={16 + (Platform.OS === 'ios' ? 0 : insets.bottom)} />
+          <Fab label="Ajukan izin" accessibilityLabel="Ajukan izin baru" onPress={ajukan} bottomOffset={16 + (Platform.OS === 'ios' ? 0 : insets.bottom)} />
         </FabArea>
       ) : null}>
       {peran.length > 1 ? (
@@ -92,7 +92,7 @@ function BagianWali({ akses, tombolAtas }: { akses: AksesIzinWali; tombolAtas: (
       <ThemedText type="caption" themeColor="textSecondary">
         Pengajuan ditinjau pembimbing lebih dulu, lalu diteruskan kepada murobi yang memutuskan.
       </ThemedText>
-      {tombolAtas && akses.boleh_mengajukan ? <AppButton label="Ajukan izin" icon="plus" onPress={tombolAtas} /> : null}
+      {tombolAtas && akses.boleh_mengajukan ? <AppButton label="Ajukan izin baru" icon="plus" onPress={tombolAtas} /> : null}
       {!akses.boleh_mengajukan ? <Notice tone="neutral" text="Belum ada anak dengan relasi wali aktif yang dapat diajukan." /> : null}
       {error ? <ErrorState message={error} onRetry={() => void load()} /> : !data ? <LoadingState label="Memuat pengajuan…" /> : (
         <>

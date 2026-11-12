@@ -1,5 +1,6 @@
 import { useEffect, useState, type PropsWithChildren } from 'react';
 import { Platform } from 'react-native';
+import { StackScreen } from '@/components/screen-shell';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 
 let nextKey = 0;
@@ -15,7 +16,7 @@ let nextKey = 0;
  * dicegah dan cuplikan pengalih aplikasi tidak memuat nama santri atau alasan
  * izin. Binary tanpa modul gagal tertutup: tidak ada data yang dimuat.
  */
-export function IzinWaliProtection({ children }: PropsWithChildren) {
+export function IzinWaliProtection({ children, fallbackTitle }: PropsWithChildren<{ fallbackTitle: string }>) {
   const [key] = useState(() => `izin-wali-${++nextKey}`);
   const [attempt, setAttempt] = useState(0);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(Platform.OS === 'web' ? 'ready' : 'loading');
@@ -37,8 +38,17 @@ export function IzinWaliProtection({ children }: PropsWithChildren) {
       }).catch(() => { /* Tidak ada layar izin wali yang tampil bila gagal. */ });
     };
   }, [key, attempt]);
-  if (status === 'error') return <ErrorState message="Perlindungan informasi perizinan belum tersedia. Perbarui aplikasi lalu buka kembali."
-    onRetry={() => { setStatus('loading'); setAttempt(v => v + 1); }} />;
-  if (status !== 'ready') return <LoadingState label="Menyiapkan perlindungan informasi perizinan…" />;
-  return children;
+  if (status === 'ready') return children;
+  return (
+    <StackScreen title={fallbackTitle}>
+      {status === 'error' ? (
+        <ErrorState
+          message="Perlindungan informasi perizinan belum tersedia. Perbarui aplikasi lalu buka kembali."
+          onRetry={() => { setStatus('loading'); setAttempt(v => v + 1); }}
+        />
+      ) : (
+        <LoadingState label="Menyiapkan perlindungan informasi perizinan…" />
+      )}
+    </StackScreen>
+  );
 }

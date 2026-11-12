@@ -69,9 +69,7 @@ function KepalaAkar({ title, subtitle, actions, bell = false, onBack }: Props) {
         {actions}
         {bell ? <NotificationBell /> : null}
       </View>
-      {/* Satu baris yang menyusut bila perlu: pada teks sistem sangat besar judul
-          satu kata (mis. "Perizinan") tidak terpecah di tengah kata. */}
-      <ThemedText selectable type="display" accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.4}>
+      <ThemedText selectable type="display" accessibilityRole="header">
         {title}
       </ThemedText>
       {subtitle ? (

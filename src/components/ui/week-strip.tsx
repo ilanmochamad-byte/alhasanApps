@@ -2,7 +2,7 @@ import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 're
 
 import { ThemedText } from '@/components/themed-text';
 import { IconButton } from '@/components/ui/icon-button';
-import { Radius } from '@/constants/theme';
+import { Radius, TouchTarget } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { isoHariIni, parseIsoDate } from '@/lib/date';
 import { geserPekan, hariPekan } from '@/lib/week';
@@ -38,8 +38,7 @@ export function WeekStrip({
   return (
     <View style={styles.wrap}>
       <View style={styles.header}>
-        {/* Satu baris yang menyusut bila perlu agar nama bulan tidak terpecah di tengah kata. */}
-        <ThemedText selectable type="h2" style={styles.month} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
+        <ThemedText selectable type="h2" style={styles.month}>
           {bulan}
         </ThemedText>
         <IconButton
@@ -55,8 +54,6 @@ export function WeekStrip({
       </View>
       <ScrollView
         horizontal
-        scrollEnabled={geser}
-        showsHorizontalScrollIndicator={geser}
         contentContainerStyle={[styles.days, !geser && styles.daysFill]}>
         {hari.map((iso, index) => {
           const dipilih = iso === value;
@@ -112,6 +109,7 @@ const styles = StyleSheet.create({
   dayFill: { flex: 1 },
   dayWide: { paddingHorizontal: 12 },
   day: {
+    minWidth: TouchTarget,
     minHeight: 66,
     borderWidth: 1,
     borderRadius: Radius.lg,

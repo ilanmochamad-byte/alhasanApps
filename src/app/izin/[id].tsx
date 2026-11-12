@@ -12,6 +12,7 @@ import { StackScreen } from '@/components/screen-shell';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { ActionBar } from '@/components/ui/action-bar';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Field } from '@/components/ui/app-field';
 import { AvatarInisial } from '@/components/ui/avatar-inisial';
 import { Chip, ChipRow } from '@/components/ui/chip';
@@ -64,6 +65,7 @@ function IzinDetailSession() {
   // `baru=1` dari formulir pengajuan: hasil kirim tampil sebagai panel sukses di sini.
   const [pesan, setPesan] = useState<string | null>(params.baru === '1' ? 'Pengajuan terkirim. Status dan riwayatnya dapat dipantau di halaman ini.' : null);
 
+  const [keputusanDipilih, setKeputusanDipilih] = useState<'Disetujui' | 'Ditolak' | null>(null);
   const [alasan, setAlasan] = useState('');
   const [alasanPenggantian, setAlasanPenggantian] = useState('');
   const [alasanBatal, setAlasanBatal] = useState('');
@@ -71,6 +73,7 @@ function IzinDetailSession() {
   const [murobiTerpilih, setMurobiTerpilih] = useState<number | null>(null);
 
   const bersihkan = useCallback(() => {
+    setKeputusanDipilih(null);
     setAlasan(''); setAlasanPenggantian(''); setAlasanBatal('');
     setAlasanTetapkan(''); setMurobiTerpilih(null); setPesan(null);
   }, []);
@@ -106,6 +109,7 @@ function IzinDetailSession() {
         (key) => api.izinKeputusan(id, payload, key, mode),
       );
       if (hasilMutasi) {
+        setKeputusanDipilih(null);
         setPesan(
           hasilMutasi.idempotent_replay
             ? 'Keputusan sudah tercatat sebelumnya; permintaan ulang tidak membuat keputusan kedua.'
@@ -306,42 +310,6 @@ function IzinDetailSession() {
           />
         ) : null}
 
-        {dapatMemutuskan ? (
-          <Panel>
-            <Overline>{adminPengganti ? 'Keputusan Admin Pengganti' : 'Keputusan murobi'}</Overline>
-            {adminPengganti ? (
-              <ThemedText selectable type="caption" themeColor="textSecondary">
-                Admin memutus sebagai Admin Pengganti. Alasan penggantian wajib diisi dan tercatat
-                pada audit.
-              </ThemedText>
-            ) : null}
-            <Field
-              label="Alasan keputusan"
-              hint="Wajib"
-              value={alasan}
-              onChangeText={setAlasan}
-              editable={!sedangMutasi}
-              multiline
-              placeholder="Minimal 3 karakter"
-            />
-            {adminPengganti ? (
-              <Field
-                label="Alasan penggantian murobi"
-                hint="Wajib"
-                value={alasanPenggantian}
-                onChangeText={setAlasanPenggantian}
-                editable={!sedangMutasi}
-                multiline
-                placeholder="Wajib diisi"
-              />
-            ) : null}
-            <Notice tone="danger" text={keputusanGuard.error} />
-            <ThemedText selectable type="caption" themeColor="textMuted">
-              Tombol Setujui dan Tolak berada di bawah layar.
-            </ThemedText>
-          </Panel>
-        ) : null}
-
         {aksi.tetapkan_murobi ? (
           <Panel>
             <Overline>Penetapan / perbaikan routing murobi</Overline>
@@ -486,7 +454,7 @@ function IzinDetailSession() {
             style={styles.barButton}
             loading={keputusanGuard.isBusy}
             disabled={sedangMutasi}
-            onPress={() => void putuskan('Ditolak')}
+            onPress={() => setKeputusanDipilih('Ditolak')}
           />
           <AppButton
             label="Setujui"
@@ -494,7 +462,7 @@ function IzinDetailSession() {
             style={styles.barButtonWide}
             loading={keputusanGuard.isBusy}
             disabled={sedangMutasi}
-            onPress={() => void putuskan('Disetujui')}
+            onPress={() => setKeputusanDipilih('Disetujui')}
           />
         </ActionBar>
       ) : tetapkanDiBilah ? (
@@ -502,9 +470,50 @@ function IzinDetailSession() {
       ) : batalDiBilah ? (
         <ActionBar>{tombolBatal}</ActionBar>
       ) : null}
+      {dapatMemutuskan && keputusanDipilih !== null ? (
+        <BottomSheet
+          visible
+          keyboardAware
+          title={keputusanDipilih === 'Disetujui' ? 'Setujui pengajuan' : 'Tolak pengajuan'}
+          onClose={() => { if (!sedangMutasi) setKeputusanDipilih(null); }}>
+          {adminPengganti ? (
+            <ThemedText selectable type="caption" themeColor="textSecondary">
+              Admin memutus sebagai Admin Pengganti. Alasan penggantian wajib diisi dan tercatat pada audit.
+            </ThemedText>
+          ) : null}
+          <Field
+            label="Alasan keputusan"
+            hint="Wajib"
+            value={alasan}
+            onChangeText={setAlasan}
+            editable={!sedangMutasi}
+            multiline
+            placeholder="Minimal 3 karakter"
+          />
+          {adminPengganti ? (
+            <Field
+              label="Alasan penggantian murobi"
+              hint="Wajib"
+              value={alasanPenggantian}
+              onChangeText={setAlasanPenggantian}
+              editable={!sedangMutasi}
+              multiline
+              placeholder="Wajib diisi"
+            />
+          ) : null}
+          <Notice tone="danger" text={keputusanGuard.error} />
+          <AppButton
+            label={keputusanDipilih === 'Disetujui' ? 'Konfirmasi setujui' : 'Konfirmasi tolak'}
+            variant={keputusanDipilih === 'Ditolak' ? 'danger' : 'primary'}
+            loading={keputusanGuard.isBusy}
+            disabled={sedangMutasi}
+            onPress={() => void putuskan(keputusanDipilih)}
+          />
+        </BottomSheet>
+      ) : null}
     </StackScreen>
   );
-  return pengajuan.asal === 'Wali' ? <IzinWaliProtection>{content}</IzinWaliProtection> : content;
+  return pengajuan.asal === 'Wali' ? <IzinWaliProtection fallbackTitle={JUDUL}>{content}</IzinWaliProtection> : content;
 }
 
 const styles = StyleSheet.create({

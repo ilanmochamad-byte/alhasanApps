@@ -5,7 +5,7 @@ import { useTheme } from '@/hooks/use-theme';
 export default function IzinWaliLayout() {
   const theme = useTheme();
   return (
-    <IzinWaliProtection>
+    <IzinWaliProtection fallbackTitle="Izin melalui pembimbing">
     {/* Redesain gelombang 2: setiap layar menggambar kepala `stack` sendiri. */}
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
       <Stack.Screen name="index" options={{ title: 'Izin melalui pembimbing' }} />
