@@ -5,8 +5,14 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { actionableError, api } from '@/api/client';
 import type { PerangkatPush } from '@/api/types';
 import { AppButton } from '@/components/app-button';
+import { AppIcon } from '@/components/app-icon';
+import { StackScreen } from '@/components/screen-shell';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
+import { Notice } from '@/components/ui/notice';
+import { StatusPill } from '@/components/ui/status-pill';
+import { Overline, Panel, SectionHeader } from '@/components/ui/surface';
+import { Layout } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useNotifications } from '@/notifications/notification-context';
 
@@ -61,52 +67,57 @@ export default function PerangkatPushScreen() {
   const pushAktifDiSini = pushState.status === 'aktif';
 
   return (
+    <StackScreen title="Perangkat & push">
     <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={styles.content}>
-      <View style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-        <ThemedText selectable style={styles.judul}>
-          Perangkat ini
-        </ThemedText>
-        <ThemedText selectable type="small" themeColor={pushAktifDiSini ? 'textSecondary' : 'danger'}>
+      <Panel>
+        <View style={styles.kepala}>
+          <View style={[styles.ikon, { backgroundColor: pushAktifDiSini ? theme.primarySoft : theme.backgroundElement }]}>
+            <AppIcon name="device" size={22} themeColor={pushAktifDiSini ? 'primary' : 'textSecondary'} />
+          </View>
+          <View style={styles.kepalaTeks}>
+            <ThemedText selectable type="h2">
+              Perangkat ini
+            </ThemedText>
+            <StatusPill
+              label={pushAktifDiSini ? 'Push aktif' : pushState.status === 'memeriksa' ? 'Memeriksa…' : 'Push tidak aktif'}
+              tone={pushAktifDiSini ? 'success' : 'neutral'}
+              icon={pushAktifDiSini ? 'check' : 'clock'}
+            />
+          </View>
+        </View>
+        <ThemedText selectable type="labelSmall" themeColor={pushAktifDiSini || pushState.status === 'memeriksa' ? 'textSecondary' : 'danger'}>
           {pushState.status === 'aktif'
             ? 'Push aktif. Perangkat ini akan menerima pemberitahuan perizinan.'
             : pushState.status === 'memeriksa'
               ? 'Memeriksa status push…'
               : pushState.alasan}
         </ThemedText>
-        <ThemedText selectable type="small" themeColor="textSecondary">
+        <ThemedText selectable type="caption" themeColor="textSecondary">
           Push jarak jauh hanya bekerja pada perangkat nyata dari build EAS yang ditandatangani dengan
           credential push. Expo Go, emulator, dan simulator tidak didukung.
         </ThemedText>
-        <View style={styles.actions}>
-          {pushAktifDiSini ? (
-            <AppButton
-              label="Matikan push di perangkat ini"
-              variant="danger"
-              disabled={sibuk}
-              onPress={() => void jalankan(matikanPush)}
-            />
-          ) : (
-            <AppButton
-              label="Nyalakan push"
-              disabled={sibuk || pushState.status === 'memeriksa'}
-              onPress={() => void jalankan(nyalakanPush)}
-            />
-          )}
-        </View>
-      </View>
+        {pushAktifDiSini ? (
+          <AppButton
+            label="Matikan push di perangkat ini"
+            variant="outline"
+            disabled={sibuk}
+            onPress={() => void jalankan(matikanPush)}
+          />
+        ) : (
+          <AppButton
+            label="Nyalakan push"
+            disabled={sibuk || pushState.status === 'memeriksa'}
+            onPress={() => void jalankan(nyalakanPush)}
+          />
+        )}
+      </Panel>
 
-      {error ? (
-        <ThemedText selectable themeColor="danger" type="small">
-          {error}
-        </ThemedText>
-      ) : null}
+      <Notice tone="danger" text={error} />
 
-      <ThemedText selectable style={styles.judul}>
-        Seluruh perangkat akun ini
-      </ThemedText>
+      <SectionHeader title="Seluruh perangkat akun ini" />
 
       {loading && items === null ? (
         <LoadingState label="Memuat daftar perangkat…" />
@@ -114,28 +125,31 @@ export default function PerangkatPushScreen() {
         <ErrorState message={error} onRetry={() => void load()} />
       ) : items && items.length === 0 ? (
         <EmptyState
+          icon="device"
           title="Belum ada perangkat terdaftar"
           message="Nyalakan push pada perangkat ini agar terdaftar menerima pemberitahuan."
         />
       ) : (
         <View style={styles.list}>
           {items?.map((perangkat) => (
-            <View
-              key={perangkat.id}
-              style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-              <ThemedText selectable type="smallBold">
+            <Panel key={perangkat.id}>
+              <Overline>{perangkat.platform}</Overline>
+              <ThemedText selectable type="bodyBold">
                 {perangkat.device_label ?? 'Perangkat tanpa nama'} · {perangkat.platform}
               </ThemedText>
-              <ThemedText selectable type="small" themeColor="textSecondary">
-                {perangkat.dicabut
-                  ? `Dicabut${perangkat.alasan_pencabutan ? ` (${perangkat.alasan_pencabutan})` : ''}`
-                  : perangkat.push_aktif
-                    ? 'Push aktif'
-                    : 'Push dimatikan'}
-                {perangkat.app_version ? ` · versi ${perangkat.app_version}` : ''}
-              </ThemedText>
-              <ThemedText selectable type="small" themeColor="textSecondary">
-                Terdaftar {perangkat.terdaftar_pada}
+              <StatusPill
+                label={
+                  perangkat.dicabut
+                    ? `Dicabut${perangkat.alasan_pencabutan ? ` (${perangkat.alasan_pencabutan})` : ''}`
+                    : perangkat.push_aktif
+                      ? 'Push aktif'
+                      : 'Push dimatikan'
+                }
+                tone={perangkat.dicabut ? 'danger' : perangkat.push_aktif ? 'success' : 'neutral'}
+                icon={perangkat.dicabut ? 'close' : perangkat.push_aktif ? 'check' : 'clock'}
+              />
+              <ThemedText selectable type="caption" themeColor="textSecondary">
+                {perangkat.app_version ? `Versi ${perangkat.app_version} · ` : ''}Terdaftar {perangkat.terdaftar_pada}
                 {perangkat.terakhir_aktif_pada ? ` · terakhir aktif ${perangkat.terakhir_aktif_pada}` : ''}
               </ThemedText>
               {!perangkat.dicabut ? (
@@ -143,6 +157,8 @@ export default function PerangkatPushScreen() {
                   <AppButton
                     label={perangkat.push_aktif ? 'Matikan push' : 'Nyalakan push'}
                     variant="secondary"
+                    size="sm"
+                    style={styles.aksi}
                     disabled={sibuk}
                     onPress={() =>
                       void jalankan(() => api.perangkatSetPush(perangkat.id, !perangkat.push_aktif))
@@ -150,7 +166,9 @@ export default function PerangkatPushScreen() {
                   />
                   <AppButton
                     label="Hapus perangkat"
-                    variant="danger"
+                    variant="outline"
+                    size="sm"
+                    style={styles.aksi}
                     disabled={sibuk}
                     onPress={() =>
                       void jalankan(() =>
@@ -160,23 +178,27 @@ export default function PerangkatPushScreen() {
                   />
                 </View>
               ) : null}
-            </View>
+            </Panel>
           ))}
         </View>
       )}
 
-      <ThemedText selectable type="small" themeColor="textSecondary">
-        Token perangkat tidak pernah ditampilkan di layar ini maupun dikirim kembali oleh server. Mematikan
-        push tidak mempengaruhi notifikasi dalam aplikasi.
-      </ThemedText>
+      <Notice
+        tone="neutral"
+        icon="lock"
+        text="Token perangkat tidak pernah ditampilkan di layar ini maupun dikirim kembali oleh server. Mematikan push tidak mempengaruhi notifikasi dalam aplikasi."
+      />
     </ScrollView>
+    </StackScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 18, paddingBottom: 60, gap: 14, maxWidth: 760, width: '100%', alignSelf: 'center' },
-  card: { borderWidth: 1, borderRadius: 18, borderCurve: 'continuous', padding: 16, gap: 6 },
-  judul: { fontSize: 18, lineHeight: 24, fontWeight: '800' },
+  content: { paddingHorizontal: Layout.screen, paddingTop: 12, paddingBottom: 60, gap: 14, maxWidth: 760, width: '100%', alignSelf: 'center' },
+  kepala: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  kepalaTeks: { flex: 1, gap: 4 },
+  ikon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   list: { gap: 10 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingTop: 6 },
+  aksi: { flexGrow: 1 },
 });

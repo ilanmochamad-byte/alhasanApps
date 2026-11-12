@@ -1,20 +1,22 @@
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import type { ScheduleOccurrence } from '@/api/types';
 import { AppIcon } from '@/components/app-icon';
 import { ThemedText } from '@/components/themed-text';
-import { Card } from '@/components/ui/surface';
-import { Radius } from '@/constants/theme';
+import { StatusPill, type StatusTone } from '@/components/ui/status-pill';
+import { Elevation, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { isoHariIni } from '@/lib/date';
 import { labelKelas } from '@/lib/kelas-jadwal';
-import { statusSesi } from '@/lib/schedule-status';
+import { statusSesi, type NadaStatus } from '@/lib/schedule-status';
+
+const NADA_PIL: Record<NadaStatus, StatusTone> = { selesai: 'success', menunggu: 'warning', netral: 'neutral' };
 
 /**
- * Kartu sesi (redesain tampilan Fase 2, gabungan Konsep B + C): jam di kiri,
- * judul, status absensi berupa ikon + teks, dan penanda "Absen" untuk sesi
- * hari ini yang belum selesai. Seluruh kartu adalah satu tombol menuju detail
- * tugas; penanda "Absen" hanya petunjuk visual, bukan tombol kedua.
+ * Kartu sesi (redesain gelombang 2 §4.2): blok jam di kiri, kitab + seluruh
+ * kelas (kelas gabungan ikut tampil), pil status ikon + teks, dan penanda
+ * "Absen" untuk sesi hari ini yang belum selesai. Seluruh kartu satu tombol
+ * menuju rincian tugas; penanda "Absen" hanya petunjuk visual.
  */
 export function ScheduleCard({
   schedule,
@@ -35,11 +37,10 @@ export function ScheduleCard({
   const bertumpuk = fontScale > 1.35;
   const kelas = labelKelas(schedule);
   const status = statusSesi(schedule.meeting, schedule.occurrence_date, today);
-  const warnaStatus =
-    status.nada === 'selesai' ? theme.success : status.nada === 'menunggu' ? theme.warning : theme.textSecondary;
 
   return (
-    <Card
+    <Pressable
+      accessibilityRole="button"
       onPress={onPress}
       accessibilityLabel={[
         `${schedule.subject}, ${kelas}`,
@@ -49,12 +50,23 @@ export function ScheduleCard({
       ]
         .filter(Boolean)
         .join(', ')}
-      style={[
+      style={({ pressed }) => [
         styles.card,
         bertumpuk && styles.cardStacked,
-        status.perluAbsen && { borderColor: theme.primary, borderWidth: 2 },
+        {
+          backgroundColor: theme.card,
+          borderColor: status.perluAbsen ? theme.primary : theme.border,
+          borderWidth: status.perluAbsen ? 2 : 1,
+          boxShadow: Elevation.card,
+          opacity: pressed ? 0.85 : 1,
+        },
       ]}>
-      <View style={[styles.time, bertumpuk && styles.timeStacked]}>
+      <View
+        style={[
+          styles.time,
+          bertumpuk && styles.timeStacked,
+          { backgroundColor: status.perluAbsen ? theme.primarySoft : theme.backgroundElement },
+        ]}>
         <ThemedText selectable style={styles.timeStart}>
           {schedule.start_time}
         </ThemedText>
@@ -63,15 +75,9 @@ export function ScheduleCard({
         </ThemedText>
       </View>
       <View style={[styles.body, bertumpuk && styles.bodyStacked]}>
-        <ThemedText selectable type="h3" style={styles.title}>
+        <ThemedText selectable type="bodyBold" style={styles.title}>
           {schedule.subject} · {kelas}
         </ThemedText>
-        <View style={styles.statusRow}>
-          {status.ikon ? <AppIcon name={status.ikon} size={15} color={warnaStatus} /> : null}
-          <ThemedText selectable style={[styles.statusText, { color: warnaStatus }]}>
-            {status.label}
-          </ThemedText>
-        </View>
         {hideDate ? null : (
           <ThemedText selectable type="caption" themeColor="textSecondary">
             {formatDate(schedule.occurrence_date)}
@@ -80,6 +86,9 @@ export function ScheduleCard({
         <ThemedText selectable type="caption" themeColor="textSecondary">
           {schedule.place} · {schedule.book}
         </ThemedText>
+        <View style={styles.pil}>
+          <StatusPill label={status.label} tone={NADA_PIL[status.nada]} icon={status.ikon} />
+        </View>
       </View>
       {status.perluAbsen ? (
         <View style={[styles.absen, { backgroundColor: theme.primary }]}>
@@ -88,7 +97,7 @@ export function ScheduleCard({
       ) : bertumpuk ? null : (
         <AppIcon name="chevron-right" size={18} themeColor="textMuted" />
       )}
-    </Card>
+    </Pressable>
   );
 }
 
@@ -113,22 +122,35 @@ export function formatDateShort(value: string) {
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', gap: 14, alignItems: 'center' },
+  card: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+    borderRadius: Radius.xxl,
+    borderCurve: 'continuous',
+    padding: 12,
+  },
   cardStacked: { flexDirection: 'column', alignItems: 'flex-start', gap: 8 },
+  time: {
+    minWidth: 64,
+    alignItems: 'center',
+    gap: 2,
+    borderRadius: Radius.lg,
+    borderCurve: 'continuous',
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+  },
   timeStacked: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   bodyStacked: { flex: 0, alignSelf: 'stretch' },
-  time: { minWidth: 52, alignItems: 'center', gap: 2 },
   timeStart: { fontSize: 17, lineHeight: 21, fontWeight: '800', fontVariant: ['tabular-nums'] },
   timeEnd: { fontSize: 12, lineHeight: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
   body: { flex: 1, gap: 3 },
-  title: { fontSize: 16, lineHeight: 21 },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  statusText: { fontSize: 13, lineHeight: 17, fontWeight: '700' },
+  title: { fontSize: 16, lineHeight: 21, fontWeight: '800' },
+  pil: { paddingTop: 4 },
   absen: {
     minHeight: 40,
     paddingHorizontal: 14,
-    borderRadius: Radius.sm,
-    borderCurve: 'continuous',
+    borderRadius: Radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },

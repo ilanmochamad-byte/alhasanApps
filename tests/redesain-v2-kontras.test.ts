@@ -37,6 +37,13 @@ const TEKS: [Nama, Nama, number][] = [
   // Status kehadiran tampil sebagai ikon + teks tebal: ≥ 3:1 di latar baru.
   ['statusHadir', 'background', 3], ['statusIzin', 'background', 3], ['statusTerlambat', 'background', 3],
   ['statusSakit', 'background', 3], ['statusAlpa', 'background', 3],
+  // Fase 2: kartu kepala hijau pucat (judul dan keterangan), pil info/ungu pada
+  // kartu, dan ikon status kehadiran di ringkasan mini (ikon ≥ 3:1; angkanya
+  // memakai warna teks biasa).
+  ['text', 'primarySoft', 4.5], ['textSecondary', 'primarySoft', 4.5],
+  ['info', 'card', 4.5], ['violet', 'card', 4.5],
+  ['statusHadir', 'card', 3], ['statusIzin', 'card', 3], ['statusTerlambat', 'card', 3],
+  ['statusSakit', 'card', 3], ['statusAlpa', 'card', 3],
 ];
 
 for (const mode of ['light', 'dark'] as const) {

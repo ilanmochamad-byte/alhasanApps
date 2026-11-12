@@ -5,10 +5,18 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { actionableError, api } from '@/api/client';
 import type { Notifikasi } from '@/api/types';
 import { AppButton } from '@/components/app-button';
+import { StackScreen } from '@/components/screen-shell';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
+import { InfoRow } from '@/components/ui/info-row';
+import { Notice } from '@/components/ui/notice';
+import { Divider, Overline, Panel } from '@/components/ui/surface';
+import { Layout } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+
 import { useNotifications } from '@/notifications/notification-context';
+
+const JUDUL = 'Rincian notifikasi';
 
 /**
  * Detail satu notifikasi.
@@ -53,42 +61,42 @@ export default function NotifikasiDetailScreen() {
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
-  if (loading && data === null) return <LoadingState label="Membuka notifikasi…" />;
-  if (error && data === null) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (data === null) return <ErrorState message="Notifikasi tidak tersedia." onRetry={() => void load()} />;
+  if (loading && data === null) return <StackScreen title={JUDUL}><LoadingState label="Membuka notifikasi…" /></StackScreen>;
+  if (error && data === null) return <StackScreen title={JUDUL}><ErrorState message={error} onRetry={() => void load()} /></StackScreen>;
+  if (data === null) return <StackScreen title={JUDUL}><ErrorState message="Notifikasi tidak tersedia." onRetry={() => void load()} /></StackScreen>;
 
   return (
+    <StackScreen title={JUDUL}>
     <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
       style={{ backgroundColor: theme.background }}
       contentContainerStyle={styles.content}>
-      <View style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-        <ThemedText selectable type="small" themeColor="textSecondary">
-          {data.event_label}
-        </ThemedText>
-        <ThemedText selectable style={styles.judul}>
+      {/* Kartu pesan. */}
+      <Panel>
+        <Overline>{data.event_label}</Overline>
+        <ThemedText selectable type="h2" accessibilityRole="header">
           {data.judul}
         </ThemedText>
-        <ThemedText selectable>{data.isi}</ThemedText>
-        {data.santri_nama ? (
-          <ThemedText selectable type="small" themeColor="textSecondary">
-            Santri: {data.santri_nama}
-          </ThemedText>
-        ) : null}
-        {data.pengajuan_status ? (
-          <ThemedText selectable type="small" themeColor="textSecondary">
-            Status pengajuan saat ini: {data.pengajuan_status}
-          </ThemedText>
-        ) : null}
-        <ThemedText selectable type="small" themeColor="textSecondary">
-          Diterima {data.dibuat_pada}
-          {data.dibaca_pada ? ` · dibaca ${data.dibaca_pada}` : ''}
-        </ThemedText>
-      </View>
+        <ThemedText selectable type="body">{data.isi}</ThemedText>
+        <Divider />
+        <View>
+          {data.santri_nama ? <InfoRow icon="person" label="Santri" value={data.santri_nama} /> : null}
+          {data.pengajuan_status ? (
+            <InfoRow icon="izin" label="Status pengajuan saat ini" value={data.pengajuan_status} />
+          ) : null}
+          <InfoRow
+            icon="clock"
+            label="Diterima"
+            value={`${data.dibuat_pada}${data.dibaca_pada ? ` · dibaca ${data.dibaca_pada}` : ''}`}
+            last
+          />
+        </View>
+      </Panel>
 
-      <ThemedText selectable type="small" themeColor="textSecondary">
-        Notifikasi hanya memberi pemberitahuan. Buka detail untuk memeriksa informasi dan hak akses terbaru.
-      </ThemedText>
+      <Notice
+        tone="neutral"
+        text="Notifikasi hanya memberi pemberitahuan. Buka detail untuk memeriksa informasi dan hak akses terbaru."
+      />
 
       <View style={styles.actions}>
         {data.tautan.tipe === 'rapor' && data.tautan.rapor_id ? <AppButton label="Buka rapor semester" onPress={() => router.push({ pathname: '/rapor/[id]', params: { id: String(data.tautan.rapor_id) } })} /> : null}
@@ -118,15 +126,13 @@ export default function NotifikasiDetailScreen() {
         {data.tautan.tipe === 'v3_publikasi' && data.tautan.publikasi_id ? (
           <AppButton label="Buka informasi pembinaan" onPress={() => router.push({ pathname: '/publikasi/[id]', params: { id: String(data.tautan.publikasi_id) } })} />
         ) : null}
-        <AppButton label="Kembali" variant="secondary" onPress={() => router.back()} />
       </View>
     </ScrollView>
+    </StackScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 18, paddingBottom: 60, gap: 14, maxWidth: 760, width: '100%', alignSelf: 'center' },
-  card: { borderWidth: 1, borderRadius: 18, borderCurve: 'continuous', padding: 16, gap: 6 },
-  judul: { fontSize: 19, lineHeight: 25, fontWeight: '800' },
+  content: { paddingHorizontal: Layout.screen, paddingTop: 12, paddingBottom: 60, gap: 14, maxWidth: 760, width: '100%', alignSelf: 'center' },
   actions: { gap: 10 },
 });

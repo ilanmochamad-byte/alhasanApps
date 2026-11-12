@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -15,18 +15,23 @@ export function BottomSheet({
   visible,
   title,
   onClose,
+  keyboardAware = false,
   children,
 }: {
   visible: boolean;
   title: string;
   onClose: () => void;
+  keyboardAware?: boolean;
   children: ReactNode;
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <View style={styles.root}>
+      <KeyboardAvoidingView
+        enabled={keyboardAware && Platform.OS === 'ios'}
+        behavior="padding"
+        style={styles.root}>
         <Pressable accessibilityRole="button" accessibilityLabel="Tutup" onPress={onClose} style={styles.backdrop} />
         <View
           accessibilityViewIsModal
@@ -42,7 +47,7 @@ export function BottomSheet({
             {children}
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { RefreshControl, StyleSheet, View } from 'react-native';
+import { Platform, RefreshControl, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { actionableError, api } from '@/api/client';
@@ -12,17 +12,22 @@ import { ScreenHeader } from '@/components/screen-header';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { DateField } from '@/components/ui/date-field';
-import { Chip, ChipRow } from '@/components/ui/chip';
+import { FilterPills } from '@/components/ui/filter-pills';
 import { Overline, Panel } from '@/components/ui/surface';
 import { WeekStrip } from '@/components/ui/week-strip';
+import { Layout } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { isoHariIni, isoTambahHari } from '@/lib/date';
+import { jarakAtasLayarTab } from '@/lib/tampilan';
 import { hariPekan } from '@/lib/week';
 
 /**
  * Redesain tampilan Fase 2: tampilan utama adalah satu pekan (deretan tanggal
  * dari Konsep B) dengan daftar sesi tanggal terpilih. Rentang kustom tetap
  * tersedia untuk melihat banyak hari sekaligus; parameter API tidak berubah.
+ *
+ * Redesain gelombang 2 (§4.2, K-10): pola P-Akar — ← ke Beranda, judul besar
+ * + penjelas, pil Per pekan / Rentang kustom, dan kartu sesi dengan pil status.
  */
 type Tampilan = 'pekan' | 'kustom';
 
@@ -117,27 +122,26 @@ export default function SchedulesScreen() {
     <KeyboardAwareScrollView
       contentInsetAdjustmentBehavior="never"
       style={{ backgroundColor: theme.background }}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
+      contentContainerStyle={[styles.content, { paddingTop: jarakAtasLayarTab(Platform.OS, insets.top) }]}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={theme.primary} />
       }>
-      <ScreenHeader title="Jadwal" />
+      <ScreenHeader
+        variant="akar"
+        title="Jadwal"
+        subtitle={tampilan === 'pekan' ? 'Sesi mengajar pekan ini' : 'Sesi mengajar pada rentang tanggal'}
+        bell
+      />
 
-      <ChipRow>
-        <Chip
-          label="Per pekan"
-          accessibilityRole="radio"
-          selected={tampilan === 'pekan'}
-          onPress={() => setTampilan('pekan')}
-        />
-        <Chip
-          label="Rentang kustom"
-          icon="calendar"
-          accessibilityRole="radio"
-          selected={tampilan === 'kustom'}
-          onPress={() => setTampilan('kustom')}
-        />
-      </ChipRow>
+      <FilterPills
+        accessibilityLabel="Tampilan jadwal"
+        value={tampilan}
+        onChange={setTampilan}
+        options={[
+          { value: 'pekan', label: 'Per pekan' },
+          { value: 'kustom', label: 'Rentang kustom', icon: 'calendar' },
+        ]}
+      />
 
       {tampilan === 'pekan' ? <WeekStrip value={tanggal} onChange={setTanggal} today={hariIni} /> : null}
 
@@ -228,7 +232,7 @@ export default function SchedulesScreen() {
 
 const styles = StyleSheet.create({
   content: {
-    padding: 16,
+    paddingHorizontal: Layout.screen,
     paddingBottom: 120,
     gap: 14,
     maxWidth: 760,

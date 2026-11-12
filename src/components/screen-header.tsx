@@ -30,6 +30,11 @@ type Props = {
   bell?: boolean;
   /** Mengganti aksi ← bawaan (mis. kembali ke langkah sebelumnya dalam satu halaman). */
   onBack?: () => void;
+  /**
+   * Label aksesibilitas ← bila "Kembali" saja ambigu di layar itu (mis. formulir
+   * yang punya kolom tanggal "Kembali"). Tetap diawali kata "Kembali".
+   */
+  backLabel?: string;
   /** Tindakan sekunder di balik ⋯ (varian `stack`). Kosong → ⋯ tidak digambar. */
   menu?: HeaderMenuItem[];
 };
@@ -76,7 +81,7 @@ function KepalaAkar({ title, subtitle, actions, bell = false, onBack }: Props) {
   );
 }
 
-function KepalaStack({ title, subtitle, actions, onBack, menu }: Props) {
+function KepalaStack({ title, subtitle, actions, onBack, menu, backLabel }: Props) {
   const bawaan = useKembali('stack');
   const { fontScale } = useWindowDimensions();
   const [menuTerbuka, setMenuTerbuka] = useState(false);
@@ -99,7 +104,7 @@ function KepalaStack({ title, subtitle, actions, onBack, menu }: Props) {
   return (
     <View style={styles.stackHead}>
       <View style={styles.row}>
-        <IconButton icon="arrow-left" accessibilityLabel={labelKembali('stack')} onPress={onBack ?? bawaan} />
+        <IconButton icon="arrow-left" accessibilityLabel={backLabel ?? labelKembali('stack')} onPress={onBack ?? bawaan} />
         {bertumpuk ? <View style={styles.spacer} /> : judul}
         {actions}
         {adaMenu ? (

@@ -111,3 +111,47 @@ export function izinWaliLinkTarget(url: string | null): number | null {
     return Number.isSafeInteger(id) && id > 0 ? id : null;
   } catch { return null; }
 }
+
+export type KeadaanLangkah = 'selesai' | 'aktif' | 'belum' | 'berhenti';
+export type LangkahTahap = { kunci: 'wali' | 'pembimbing' | 'murobi'; label: string; keadaan: KeadaanLangkah; keterangan: string };
+
+const KETERANGAN_LANGKAH: Record<KeadaanLangkah, string> = {
+  selesai: 'Selesai',
+  aktif: 'Sedang berjalan',
+  belum: 'Belum sampai',
+  berhenti: 'Berhenti di sini',
+};
+
+/**
+ * Garis waktu tahap Wali → Pembimbing → Murobi (redesain gelombang 2 §4.5).
+ * Murni turunan TAMPILAN dari `tahap` dan `status` yang dikirim server; tidak
+ * menentukan hak atau tindakan. Setiap langkah membawa keterangan teks agar
+ * keadaan tidak dibawa warna/titik saja.
+ */
+export function langkahTahap(tahap: Tahap, status: string): LangkahTahap[] {
+  let keadaan: [KeadaanLangkah, KeadaanLangkah, KeadaanLangkah];
+  switch (tahap) {
+    case 'perbaikan_wali':
+      keadaan = ['aktif', 'belum', 'belum'];
+      break;
+    case 'pembimbing':
+    case 'penetapan_pembimbing':
+      keadaan = ['selesai', 'aktif', 'belum'];
+      break;
+    case 'murobi':
+    case 'penetapan_murobi':
+      keadaan = ['selesai', 'selesai', 'aktif'];
+      break;
+    case 'selesai':
+      if (status === 'Ditolak Pembimbing') keadaan = ['selesai', 'berhenti', 'belum'];
+      else if (status === 'Disetujui' || status === 'Ditolak') keadaan = ['selesai', 'selesai', 'selesai'];
+      // Dibatalkan (atau status akhir lain): tahap berhentinya tidak dikirim server.
+      else keadaan = ['selesai', 'belum', 'belum'];
+      break;
+    default:
+      keadaan = ['belum', 'belum', 'belum'];
+  }
+  const label = ['Wali', 'Pembimbing', 'Murobi'] as const;
+  const kunci = ['wali', 'pembimbing', 'murobi'] as const;
+  return keadaan.map((k, i) => ({ kunci: kunci[i], label: label[i], keadaan: k, keterangan: KETERANGAN_LANGKAH[k] }));
+}
