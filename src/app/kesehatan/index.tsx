@@ -5,22 +5,28 @@ import { ApiError } from '@/api/client';
 import { kesehatan } from '@/api/kesehatan';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { Halaman } from '@/components/kesehatan-shared';
+import { TombolMuatUlangKepala } from '@/components/halaman-stack';
+import { Halaman, HalamanKeadaan } from '@/components/kesehatan-shared';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { Panel } from '@/components/ui/surface';
+import { HeroCard } from '@/components/ui/hero-card';
+import { ListRow, RowGroup } from '@/components/ui/list-row';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { labelSumber } from '@/kesehatan/forms';
 
 /**
- * Pintu modul kesehatan V5. Tombol dipilih dari hak yang dihitung server
- * (`/v5/kesehatan/akses`, `/v5/kesehatan/wali/akses`); menyembunyikan tombol
- * bukan kontrol akses — setiap layar memanggil server lagi.
+ * Pintu modul kesehatan V5 (redesain gelombang 2 Fase 4, pola P-Menu).
+ * Tombol dipilih dari hak yang dihitung server (`/v5/kesehatan/akses`,
+ * `/v5/kesehatan/wali/akses`); menyembunyikan tombol bukan kontrol akses —
+ * setiap layar memanggil server lagi. Respons akses tidak memuat angka, jadi
+ * menu tidak menampilkan kartu statistik (tanpa angka karangan).
  */
 export default function KesehatanHub() {
   const { profile } = useAuth();
   return <Hub key={profile?.id} />;
 }
+
+const JUDUL = 'Kesehatan';
 
 function Hub() {
   const router = useRouter();
@@ -32,22 +38,34 @@ function Hub() {
     return { akses, wali };
   }, []);
   const { data, error, load } = usePrivateResource(fetcher);
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!data) return <LoadingState label="Memeriksa akses kesehatan…" />;
+  if (error) return <HalamanKeadaan title={JUDUL}><ErrorState message={error} onRetry={() => void load()} /></HalamanKeadaan>;
+  if (!data) return <HalamanKeadaan title={JUDUL}><LoadingState label="Memeriksa akses kesehatan…" /></HalamanKeadaan>;
   const { akses, wali } = data;
-  if (!akses && !wali) return <EmptyState title="Modul kesehatan belum tersedia" message="Server belum memasang modul kesehatan. Hubungi admin pesantren." />;
+  if (!akses && !wali) {
+    return <HalamanKeadaan title={JUDUL}><EmptyState icon="medical" title="Modul kesehatan belum tersedia" message="Server belum memasang modul kesehatan. Hubungi admin pesantren." /></HalamanKeadaan>;
+  }
   const internal = Boolean(akses?.baca);
+  const daftar = akses?.cakupan === 'binaan' ? 'Riwayat kesehatan santri binaan' : 'Daftar kunjungan';
   return (
-    <Halaman>
+    <Halaman title={JUDUL} actions={<TombolMuatUlangKepala onPress={() => void load()} />}>
       {internal && akses ? (
-        <Panel style={{ gap: 12 }}>
-          <ThemedText type="h3">Catatan kesehatan santri</ThemedText>
+        <>
+          <ThemedText type="h2" accessibilityRole="header">Catatan kesehatan santri</ThemedText>
           <ThemedText themeColor="textSecondary">{labelSumber(akses.sumber)}</ThemedText>
           {akses.catat ? <AppButton label="Catat kunjungan" icon="plus" onPress={() => router.push('/kesehatan/catat')} /> : null}
-          <AppButton label={akses.cakupan === 'binaan' ? 'Riwayat kesehatan santri binaan' : 'Daftar kunjungan'} variant={akses.catat ? 'secondary' : 'primary'}
-            onPress={() => router.push('/kesehatan/daftar')} />
-          <AppButton label="Laporan layanan klinik" variant="secondary" onPress={() => router.push('/kesehatan/laporan')} />
-          {akses.riwayat_akses ? <AppButton label="Penugasan petugas kesehatan" variant="secondary" onPress={() => router.push('/kesehatan/penugasan')} /> : null}
+          <RowGroup>
+            <ListRow icon="medical" title={daftar} accessibilityLabel={daftar}
+              subtitle="Kunjungan klinik, rujukan, dan tindak lanjut"
+              onPress={() => router.push('/kesehatan/daftar')} />
+            <ListRow icon="chart" title="Laporan layanan klinik" accessibilityLabel="Laporan layanan klinik"
+              subtitle="Rekap kunjungan per periode, tanpa isi klinis"
+              onPress={() => router.push('/kesehatan/laporan')} last={!akses.riwayat_akses} />
+            {akses.riwayat_akses ? (
+              <ListRow icon="users" title="Penugasan petugas kesehatan" accessibilityLabel="Penugasan petugas kesehatan"
+                subtitle="Tambah, akhiri, atau nonaktifkan petugas"
+                onPress={() => router.push('/kesehatan/penugasan')} last />
+            ) : null}
+          </RowGroup>
           {!akses.catat ? (
             <ThemedText type="caption" themeColor="textSecondary">
               {akses.cakupan === 'binaan'
@@ -55,19 +73,15 @@ function Hub() {
                 : 'Hanya baca. Isi klinis dicatat dan dikoreksi petugas kesehatan berpenugasan aktif.'}
             </ThemedText>
           ) : null}
-        </Panel>
+        </>
       ) : null}
       {wali?.wali ? (
-        <Panel style={{ gap: 12 }}>
-          <ThemedText type="h3">Kesehatan anak</ThemedText>
-          <ThemedText themeColor="textSecondary">Ringkasan kunjungan klinik yang diterbitkan pesantren untuk Anda.</ThemedText>
-          <AppButton label="Buka informasi kesehatan anak" variant={internal ? 'secondary' : 'primary'} onPress={() => router.push('/kesehatan/wali')} />
-        </Panel>
+        <HeroCard overline="Kesehatan anak" title="Ringkasan kunjungan klinik yang diterbitkan pesantren untuk Anda."
+          action={{ label: 'Buka informasi kesehatan anak', icon: 'arrow-right', onPress: () => router.push('/kesehatan/wali') }} />
       ) : null}
       {!internal && !wali?.wali ? (
-        <EmptyState title="Belum ada akses kesehatan" message="Catatan kesehatan hanya untuk petugas kesehatan berpenugasan aktif, admin, pembimbing/murobi santri terkait, dan orang tua dengan relasi wali aktif." />
+        <EmptyState icon="medical" title="Belum ada akses kesehatan" message="Catatan kesehatan hanya untuk petugas kesehatan berpenugasan aktif, admin, pembimbing/murobi santri terkait, dan orang tua dengan relasi wali aktif." />
       ) : null}
-      <AppButton label="Muat ulang" variant="secondary" onPress={() => void load()} />
     </Halaman>
   );
 }

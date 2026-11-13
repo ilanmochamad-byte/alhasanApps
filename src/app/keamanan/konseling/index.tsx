@@ -1,17 +1,15 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { View } from 'react-native';
 
 import { keamanan } from '@/api/keamanan';
-import { AppButton } from '@/components/app-button';
 import { Pager } from '@/components/izin-wali-shared';
 import { tanggalPanjang } from '@/components/kesehatan-shared';
-import { CatatanHanyaBaca, Halaman, Lencana } from '@/components/keamanan-shared';
+import { BarisPilIsi, TombolMuatUlangKepala } from '@/components/halaman-stack';
+import { CatatanHanyaBaca, Halaman, KolomCariSantri, Lencana, PilKerahasiaan } from '@/components/keamanan-shared';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { Field } from '@/components/ui/app-field';
-import { Badge, Chip, ChipRow } from '@/components/ui/chip';
-import { Card } from '@/components/ui/surface';
+import { EntityRow } from '@/components/ui/entity-row';
+import { FilterPills } from '@/components/ui/filter-pills';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { labelStatusKasus, nadaPembinaan, STATUS_KASUS } from '@/keamanan/format';
 
@@ -30,38 +28,21 @@ export default function KeamananKonselingScreen() {
   const jumlah = data?.jumlah_status ?? {};
   const semua = Object.values(jumlah).reduce((a, b) => a + b, 0);
   return (
-    <Halaman>
-      <ChipRow>
-        <Chip accessibilityRole="radio" label={`Semua${data ? ` (${semua})` : ''}`} selected={status === ''} onPress={() => { setStatus(''); setPage(1); }} />
-        {STATUS_KASUS.map(s => (
-          <Chip key={s} accessibilityRole="radio" label={`${labelStatusKasus(s)}${data ? ` (${jumlah[s] ?? 0})` : ''}`} selected={status === s} onPress={() => { setStatus(s); setPage(1); }} />
-        ))}
-      </ChipRow>
-      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
-        <View style={{ flex: 1 }}>
-          <Field label="Cari santri" accessibilityLabel="Cari santri" value={cari} onChangeText={setCari} placeholder="Nama atau NIS santri" maxLength={100}
-            returnKeyType="search" onSubmitEditing={() => { setQ(cari.trim()); setPage(1); }} />
-        </View>
-        <AppButton label="Cari" size="sm" variant="secondary" onPress={() => { setQ(cari.trim()); setPage(1); }} />
-      </View>
+    <Halaman title="Konseling" subtitle="Hanya melihat" actions={<TombolMuatUlangKepala onPress={() => void load()} />}>
+      <KolomCariSantri value={cari} onChange={setCari} onCari={() => { setQ(cari.trim()); setPage(1); }} />
+      <FilterPills bungkus accessibilityLabel="Status" value={status} onChange={v => { setStatus(v); setPage(1); }}
+        options={[{ value: '', label: `Semua${data ? ` (${semua})` : ''}` }, ...STATUS_KASUS.map(s => ({ value: s as string, label: `${labelStatusKasus(s)}${data ? ` (${jumlah[s] ?? 0})` : ''}` }))]} />
       {error ? <ErrorState message={error} onRetry={() => void load()} /> : !data ? <LoadingState label="Memuat kasus konseling…" /> : (
         <>
           <ThemedText type="caption" themeColor="textSecondary">{data.items.length} dari {data.total}</ThemedText>
-          {data.items.length === 0 ? <EmptyState title="Belum ada kasus" message="Belum ada kasus konseling Internal yang cocok dengan saringan ini." /> : null}
+          {data.items.length === 0 ? <EmptyState icon="users" title="Belum ada kasus" message="Belum ada kasus konseling Internal yang cocok dengan saringan ini." /> : null}
           {data.items.map(item => (
-            <Card key={item.id} accessibilityLabel={`Buka kasus konseling ${item.santri_nama}`}
-              onPress={() => router.push({ pathname: '/keamanan/konseling/[id]', params: { id: String(item.id) } })}>
-              <View style={{ gap: 6 }}>
-                <ThemedText type="bodyBold">{item.santri_nama}</ThemedText>
-                <ThemedText type="caption" themeColor="textSecondary">
-                  Dibuka {tanggalPanjang(item.dibuka_pada)} · {item.jumlah_sesi} sesi · {item.semester} {item.tahun}
-                </ThemedText>
-                <ChipRow>
-                  <Lencana label={labelStatusKasus(item.status)} nada={nadaPembinaan(item.status)} />
-                  <Badge label={item.kerahasiaan} />
-                </ChipRow>
-              </View>
-            </Card>
+            <EntityRow key={item.id} avatarName={item.santri_nama} title={item.santri_nama}
+              subtitle={`Dibuka ${tanggalPanjang(item.dibuka_pada)} · ${item.jumlah_sesi} sesi · ${item.semester} ${item.tahun}`}
+              accessibilityLabel={`Buka kasus konseling ${item.santri_nama}`}
+              accessibilityHint={`Kerahasiaan ${item.kerahasiaan}`}
+              onPress={() => router.push({ pathname: '/keamanan/konseling/[id]', params: { id: String(item.id) } })}
+              pill={<BarisPilIsi><Lencana label={labelStatusKasus(item.status)} nada={nadaPembinaan(item.status)} /><PilKerahasiaan label={item.kerahasiaan} /></BarisPilIsi>} />
           ))}
           <Pager page={data.page} total={data.total} perPage={data.per_page} onChange={setPage} />
         </>

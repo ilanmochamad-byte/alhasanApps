@@ -21,6 +21,7 @@ export function ListRow({
   onPress,
   danger,
   last,
+  accessibilityLabel,
 }: {
   icon?: IconName;
   title: string;
@@ -32,13 +33,15 @@ export function ListRow({
   danger?: boolean;
   /** Baris terakhir tidak menggambar garis pemisah. */
   last?: boolean;
+  /** Nama tombol bagi pembaca layar; bawaan judul + keterangan + nilai. */
+  accessibilityLabel?: string;
 }) {
   const theme = useTheme();
   const tint = danger ? theme.danger : theme.primary;
   return (
     <Pressable
       accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={[title, subtitle, value].filter(Boolean).join(', ')}
+      accessibilityLabel={accessibilityLabel ?? [title, subtitle, value].filter(Boolean).join(', ')}
       disabled={!onPress}
       onPress={onPress}
       style={({ pressed }) => [

@@ -5,10 +5,10 @@ import { View } from 'react-native';
 import { kesehatan } from '@/api/kesehatan';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { Halaman, waktuPendek } from '@/components/kesehatan-shared';
+import { Halaman, HalamanKeadaan, waktuPendek } from '@/components/kesehatan-shared';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { Card } from '@/components/ui/surface';
+import { EntityRow } from '@/components/ui/entity-row';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 
 const AKSI: Record<string, string> = { baca_detail: 'Membuka rincian', baca_versi: 'Membuka riwayat versi', baca_ringkasan: 'Membuka ringkasan wali' };
@@ -24,21 +24,17 @@ function Riwayat({ id }: { id: number }) {
   const [page, setPage] = useState(1);
   const fetcher = useCallback(() => kesehatan.riwayatAkses(id, page), [id, page]);
   const { data, error, load } = usePrivateResource(fetcher);
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!data) return <LoadingState label="Memuat riwayat akses…" />;
+  if (error) return <HalamanKeadaan title="Riwayat akses"><ErrorState message={error} onRetry={() => void load()} /></HalamanKeadaan>;
+  if (!data) return <HalamanKeadaan title="Riwayat akses"><LoadingState label="Memuat riwayat akses…" /></HalamanKeadaan>;
   const total = Math.max(1, Math.ceil(data.total / data.per_page));
   return (
-    <Halaman>
+    <Halaman title="Riwayat akses">
       <ThemedText type="h3">Riwayat akses rincian kunjungan ({data.total} pembukaan)</ThemedText>
       {data.rows.length === 0 ? <EmptyState title="Belum ada pembukaan tercatat" message="Pembukaan rincian akan tercatat di sini." /> : null}
       {data.rows.map(r => (
-        <Card key={r.id}>
-          <View style={{ gap: 3 }}>
-            <ThemedText type="bodyBold">{r.pengguna.nama} ({r.pengguna.username})</ThemedText>
-            <ThemedText>{AKSI[r.aksi] ?? r.aksi} · sebagai {r.sumber} · kanal {r.kanal}</ThemedText>
-            <ThemedText type="caption" themeColor="textSecondary">{waktuPendek(r.waktu)}</ThemedText>
-          </View>
-        </Card>
+        <EntityRow key={r.id} icon="eye" tone="info" title={`${r.pengguna.nama} (${r.pengguna.username})`}
+          subtitle={`${AKSI[r.aksi] ?? r.aksi} · sebagai ${r.sumber} · kanal ${r.kanal}`}
+          detail={<ThemedText type="caption" themeColor="textSecondary">{waktuPendek(r.waktu)}</ThemedText>} />
       ))}
       {total > 1 ? (
         <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>

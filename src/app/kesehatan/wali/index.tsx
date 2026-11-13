@@ -5,11 +5,12 @@ import { View } from 'react-native';
 import { kesehatan } from '@/api/kesehatan';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { Halaman, StatusBadge, tanggalPanjang, waktuPendek } from '@/components/kesehatan-shared';
+import { BarisPilIsi } from '@/components/halaman-stack';
+import { Halaman, HalamanKeadaan, Penanda, StatusBadge, tanggalPanjang, waktuPendek } from '@/components/kesehatan-shared';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { Badge, Chip, ChipRow } from '@/components/ui/chip';
-import { Card } from '@/components/ui/surface';
+import { EntityRow } from '@/components/ui/entity-row';
+import { FilterPills } from '@/components/ui/filter-pills';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 
 /** Daftar ringkasan kesehatan anak berelasi wali aktif (proyeksi khusus, tanpa catatan klinis). */
@@ -24,32 +25,30 @@ function Daftar() {
   const [page, setPage] = useState(1);
   const fetcher = useCallback(() => kesehatan.daftarWali(anak, page), [anak, page]);
   const { data, error, load } = usePrivateResource(fetcher);
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!data) return <LoadingState label="Memuat informasi kesehatan…" />;
+  if (error) return <HalamanKeadaan title="Kesehatan anak"><ErrorState message={error} onRetry={() => void load()} /></HalamanKeadaan>;
+  if (!data) return <HalamanKeadaan title="Kesehatan anak"><LoadingState label="Memuat informasi kesehatan…" /></HalamanKeadaan>;
   const total = Math.max(1, Math.ceil(data.total / data.per_page));
   return (
-    <Halaman>
+    <Halaman title="Kesehatan anak">
       <ThemedText type="h3">Informasi kesehatan</ThemedText>
       {data.anak.length > 1 ? (
-        <ChipRow>
-          <Chip label="Semua anak" selected={anak === 0} onPress={() => { setAnak(0); setPage(1); }} />
-          {data.anak.map(a => <Chip key={a.id} label={a.nama} selected={anak === a.id} onPress={() => { setAnak(a.id); setPage(1); }} />)}
-        </ChipRow>
+        <FilterPills bungkus accessibilityLabel="Pilih anak" value={String(anak)} onChange={v => { setAnak(Number(v)); setPage(1); }}
+          options={[{ value: '0', label: 'Semua anak' }, ...data.anak.map(a => ({ value: String(a.id), label: a.nama }))]} />
       ) : null}
-      {data.rows.length === 0 ? <EmptyState title="Belum ada informasi kesehatan" message="Informasi akan tampil setelah klinik pesantren menerbitkan ringkasan untuk Anda." /> : null}
+      {data.rows.length === 0 ? <EmptyState icon="medical" title="Belum ada informasi kesehatan" message="Informasi akan tampil setelah klinik pesantren menerbitkan ringkasan untuk Anda." /> : null}
       {data.rows.map(r => (
-        <Card key={r.id} accessibilityLabel={`Buka informasi kesehatan ${r.santri.nama} ${tanggalPanjang(r.tanggal_kunjungan)}`}
-          onPress={() => router.push({ pathname: '/kesehatan/wali/[id]', params: { id: String(r.id) } })}>
-          <View style={{ gap: 6 }}>
-            <ThemedText type="bodyBold">{r.santri.nama}</ThemedText>
-            <ThemedText type="caption" themeColor="textSecondary">Kunjungan {tanggalPanjang(r.tanggal_kunjungan)} · diterbitkan {waktuPendek(r.diterbitkan_pada)}</ThemedText>
-            <ChipRow>
+        <EntityRow key={r.id} avatarName={r.santri.nama} title={r.santri.nama}
+          subtitle={`Kunjungan ${tanggalPanjang(r.tanggal_kunjungan)} · diterbitkan ${waktuPendek(r.diterbitkan_pada)}`}
+          accessibilityLabel={`Buka informasi kesehatan ${r.santri.nama} ${tanggalPanjang(r.tanggal_kunjungan)}`}
+          highlight={r.ada_tindak_lanjut && r.status === 'Terbit' ? 'warning' : undefined}
+          onPress={() => router.push({ pathname: '/kesehatan/wali/[id]', params: { id: String(r.id) } })}
+          pill={(
+            <BarisPilIsi>
               <StatusBadge status={r.status} />
-              {r.diperbarui ? <Badge label="Diperbarui" /> : null}
-              {r.ada_tindak_lanjut && r.status === 'Terbit' ? <Badge label="Perlu perhatian" tone="warning" /> : null}
-            </ChipRow>
-          </View>
-        </Card>
+              {r.diperbarui ? <Penanda label="Diperbarui" /> : null}
+              {r.ada_tindak_lanjut && r.status === 'Terbit' ? <Penanda label="Perlu perhatian" nada="warning" /> : null}
+            </BarisPilIsi>
+          )} />
       ))}
       {total > 1 ? (
         <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>

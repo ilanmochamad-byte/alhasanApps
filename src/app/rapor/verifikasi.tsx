@@ -8,7 +8,9 @@ import { PrivateField } from '@/components/private-field';
 import { DropdownField } from '@/components/ui/dropdown-field';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { HistoryList, Notice, RaporPage, ReportBody, useRaporResource } from '@/components/rapor-shared';
+import { JudulBagianIsi, KartuIsi } from '@/components/halaman-stack';
 import { ThemedText } from '@/components/themed-text';
+import { StatusPill } from '@/components/ui/status-pill';
 import { requireReason } from '@/rapor/forms';
 
 export default function Screen() { const { profile } = useAuth(); return <Session key={profile?.id} />; }
@@ -16,7 +18,7 @@ function Session() {
   const [plan, setPlan] = useState(0); const [student, setStudent] = useState(0);
   const fetcher = useCallback(async () => ({ caps: await rapor.capabilities(), options: await rapor.reviewOptions(), matrix: plan ? await rapor.review(plan, student) : null }), [plan, student]);
   const r = useRaporResource(fetcher);
-  return <RaporPage><Notice text={r.notice} />{r.error ? <ErrorState message={r.error} onRetry={() => void r.load()} /> : !r.data ? <LoadingState /> : <>
+  return <RaporPage title="Verifikasi & penerbitan"><Notice text={r.notice} />{r.error ? <ErrorState message={r.error} onRetry={() => void r.load()} /> : !r.data ? <LoadingState /> : <>
     <DropdownField label="Kelas dan semester" value={String(plan)} options={r.data.options.map(o => ({ value: String(o.id), label: `${o.nama_kelas} · ${o.tahun} ${o.semester}` }))} onChange={v => { setPlan(Number(v)); setStudent(0); }} disabled={r.busy} />
     {!r.data.options.length && <EmptyState title="Belum ada rencana" message="Tidak ada rencana dalam cakupan Pendidikan aktif." />}
     {!student && r.data.matrix && <DropdownField label="Santri" value="0" options={r.data.matrix.matriks.map(m => ({ value: String(m.santri.id), label: m.santri.nama_santri }))} onChange={v => setStudent(Number(v))} disabled={r.busy} searchable />}
@@ -53,7 +55,11 @@ function Review({ matrix, busy, caps, mutate }: { matrix: Matrix; busy: boolean;
     <ThemedText type="h3">{row.santri.nama_santri}</ThemedText>
     <PrivateField label="Alasan pengembalian / tindakan admin" value={reason} onChangeText={setReason} multiline maxLength={1000} editable={!busy} />
     {row.bahan.map(m => <MaterialBlock key={`${m.jenis}:${m.mapel_key}`}>
-      <ThemedText type="h3">{m.label}</ThemedText><ThemedText>{m.lengkap ? 'Lengkap' : 'Belum lengkap'} · {m.pemeriksaan.status} · versi {m.pemeriksaan.version}</ThemedText>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+        <ThemedText type="h3" style={{ flexShrink: 1 }}>{m.label}</ThemedText>
+        <StatusPill label={m.pemeriksaan.status} tone={nadaBahan(m.pemeriksaan.status)} />
+      </View>
+      <ThemedText>{m.lengkap ? 'Lengkap' : 'Belum lengkap'} · {m.pemeriksaan.status} · versi {m.pemeriksaan.version}</ThemedText>
       {m.penghalang && <ThemedText>{m.penghalang}</ThemedText>}
       {m.komponen?.map((v, i) => <ThemedText key={i}>{v.komponen} {v.nomor_harian || ''}: {v.nilai} · {v.catatan}</ThemedText>)}
       {m.hasil && <ThemedText>Nilai akhir: {m.hasil.nilai_tampil ?? 'Belum lengkap'} · {m.hasil.predikat ?? '—'}</ThemedText>}
@@ -71,7 +77,7 @@ function Review({ matrix, busy, caps, mutate }: { matrix: Matrix; busy: boolean;
         const result = await rapor.preview(plan, student, note); setPreview(result);
       }, false)} />
     </>}
-    {preview && <><ThemedText>Status: {preview.status} · Versi saat ini {preview.current_version}</ThemedText><ReportBody s={preview.snapshot} /><ThemedText>{preview.snapshot.kekurangan?.join('\n')}</ThemedText>
+    {preview && <><JudulBagianIsi title="Pratinjau rapor" /><ThemedText>Status: {preview.status} · Versi saat ini {preview.current_version}</ThemedText><ReportBody s={preview.snapshot} /><ThemedText>{preview.snapshot.kekurangan?.join('\n')}</ThemedText>
       <AppButton label="Terbitkan rapor" disabled={busy || !preview.siap_terbit || preview.current_version > 0} onPress={() => void publish('Terbit')} />
       {caps.includes('rapor.buka_koreksi') && <><AppButton label="Terbitkan versi pengganti beralasan" disabled={busy || !preview.siap_terbit || preview.current_version === 0} onPress={() => void publish('Ganti')} />
         <AppButton label="Tarik rapor beralasan" variant="secondary" disabled={busy || preview.status !== 'Terbit'} onPress={() => void publish('Tarik')} />
@@ -79,4 +85,12 @@ function Review({ matrix, busy, caps, mutate }: { matrix: Matrix; busy: boolean;
     </>}
   </>;
 }
-function MaterialBlock(props: ViewProps) { return <View {...props} style={{ gap: 10, paddingVertical: 12 }} />; }
+function MaterialBlock({ children }: ViewProps) { return <KartuIsi gap={10}>{children}</KartuIsi>; }
+
+/** Nada pil status bahan: Diverifikasi = centang, Dikirim = jam, Dikembalikan = silang, lainnya netral. */
+function nadaBahan(status: string): 'success' | 'warning' | 'danger' | 'neutral' {
+  if (status === 'Diverifikasi') return 'success';
+  if (status === 'Dikirim') return 'warning';
+  if (status === 'Dikembalikan') return 'danger';
+  return 'neutral';
+}

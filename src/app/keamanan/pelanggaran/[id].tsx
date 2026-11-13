@@ -5,11 +5,11 @@ import { View } from 'react-native';
 import { keamanan } from '@/api/keamanan';
 import { AppButton } from '@/components/app-button';
 import { Baris, tanggalPanjang, waktuPendek } from '@/components/kesehatan-shared';
-import { CatatanHanyaBaca, Halaman, Lencana } from '@/components/keamanan-shared';
+import { BarisPilIsi, JudulBagianIsi, KartuIsi, KepalaRincian } from '@/components/halaman-stack';
+import { CatatanHanyaBaca, Halaman, HalamanKeadaan, Lencana } from '@/components/keamanan-shared';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { Badge, ChipRow } from '@/components/ui/chip';
-import { Card, Panel } from '@/components/ui/surface';
+import { Card } from '@/components/ui/surface';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { labelStatusKasus, nadaPembinaan } from '@/keamanan/format';
 
@@ -24,24 +24,21 @@ export default function KeamananPelanggaranDetailScreen() {
   const nomor = Number(id);
   const fetcher = useCallback(() => keamanan.pelanggaranDetail(nomor), [nomor]);
   const { data, error, load } = usePrivateResource(fetcher);
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!data) return <LoadingState label="Memuat rincian pelanggaran…" />;
+  if (error) return <HalamanKeadaan title="Rincian pelanggaran"><ErrorState message={error} onRetry={() => void load()} /></HalamanKeadaan>;
+  if (!data) return <HalamanKeadaan title="Rincian pelanggaran"><LoadingState label="Memuat rincian pelanggaran…" /></HalamanKeadaan>;
   const p = data.pelanggaran;
   return (
-    <Halaman>
-      <ThemedText type="h3">{p.jenis ?? p.kategori}</ThemedText>
-      <ChipRow>
-        <Lencana label={p.status} nada={nadaPembinaan(p.status)} />
-        <Badge label={p.tingkat} />
-      </ChipRow>
+    <Halaman title="Rincian pelanggaran">
+      <KepalaRincian nama={p.santri_nama} judul={p.jenis ?? p.kategori} keterangan={`${p.santri_nama} · ${p.poin} poin`}
+        pills={<><Lencana label={p.status} nada={nadaPembinaan(p.status)} /><Lencana label={p.tingkat} nada="neutral" /></>} />
       {p.digantikan_oleh_id !== null ? (
         <Card accessibilityLabel="Buka revisi terbaru"
           onPress={() => router.push({ pathname: '/keamanan/pelanggaran/[id]', params: { id: String(p.digantikan_oleh_id) } })}>
           <ThemedText>Catatan ini sudah dikoreksi dan digantikan revisi yang lebih baru. Ketuk untuk membuka revisi terbaru.</ThemedText>
         </Card>
       ) : null}
-      <Panel>
-        <View style={{ gap: 10 }}>
+      <KartuIsi gap={0}>
+        <View>
           <Baris label="Santri" value={`${p.santri_nama} · ${p.semester} ${p.tahun}`} />
           <Baris label="Jenis" value={p.jenis ? `${p.jenis} · ${p.kategori}` : p.kategori} />
           <Baris label="Poin" value={String(p.poin)} />
@@ -52,10 +49,10 @@ export default function KeamananPelanggaranDetailScreen() {
           {p.alasan_revisi ? <Baris label="Alasan koreksi" value={p.alasan_revisi} /> : null}
           {p.alasan_pembatalan ? <Baris label="Alasan pembatalan" value={p.alasan_pembatalan} /> : null}
         </View>
-      </Panel>
+      </KartuIsi>
       <ThemedText type="h3">Poin santri {p.semester} {p.tahun}: {data.total_poin}</ThemedText>
-      <Panel>
-        <View style={{ gap: 8 }}>
+      <KartuIsi gap={0}>
+        <View>
           {data.ledger.length === 0 ? <ThemedText themeColor="textSecondary">Belum ada catatan poin.</ThemedText> : null}
           {data.ledger.map((l, i) => (
             <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
@@ -64,10 +61,10 @@ export default function KeamananPelanggaranDetailScreen() {
             </View>
           ))}
         </View>
-      </Panel>
-      <ThemedText type="h3">Riwayat catatan</ThemedText>
-      <Panel>
-        <View style={{ gap: 10 }}>
+      </KartuIsi>
+      <JudulBagianIsi title="Riwayat catatan" />
+      <KartuIsi gap={0}>
+        <View>
           {data.riwayat_revisi.map(r => (
             <View key={r.id} style={{ gap: 2 }}>
               <ThemedText type="bodyBold">{r.revisi_dari_id === null ? 'Catatan dibuat' : 'Koreksi menjadi revisi baru'}{r.id === p.id ? ' (catatan ini)' : ''}</ThemedText>
@@ -84,18 +81,18 @@ export default function KeamananPelanggaranDetailScreen() {
             </View>
           ))}
         </View>
-      </Panel>
-      <ThemedText type="h3">Lampiran privat</ThemedText>
-      <Panel>
-        <View style={{ gap: 8 }}>
+      </KartuIsi>
+      <JudulBagianIsi title="Lampiran privat" icon="lock" />
+      <KartuIsi gap={0}>
+        <View>
           {data.lampiran.length === 0 ? <ThemedText themeColor="textSecondary">Tidak ada lampiran.</ThemedText> : null}
           {data.lampiran.map(f => (
             <ThemedText key={f.id}>{f.nama} · {(f.ukuran / 1024).toFixed(1).replace('.', ',')} KB · {tanggalPanjang(f.created_at)}</ThemedText>
           ))}
           {data.lampiran.length > 0 ? <ThemedText type="caption" themeColor="textSecondary">Unduh lampiran melalui website; setiap unduhan tercatat di jejak audit.</ThemedText> : null}
         </View>
-      </Panel>
-      <ThemedText type="h3">Tindak lanjut konseling</ThemedText>
+      </KartuIsi>
+      <JudulBagianIsi title="Tindak lanjut konseling" />
       {data.konseling.length === 0 ? <ThemedText themeColor="textSecondary">Belum ditautkan ke kasus konseling yang dapat dibaca.</ThemedText> : null}
       {data.konseling.map(k => (
         <Card key={k.kasus_id} accessibilityLabel={`Buka kasus konseling ${p.santri_nama}`}
@@ -105,7 +102,7 @@ export default function KeamananPelanggaranDetailScreen() {
             <ThemedText type="caption" themeColor="textSecondary">
               {k.sesi.length === 0 ? 'Belum ada sesi' : k.sesi.map(s => `Sesi ${tanggalPanjang(s.jadwal)} ${s.status ?? ''}`.trim()).join(' · ')}
             </ThemedText>
-            <ChipRow><Lencana label={labelStatusKasus(k.kasus_status)} nada={nadaPembinaan(k.kasus_status)} /></ChipRow>
+            <BarisPilIsi><Lencana label={labelStatusKasus(k.kasus_status)} nada={nadaPembinaan(k.kasus_status)} /></BarisPilIsi>
           </View>
         </Card>
       ))}

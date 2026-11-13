@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 
 import { keamanan } from '@/api/keamanan';
-import { CatatanHanyaBaca, Halaman } from '@/components/keamanan-shared';
+import { CatatanHanyaBaca, Halaman, HalamanKeadaan } from '@/components/keamanan-shared';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { ListRow, RowGroup } from '@/components/ui/list-row';
@@ -17,14 +17,14 @@ export default function KeamananIndexScreen() {
   const router = useRouter();
   const fetcher = useCallback(() => keamanan.akses(), []);
   const { data, error, load } = usePrivateResource(fetcher);
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!data) return <LoadingState label="Memeriksa penugasan Keamanan…" />;
+  if (error) return <HalamanKeadaan title="Keamanan"><ErrorState message={error} onRetry={() => void load()} /></HalamanKeadaan>;
+  if (!data) return <HalamanKeadaan title="Keamanan"><LoadingState label="Memeriksa penugasan Keamanan…" /></HalamanKeadaan>;
   if (!data.pantau) {
-    return <Halaman><EmptyState title="Tidak ada penugasan Keamanan" message="Akun ini tidak memegang penugasan Keamanan yang aktif. Hubungi admin pesantren." /></Halaman>;
+    return <HalamanKeadaan title="Keamanan"><EmptyState title="Tidak ada penugasan Keamanan" message="Akun ini tidak memegang penugasan Keamanan yang aktif. Hubungi admin pesantren." /></HalamanKeadaan>;
   }
   return (
-    <Halaman>
-      <ThemedText type="h3">Pantauan santri</ThemedText>
+    <Halaman title="Keamanan" subtitle="Hanya melihat">
+      <ThemedText type="h2" accessibilityRole="header">Pantauan santri</ThemedText>
       <ThemedText type="caption" themeColor="textSecondary">Seluruh santri aktif. Kasus konseling Rahasia tidak ditampilkan.</ThemedText>
       <RowGroup>
         <ListRow icon="calendar" title="Kehadiran pengajian" subtitle="Laporan kehadiran seluruh jadwal" onPress={() => router.push('/keamanan/kehadiran')} />

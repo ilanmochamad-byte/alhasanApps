@@ -6,7 +6,8 @@ import { ApiError, actionableError } from '@/api/client';
 import { kesehatan, type KelasPilihan, type Kunjungan, type SantriPilihan } from '@/api/kesehatan';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { Halaman, Pesan } from '@/components/kesehatan-shared';
+import { PenandaPrivat } from '@/components/halaman-stack';
+import { Halaman, HalamanKeadaan, Pesan } from '@/components/kesehatan-shared';
 import { PrivateField } from '@/components/private-field';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
@@ -42,7 +43,8 @@ function Baru() {
     if (hasil) router.replace({ pathname: '/kesehatan/kunjungan/[id]', params: { id: String(hasil.id) } });
   }
   return (
-    <Halaman>
+    <Halaman title="Catatan kunjungan" subtitle="Kunjungan baru">
+      <PenandaPrivat text="Catatan klinis privat: tidak tampil untuk orang tua." />
       <PemilihSantri draf={draf} setDraf={setDraf} />
       <FormKunjungan draf={draf} setDraf={setDraf} disabled={guard.isBusy} />
       <Pesan text={guard.error} tone="danger" />
@@ -70,8 +72,8 @@ function Koreksi({ id }: { id: number }) {
   const { data: basis, error, load } = usePrivateResource<Kunjungan>(fetcher, bersihkan, true);
   const guard = useMutationGuard('kesehatan-koreksi');
   const aktifDraf = draf ?? (basis ? drafDariKunjungan(basis) : null);
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!basis || !aktifDraf) return <LoadingState label="Memuat versi terbaru…" />;
+  if (error) return <HalamanKeadaan title="Catatan kunjungan"><ErrorState message={error} onRetry={() => void load()} /></HalamanKeadaan>;
+  if (!basis || !aktifDraf) return <HalamanKeadaan title="Catatan kunjungan"><LoadingState label="Memuat versi terbaru…" /></HalamanKeadaan>;
   const tercatat = basis.status === 'Tercatat';
   async function simpan(status: '' | 'Tercatat') {
     if (!aktifDraf || !basis) return;
@@ -84,7 +86,8 @@ function Koreksi({ id }: { id: number }) {
   }
   const muatUlang = () => { bersihkan(); guard.reset(); void load(); };
   return (
-    <Halaman>
+    <Halaman title="Catatan kunjungan" subtitle={tercatat ? 'Koreksi beralasan' : 'Lanjutkan draf'}>
+      <PenandaPrivat text="Catatan klinis privat: tidak tampil untuk orang tua." />
       <ThemedText type="h3">{tercatat ? 'Koreksi catatan' : 'Lanjutkan draf'} · {basis.santri.nama}</ThemedText>
       <ThemedText type="caption" themeColor="textSecondary">Mengoreksi versi {versiDraf ?? basis.versi}. Versi sebelumnya tetap tersimpan di riwayat.</ThemedText>
       <FormKunjungan draf={aktifDraf} setDraf={setDraf} disabled={guard.isBusy} />
@@ -169,7 +172,7 @@ function PemilihSantri({ draf, setDraf }: { draf: DrafKunjungan; setDraf: (d: Dr
               {[...kelas.kelas.map(k => ({ id: k.id as number | 'tanpa', nama: k.nama, jumlah: k.jumlah })),
                 ...(kelas.tanpa_kelas > 0 ? [{ id: 'tanpa' as const, nama: 'Belum ditempatkan di kelas', jumlah: kelas.tanpa_kelas }] : [])].map(k => (
                 <View key={String(k.id)} style={{ gap: 6 }}>
-                  <Chip label={`${terbuka === k.id ? '▾' : '▸'} ${k.nama} (${k.jumlah})`} selected={terbuka === k.id} onPress={() => bukaKelas(k.id)} />
+                  <Chip style={{ minHeight: 44 }} label={`${terbuka === k.id ? '▾' : '▸'} ${k.nama} (${k.jumlah})`} selected={terbuka === k.id} onPress={() => bukaKelas(k.id)} />
                   {terbuka === k.id ? (
                     isiKelas ? <>{isiKelas.rows.map(tombolSantri)}{lebihDari(isiKelas)}</> : <ThemedText themeColor="textSecondary">Memuat santri…</ThemedText>
                   ) : null}
@@ -240,8 +243,8 @@ function FormKunjungan({ draf, setDraf, disabled }: { draf: DrafKunjungan; setDr
             <PrivateField label={`Tindak lanjut ${i + 1}: uraian`} value={t.uraian} onChangeText={v => ubahTl(i, { uraian: v })} multiline maxLength={1000} />
             <DateField label="Target" value={t.tanggal_target} placeholder="Tanpa target" onChange={v => ubahTl(i, { tanggal_target: v })} />
             <ChipRow>
-              <Chip label="Terbuka" accessibilityRole="radio" selected={t.status === 'Terbuka'} onPress={() => ubahTl(i, { status: 'Terbuka', tanggal_selesai: '' })} />
-              <Chip label="Selesai" accessibilityRole="radio" selected={t.status === 'Selesai'} onPress={() => ubahTl(i, { status: 'Selesai' })} />
+              <Chip style={{ minHeight: 44 }} label="Terbuka" accessibilityRole="radio" selected={t.status === 'Terbuka'} onPress={() => ubahTl(i, { status: 'Terbuka', tanggal_selesai: '' })} />
+              <Chip style={{ minHeight: 44 }} label="Selesai" accessibilityRole="radio" selected={t.status === 'Selesai'} onPress={() => ubahTl(i, { status: 'Selesai' })} />
             </ChipRow>
             {t.status === 'Selesai' ? <DateField label="Tanggal selesai" value={t.tanggal_selesai} placeholder="Hari ini" onChange={v => ubahTl(i, { tanggal_selesai: v })} /> : null}
             <AppButton label={`Hapus tindak lanjut ${i + 1}`} size="sm" variant="outline" onPress={() => setDraf({ ...draf, tindak_lanjut: draf.tindak_lanjut.filter((_, n) => n !== i) })} />

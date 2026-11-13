@@ -5,7 +5,7 @@ import { ApiError } from '@/api/client';
 import { kesehatan } from '@/api/kesehatan';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { Baris, Halaman, Pesan, tanggalPanjang } from '@/components/kesehatan-shared';
+import { Baris, Halaman, HalamanKeadaan, Pesan, tanggalPanjang } from '@/components/kesehatan-shared';
 import { PrivateField } from '@/components/private-field';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
@@ -39,8 +39,8 @@ function Form({ id, rujukanId }: { id: number; rujukanId: number }) {
   }, [id, rujukanId]);
   const { data, error, load } = usePrivateResource(fetcher, bersihkan, true);
   const guard = useMutationGuard('kesehatan-hasil-rujukan');
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!data) return <LoadingState label="Memuat rujukan…" />;
+  if (error) return <HalamanKeadaan title="Hasil rujukan"><ErrorState message={error} onRetry={() => void load()} /></HalamanKeadaan>;
+  if (!data) return <HalamanKeadaan title="Hasil rujukan"><LoadingState label="Memuat rujukan…" /></HalamanKeadaan>;
   const { k, r } = data;
   async function simpan() {
     const salah = k.status === 'Tercatat' ? wajibAlasan(alasan) : null;
@@ -51,7 +51,7 @@ function Form({ id, rujukanId }: { id: number; rujukanId: number }) {
     if (ok) { bersihkan(); router.back(); }
   }
   return (
-    <Halaman>
+    <Halaman title="Hasil rujukan">
       <Panel style={{ gap: 10 }}>
         <Baris label="Santri" value={k.santri.nama} />
         <Baris label="Tujuan rujukan" value={r.tujuan} />
