@@ -10,7 +10,6 @@ import { Baris, Halaman, HalamanKeadaan, Penanda, StatusBadge, tanggalPanjang, w
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { AvatarInisial } from '@/components/ui/avatar-inisial';
-import { ListRow, RowGroup } from '@/components/ui/list-row';
 import { ProfileHeader } from '@/components/ui/profile-header';
 import { Divider } from '@/components/ui/surface';
 import { usePrivateResource } from '@/hooks/use-private-resource';
@@ -40,13 +39,20 @@ function Detail({ id }: { id: number }) {
   const ke = (pathname: '/kesehatan/catat' | '/kesehatan/versi' | '/kesehatan/akses' | '/kesehatan/ringkasan') =>
     router.push({ pathname, params: { id: String(k.id) } });
   return (
-    <Halaman title="Detail kunjungan" actions={<TombolMuatUlangKepala onPress={() => void load()} />}>
+    // §4.8 (TL-16): riwayat versi/akses di ⋯; halaman versi memakai garis waktu.
+    <Halaman title="Detail kunjungan" actions={<TombolMuatUlangKepala onPress={() => void load()} />}
+      menu={a.riwayat_versi || a.riwayat_akses ? [
+        ...(a.riwayat_versi ? [{ label: `Riwayat versi (${k.versi})`, icon: 'clock' as const, onPress: () => ke('/kesehatan/versi') }] : []),
+        ...(a.riwayat_akses ? [{ label: 'Riwayat akses', icon: 'eye' as const, onPress: () => ke('/kesehatan/akses') }] : []),
+      ] : undefined}>
       <ProfileHeader avatar={<AvatarInisial nama={k.santri.nama} ukuran={64} />} name={k.santri.nama}
         caption={`NIS ${k.santri.nis} · ${waktuPendek(k.waktu_kunjungan)}`}
         pills={<BarisPilIsi><StatusBadge status={k.status} /><Penanda label={`Versi ${k.versi}`} /></BarisPilIsi>}>
         <AppButton label="Riwayat kesehatan santri ini" size="sm" variant="secondary"
           onPress={() => router.push({ pathname: '/kesehatan/daftar', params: { santri_id: String(k.santri.id) } })} />
       </ProfileHeader>
+      {/* TL-31: penanda privat di atas, langsung terlihat tanpa menggulir (juga pada teks sangat besar). */}
+      <PenandaPrivat text="Privat: hanya petugas kesehatan dan pihak berhak; catatan klinik tidak tampil untuk orang tua." />
       <ThemedText type="caption" themeColor="textSecondary">
         {a.catat ? '' : 'Hanya baca. '}Pembukaan rincian ini tercatat di riwayat akses.
       </ThemedText>
@@ -57,7 +63,6 @@ function Detail({ id }: { id: number }) {
       </KartuIsi>
 
       <JudulBagianIsi title="Catatan klinik" icon="lock" />
-      <PenandaPrivat text="Privat: hanya petugas kesehatan dan pihak berhak; tidak tampil untuk orang tua." />
       <KartuIsi gap={0}>
         <Baris label="Keluhan" value={k.keluhan} />
         <Baris label="Catatan klinis" value={k.catatan_klinis} />
@@ -118,15 +123,6 @@ function Detail({ id }: { id: number }) {
           <ThemedText type="caption" themeColor="textSecondary">Ringkasan untuk wali disusun terpisah dari catatan klinis di atas.</ThemedText>
           <AppButton label="Ringkasan untuk wali" variant="secondary" icon="users" onPress={() => ke('/kesehatan/ringkasan')} />
         </>
-      ) : null}
-      {a.riwayat_versi || a.riwayat_akses ? (
-        <RowGroup>
-          {a.riwayat_versi ? (
-            <ListRow icon="clock" title={`Riwayat versi (${k.versi})`} accessibilityLabel={`Riwayat versi (${k.versi})`}
-              onPress={() => ke('/kesehatan/versi')} last={!a.riwayat_akses} />
-          ) : null}
-          {a.riwayat_akses ? <ListRow icon="eye" title="Riwayat akses" accessibilityLabel="Riwayat akses" onPress={() => ke('/kesehatan/akses')} last /> : null}
-        </RowGroup>
       ) : null}
       {a.catat ? <AppButton label={k.status === 'Draf' ? 'Lanjutkan draf' : 'Koreksi catatan'} onPress={() => ke('/kesehatan/catat')} /> : null}
     </Halaman>

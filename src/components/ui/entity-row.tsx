@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Children, isValidElement, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { AppIcon, type IconName } from '@/components/app-icon';
@@ -13,6 +13,21 @@ import { useTheme } from '@/hooks/use-theme';
  * Pada teks sistem sangat besar nilai turun ke bawah judul agar judul tidak
  * terperas.
  */
+/** Teks label `StatusPill` (atau pil bersarang di fragmen) di dalam `pill`. */
+export function teksPil(pill: ReactNode): string[] {
+  const hasil: string[] = [];
+  const telusur = (n: ReactNode) => {
+    Children.forEach(n, (c) => {
+      if (!isValidElement(c)) return;
+      const props = c.props as { label?: unknown; children?: ReactNode };
+      if (typeof props.label === 'string') hasil.push(props.label);
+      else if (props.children) telusur(props.children);
+    });
+  };
+  telusur(pill);
+  return hasil;
+}
+
 export function EntityRow({
   leading,
   avatarName,
@@ -66,6 +81,12 @@ export function EntityRow({
   const theme = useTheme();
   const { fontScale } = useWindowDimensions();
   const bertumpuk = fontScale > 1.35;
+  const label = accessibilityLabel ?? [title, subtitle, value].filter(Boolean).join(', ');
+  // TL-23: iOS menggabungkan baris menjadi satu elemen, sehingga pil tidak
+  // dibacakan terpisah. Status pil yang belum ada di nama ikut dibacakan sebagai
+  // petunjuk (nama tombol tidak berubah).
+  const statusTambahan = teksPil(pill).filter((t) => !label.includes(t));
+  const petunjuk = [accessibilityHint, ...statusTambahan].filter(Boolean).join('. ') || undefined;
   const warna = {
     primary: { bg: theme.primarySoft, fg: theme.primary },
     warning: { bg: theme.warningSoft, fg: theme.warning },
@@ -90,8 +111,8 @@ export function EntityRow({
       accessibilityRole={onPress ? (accessibilityRole ?? 'button') : undefined}
       accessibilityState={accessibilityRole === 'radio' ? { selected: Boolean(selected) } : undefined}
       aria-checked={accessibilityRole === 'radio' ? Boolean(selected) : undefined}
-      accessibilityLabel={accessibilityLabel ?? [title, subtitle, value].filter(Boolean).join(', ')}
-      accessibilityHint={accessibilityHint}
+      accessibilityLabel={label}
+      accessibilityHint={petunjuk}
       disabled={!onPress}
       onPress={onPress}
       style={({ pressed }) => [

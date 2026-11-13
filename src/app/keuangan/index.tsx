@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
 import { keuangan } from '@/api/keuangan';
@@ -8,6 +8,7 @@ import { useAuth } from '@/auth/auth-context';
 import { Halaman, HalamanKeadaan, JudulBagian, Kartu, TombolMuatUlang } from '@/components/keuangan-shared';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
+import { AppButton } from '@/components/app-button';
 import { HeroCard } from '@/components/ui/hero-card';
 import { InfoRow } from '@/components/ui/info-row';
 import { MenuTileGrid, type MenuTileItem } from '@/components/ui/menu-tile';
@@ -60,6 +61,16 @@ function Hub() {
               action={{ label: 'Lihat rincian', icon: 'arrow-right', accessibilityLabel: `Buka keuangan ${s.nama}`,
                 onPress: () => router.push({ pathname: '/keuangan/santri/[id]', params: { id: String(s.id) } }) }} />
             <StatGrid items={[{ icon: 'wallet', label: `Sisa tagihan (${s.tagihan_terbuka} terbuka)`, value: rupiah(s.sisa_tagihan), tone: s.sisa_tagihan > 0 ? 'warning' : 'primary' }]} />
+            {/* §4.9 (TL-12): pintasan per anak ke tab rincian yang sama (data
+                per anak dari rincian santri; daftar lintas santri tetap tertutup). */}
+            <View style={styles.pintasan}>
+              <AppButton label="Tagihan" icon="izin" size="sm" variant="line" style={styles.pintasanTombol}
+                accessibilityHint={`Membuka tagihan ${s.nama}`}
+                onPress={() => router.push({ pathname: '/keuangan/santri/[id]', params: { id: String(s.id), bagian: 'tagihan' } })} />
+              <AppButton label="Mutasi tabungan" icon="wallet" size="sm" variant="line" style={styles.pintasanTombol}
+                accessibilityHint={`Membuka mutasi tabungan ${s.nama}`}
+                onPress={() => router.push({ pathname: '/keuangan/santri/[id]', params: { id: String(s.id), bagian: 'tabungan' } })} />
+            </View>
           </View>
         ))}
         <JudulBagian title="Riwayat dan laporan" />
@@ -97,3 +108,8 @@ function Hub() {
     </Halaman>
   );
 }
+
+const styles = StyleSheet.create({
+  pintasan: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  pintasanTombol: { flexGrow: 1, flexBasis: 140 },
+});

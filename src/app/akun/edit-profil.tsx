@@ -15,7 +15,7 @@ import { ProfilAvatar } from '@/components/profil-shared';
 import { ScreenHeader } from '@/components/screen-header';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { ActionBar } from '@/components/ui/action-bar';
+import { ActionBar, AksiAkhirIsi, bilahTetap } from '@/components/ui/action-bar';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Field } from '@/components/ui/app-field';
 import { DateField } from '@/components/ui/date-field';
@@ -216,6 +216,11 @@ export default function EditProfilScreen() {
   );
   const ukuranAvatar = Math.round(96 * Math.min(fontScale, 1.4));
 
+  // TL-22: tindakan di bilah tetap, atau di akhir isi pada teks sangat besar.
+  const aksiBawah = (<>
+        <AppButton label="Simpan perubahan" icon="check" loading={sibuk === 'simpan'} disabled={sibuk !== null || !berubah}
+          onPress={() => void simpan()} style={styles.simpan} />
+      </>);
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
       {/* Kepala di luar area gulir agar ← selalu terjangkau (K-10). */}
@@ -305,11 +310,9 @@ export default function EditProfilScreen() {
           <ThemedText selectable type="caption" themeColor={pesan.nada} accessibilityLiveRegion="assertive">{pesan.teks}</ThemedText>
         ) : null}
         {konflik ? <AppButton label="Muat data terbaru (draf dibuang)" variant="secondary" icon="refresh" onPress={muatTerbaru} /> : null}
+        {!bilahTetap() ? <AksiAkhirIsi>{aksiBawah}</AksiAkhirIsi> : null}
       </KeyboardAwareScrollView>
-      <ActionBar>
-        <AppButton label="Simpan perubahan" icon="check" loading={sibuk === 'simpan'} disabled={sibuk !== null || !berubah}
-          onPress={() => void simpan()} style={styles.simpan} />
-      </ActionBar>
+      {bilahTetap() ? <ActionBar>{aksiBawah}</ActionBar> : null}
     </View>
   );
 }

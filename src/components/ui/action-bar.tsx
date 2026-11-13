@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { Keyboard, Platform, StyleSheet, View } from 'react-native';
+import { Keyboard, PixelRatio, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Elevation, Layout, Radius } from '@/constants/theme';
@@ -57,6 +57,7 @@ function useKeyboardHeight() {
 }
 
 const styles = StyleSheet.create({
+  akhirIsi: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingTop: 8 },
   bar: {
     borderTopWidth: 1,
     borderTopLeftRadius: Radius.xxl,
@@ -67,3 +68,19 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 });
+
+/**
+ * TL-22: pada teks sistem > 1,35× bilah tindakan tetap ikut digulir di akhir isi,
+ * agar kepala dua baris dan bilah tetap tidak menghimpit area isi (pola yang
+ * dipakai `HalamanStack` dan Keuangan). Bukan hook: aman dipanggil sesudah
+ * pengembalian awal; layar yang perlu bereaksi langsung memasang ulang isinya
+ * saat skala teks berubah.
+ */
+export function bilahTetap() {
+  return PixelRatio.getFontScale() <= 1.35;
+}
+
+/** Wadah tindakan di akhir isi bergulir (pengganti `ActionBar` pada teks sangat besar). */
+export function AksiAkhirIsi({ children }: { children: ReactNode }) {
+  return <View style={styles.akhirIsi}>{children}</View>;
+}

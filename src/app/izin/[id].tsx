@@ -11,7 +11,7 @@ import { formatTanggal, statusIcon, statusPillTone } from '@/components/izin-car
 import { StackScreen } from '@/components/screen-shell';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { ActionBar } from '@/components/ui/action-bar';
+import { ActionBar, AksiAkhirIsi, bilahTetap } from '@/components/ui/action-bar';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Field } from '@/components/ui/app-field';
 import { AvatarInisial } from '@/components/ui/avatar-inisial';
@@ -296,6 +296,26 @@ function IzinDetailSession() {
     );
   }
 
+  // TL-22: tindakan utama di bilah tetap, atau di akhir isi pada teks sangat besar.
+  const isiBilah = dapatMemutuskan ? (<>
+          <AppButton
+            label="Tolak"
+            variant="outline"
+            icon="close"
+            style={styles.barButton}
+            loading={keputusanGuard.isBusy}
+            disabled={sedangMutasi}
+            onPress={() => setKeputusanDipilih('Ditolak')}
+          />
+          <AppButton
+            label="Setujui"
+            icon="check"
+            style={styles.barButtonWide}
+            loading={keputusanGuard.isBusy}
+            disabled={sedangMutasi}
+            onPress={() => setKeputusanDipilih('Disetujui')}
+          />
+        </>) : tetapkanDiBilah ? tombolTetapkan : batalDiBilah ? tombolBatal : null;
   const content = (
     <StackScreen title={JUDUL} subtitle={`#${pengajuan.id}`} menu={menu.length > 0 ? menu : undefined}>
       <KeyboardAwareScrollView
@@ -481,33 +501,10 @@ function IzinDetailSession() {
             ))}
           </Panel>
         ) : null}
+        {!bilahTetap() && isiBilah ? <AksiAkhirIsi>{isiBilah}</AksiAkhirIsi> : null}
       </KeyboardAwareScrollView>
 
-      {dapatMemutuskan ? (
-        <ActionBar>
-          <AppButton
-            label="Tolak"
-            variant="outline"
-            icon="close"
-            style={styles.barButton}
-            loading={keputusanGuard.isBusy}
-            disabled={sedangMutasi}
-            onPress={() => setKeputusanDipilih('Ditolak')}
-          />
-          <AppButton
-            label="Setujui"
-            icon="check"
-            style={styles.barButtonWide}
-            loading={keputusanGuard.isBusy}
-            disabled={sedangMutasi}
-            onPress={() => setKeputusanDipilih('Disetujui')}
-          />
-        </ActionBar>
-      ) : tetapkanDiBilah ? (
-        <ActionBar>{tombolTetapkan}</ActionBar>
-      ) : batalDiBilah ? (
-        <ActionBar>{tombolBatal}</ActionBar>
-      ) : null}
+      {bilahTetap() && isiBilah ? <ActionBar>{isiBilah}</ActionBar> : null}
       {lembar === 'tetapkan' && tetapkanSekunder ? (
         <BottomSheet visible keyboardAware title="Tetapkan murobi" onClose={() => { if (!sedangMutasi) setLembar(null); }}>
           {isiTetapkan}

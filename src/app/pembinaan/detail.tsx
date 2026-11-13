@@ -10,6 +10,7 @@ import { isLocalDateTime } from '@/lib/date-time';
 import { HalamanStack, HalamanStackKeadaan, JudulBagianIsi, KartuIsi, KepalaRincian } from '@/components/halaman-stack';
 import { ThemedText } from '@/components/themed-text';
 import { Notice } from '@/components/ui/notice';
+import { SegmentTabs } from '@/components/ui/segment-tabs';
 import { StatusPill } from '@/components/ui/status-pill';
 import { labelKerahasiaan, nadaStatusPembinaan } from '@/lib/pembinaan-tampilan';
 import { ErrorState, LoadingState } from '@/components/screen-state';
@@ -19,7 +20,11 @@ export default function Detail() {
   const { profile } = useAuth(); const { jenis, id } = useLocalSearchParams<{ jenis: string; id: string }>();
   return <DetailSession key={`${profile?.id}:${jenis}:${id}`} kind={jenis} id={Number(id)} />;
 }
+type Tab = 'ringkasan' | 'sesi' | 'riwayat';
 function DetailSession({ kind, id }: { kind: string; id: number }) {
+  // §4.6 (TL-14): rincian dibagi tab Ringkasan / Sesi / Riwayat. Isian disimpan di
+  // layar ini, sehingga berpindah tab tidak menghapus draf.
+  const [tab, setTab] = useState<Tab>('ringkasan');
   const [note, setNote] = useState(''); const [schedule, setSchedule] = useState(''); const [summary, setSummary] = useState(''); const [result, setResult] = useState(''); const [follow, setFollow] = useState('');
   const guard = useMutationGuard('v3-detail', true);
   const clear = () => { setNote(''); setSchedule(''); setSummary(''); setResult(''); setFollow(''); guard.reset(); };
@@ -50,21 +55,37 @@ function DetailSession({ kind, id }: { kind: string; id: number }) {
         {kerahasiaan ? <StatusPill label={kerahasiaan} tone="neutral" icon="lock" /> : null}
       </>} />
     <AppButton label="Muat ulang versi terbaru" variant="secondary" icon="refresh" disabled={guard.isBusy} onPress={() => { clear(); void load(); }} />
-    {data.violation && <>
-      <JudulBagianIsi title="Ringkasan" />
-      <KartuIsi>
-        <ThemedText>{data.violation.pelanggaran.uraian}</ThemedText>
-        <ThemedText type="bodyBold">Total poin {data.violation.total_poin}</ThemedText>
-        {data.violation.rekomendasi.map(r => <ThemedText key={r.id}>{r.label} · {r.rekomendasi}</ThemedText>)}
-        {data.violation.konseling.map((r, i) => <ThemedText key={i}>Kasus #{r.kasus_id} · sesi {r.sesi_id ?? 'belum ada'}</ThemedText>)}
-      </KartuIsi>
+    <SegmentTabs<Tab> accessibilityLabel="Bagian rincian pembinaan" value={tab} onChange={setTab}
+      tabs={[
+        { value: 'ringkasan', label: 'Ringkasan' },
+        ...(data.caseDetail ? [{ value: 'sesi' as const, label: `Sesi (${data.caseDetail.sesi_aktif.length})` }] : []),
+        { value: 'riwayat', label: 'Riwayat' },
+      ]} />
+    {tab === 'ringkasan' && <>
+      {data.violation && <>
+        <JudulBagianIsi title="Ringkasan" />
+        <KartuIsi>
+          <ThemedText>{data.violation.pelanggaran.uraian}</ThemedText>
+          <ThemedText type="bodyBold">Total poin {data.violation.total_poin}</ThemedText>
+          {data.violation.rekomendasi.map(r => <ThemedText key={r.id}>{r.label} · {r.rekomendasi}</ThemedText>)}
+        </KartuIsi>
+      </>}
+      {data.caseDetail && <>
+        <JudulBagianIsi title="Ringkasan" icon={row.kerahasiaan ? 'lock' : undefined} />
+        <KartuIsi>
+          <ThemedText>{row.kerahasiaan} · {row.tujuan}</ThemedText>
+          {row.ringkasan_penutupan ? <ThemedText>{row.ringkasan_penutupan}</ThemedText> : null}
+        </KartuIsi>
+      </>}
+      {murobi && <KartuIsi>
+        <Field label="Catatan murobi / alasan tindakan" value={note} onChangeText={setNote} multiline maxLength={5000} editable={!guard.isBusy} autoCorrect={false} />
+        <AppButton label="Tandai mengetahui" icon="check" disabled={guard.isBusy} onPress={() => void mutate(kind === 'kasus' ? `konseling/kasus/${id}/diketahui` : `pelanggaran/${id}/diketahui`, { version: row.version, catatan: note })} />
+      </KartuIsi>}
+      {!data.caseDetail && manage && !closed && !murobi && <KartuIsi>
+        <Field label="Catatan murobi / alasan tindakan" value={note} onChangeText={setNote} multiline maxLength={5000} editable={!guard.isBusy} autoCorrect={false} />
+      </KartuIsi>}
     </>}
-    {data.caseDetail && <>
-      <JudulBagianIsi title="Ringkasan" icon={row.kerahasiaan ? 'lock' : undefined} />
-      <KartuIsi>
-        <ThemedText>{row.kerahasiaan} · {row.tujuan}</ThemedText>
-        {row.ringkasan_penutupan ? <ThemedText>{row.ringkasan_penutupan}</ThemedText> : null}
-      </KartuIsi>
+    {tab === 'sesi' && data.caseDetail && <>
       <JudulBagianIsi title={`Sesi (${data.caseDetail.sesi_aktif.length})`} />
       {data.caseDetail.sesi_aktif.length === 0 ? <ThemedText themeColor="textSecondary">Belum ada sesi aktif.</ThemedText> : null}
       {data.caseDetail.sesi_aktif.map(s => <KartuIsi key={s.id}>
@@ -92,6 +113,7 @@ function DetailSession({ kind, id }: { kind: string; id: number }) {
           <Field label="Ringkasan internal sesi / ringkasan penutupan" value={summary} onChangeText={setSummary} multiline maxLength={10000} editable={!guard.isBusy} autoCorrect={false} />
           <Field label="Hasil sesi" value={result} onChangeText={setResult} multiline maxLength={5000} editable={!guard.isBusy} autoCorrect={false} />
           <Field label="Rencana tindak lanjut" value={follow} onChangeText={setFollow} multiline maxLength={5000} editable={!guard.isBusy} autoCorrect={false} />
+          {!murobi && <Field label="Catatan murobi / alasan tindakan" value={note} onChangeText={setNote} multiline maxLength={5000} editable={!guard.isBusy} autoCorrect={false} />}
           <AppButton label="Tambahkan sesi baru" icon="plus" disabled={!isLocalDateTime(schedule) || guard.isBusy} onPress={() => void mutate(`konseling/kasus/${id}/sesi`, { jadwal: schedule, tindak_lanjut: follow })} />
           {row.status === 'Dibuka' && <AppButton label="Mulai pendampingan" disabled={guard.isBusy} onPress={() => void mutate(`konseling/kasus/${id}/status`, { version: row.version, status: 'Dalam Pendampingan' })} />}
           {row.status === 'Dalam Pendampingan' && <AppButton label="Selesaikan kasus" disabled={!summary || guard.isBusy} onPress={() => void mutate(`konseling/kasus/${id}/status`, { version: row.version, status: 'Selesai', ringkasan_penutupan: summary })} />}
@@ -99,10 +121,16 @@ function DetailSession({ kind, id }: { kind: string; id: number }) {
         </KartuIsi>
       </>}
     </>}
-    {(murobi || (manage && !closed)) && <KartuIsi>
-      <Field label="Catatan murobi / alasan tindakan" value={note} onChangeText={setNote} multiline maxLength={5000} editable={!guard.isBusy} autoCorrect={false} />
-      {murobi && <AppButton label="Tandai mengetahui" icon="check" disabled={guard.isBusy} onPress={() => void mutate(kind === 'kasus' ? `konseling/kasus/${id}/diketahui` : `pelanggaran/${id}/diketahui`, { version: row.version, catatan: note })} />}
-    </KartuIsi>}
+    {tab === 'riwayat' && <>
+      <JudulBagianIsi title="Riwayat" />
+      <KartuIsi>
+        <ThemedText selectable type="caption" themeColor="textSecondary">Status {row.status} · versi {row.version}</ThemedText>
+        {data.violation?.konseling.map((r, i) => <ThemedText key={i}>Kasus #{r.kasus_id} · sesi {r.sesi_id ?? 'belum ada'}</ThemedText>)}
+        {(data.caseDetail?.catatan_murobi ?? data.violation?.murobi ?? []).length === 0
+          ? <ThemedText themeColor="textSecondary">Belum ada catatan murobi.</ThemedText> : null}
+      </KartuIsi>
+    </>}
+    {/* Catatan murobi tampil di semua tab agar hasil "Tandai mengetahui" langsung terlihat. */}
     {(data.caseDetail?.catatan_murobi ?? data.violation?.murobi ?? []).map(n => <ThemedText key={n.id}>Catatan murobi: {n.catatan ?? 'Mengetahui'}</ThemedText>)}
     <Pesan text={guard.error} />
   </HalamanStack>;

@@ -13,7 +13,7 @@ import { StackScreen } from '@/components/screen-shell';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { IKON_KEHADIRAN, StatusSelector } from '@/components/status-selector';
 import { ThemedText } from '@/components/themed-text';
-import { ActionBar } from '@/components/ui/action-bar';
+import { ActionBar, AksiAkhirIsi, bilahTetap } from '@/components/ui/action-bar';
 import { Field } from '@/components/ui/app-field';
 import { AvatarInisial } from '@/components/ui/avatar-inisial';
 import { Notice } from '@/components/ui/notice';
@@ -251,6 +251,16 @@ export default function MeetingScreen() {
     ? [{ label: 'Perbarui daftar', icon: 'refresh', onPress: () => { if (!submitting) void refreshParticipants(); } }]
     : [];
 
+  // TL-22: tindakan di bilah tetap, atau di akhir isi pada teks sangat besar.
+  const aksiBawah = (<>
+        <AppButton
+          label={meeting.status === 'Selesai' ? 'Simpan koreksi' : 'Kirim absensi'}
+          style={styles.grow}
+          onPress={confirmSubmit}
+          loading={submitting}
+          disabled={refreshing || meeting.students.some((student) => !students[student.student_id])}
+        />
+      </>);
   return (
     <StackScreen title={JUDUL} menu={menu}>
       <KeyboardAwareScrollView
@@ -415,17 +425,10 @@ export default function MeetingScreen() {
           <Notice tone="danger" text={error} />
           <Notice tone="success" title={success ? 'Absensi tersimpan' : undefined} text={success} />
         </Panel>
+        {!bilahTetap() ? <AksiAkhirIsi>{aksiBawah}</AksiAkhirIsi> : null}
       </KeyboardAwareScrollView>
 
-      <ActionBar>
-        <AppButton
-          label={meeting.status === 'Selesai' ? 'Simpan koreksi' : 'Kirim absensi'}
-          style={styles.grow}
-          onPress={confirmSubmit}
-          loading={submitting}
-          disabled={refreshing || meeting.students.some((student) => !students[student.student_id])}
-        />
-      </ActionBar>
+      {bilahTetap() ? <ActionBar>{aksiBawah}</ActionBar> : null}
     </StackScreen>
   );
 }

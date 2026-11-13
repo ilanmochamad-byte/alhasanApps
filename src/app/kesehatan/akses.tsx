@@ -8,7 +8,7 @@ import { AppButton } from '@/components/app-button';
 import { Halaman, HalamanKeadaan, waktuPendek } from '@/components/kesehatan-shared';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { EntityRow } from '@/components/ui/entity-row';
+import { GarisWaktu, KartuIsi } from '@/components/halaman-stack';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 
 const AKSI: Record<string, string> = { baca_detail: 'Membuka rincian', baca_versi: 'Membuka riwayat versi', baca_ringkasan: 'Membuka ringkasan wali' };
@@ -31,11 +31,17 @@ function Riwayat({ id }: { id: number }) {
     <Halaman title="Riwayat akses">
       <ThemedText type="h3">Riwayat akses rincian kunjungan ({data.total} pembukaan)</ThemedText>
       {data.rows.length === 0 ? <EmptyState title="Belum ada pembukaan tercatat" message="Pembukaan rincian akan tercatat di sini." /> : null}
-      {data.rows.map(r => (
-        <EntityRow key={r.id} icon="eye" tone="info" title={`${r.pengguna.nama} (${r.pengguna.username})`}
-          subtitle={`${AKSI[r.aksi] ?? r.aksi} · sebagai ${r.sumber} · kanal ${r.kanal}`}
-          detail={<ThemedText type="caption" themeColor="textSecondary">{waktuPendek(r.waktu)}</ThemedText>} />
-      ))}
+      {/* §4.8 (TL-16): riwayat akses sebagai garis waktu. */}
+      {data.rows.length > 0 ? (
+        <KartuIsi>
+          <GarisWaktu items={data.rows.map(r => ({
+            key: r.id,
+            judul: `${r.pengguna.nama} (${r.pengguna.username})`,
+            waktu: waktuPendek(r.waktu),
+            isi: <ThemedText type="caption" themeColor="textSecondary">{`${AKSI[r.aksi] ?? r.aksi} · sebagai ${r.sumber} · kanal ${r.kanal}`}</ThemedText>,
+          }))} />
+        </KartuIsi>
+      ) : null}
       {total > 1 ? (
         <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
           <AppButton label="Sebelumnya" size="sm" variant="secondary" disabled={page <= 1} onPress={() => setPage(page - 1)} style={{ flex: 1 }} />

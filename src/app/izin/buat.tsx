@@ -10,7 +10,7 @@ import { StackScreen } from '@/components/screen-shell';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { formatTanggal } from '@/components/izin-card';
 import { ThemedText } from '@/components/themed-text';
-import { ActionBar } from '@/components/ui/action-bar';
+import { ActionBar, AksiAkhirIsi, bilahTetap } from '@/components/ui/action-bar';
 import { Field } from '@/components/ui/app-field';
 import { AvatarInisial } from '@/components/ui/avatar-inisial';
 import { DateField } from '@/components/ui/date-field';
@@ -147,6 +147,52 @@ export default function BuatPengajuanScreen() {
     );
   }
 
+  // TL-22: tindakan di bilah tetap, atau di akhir isi pada teks sangat besar.
+  const aksiBawah = (<>
+        {langkah === 'pilih' ? (
+          <AppButton
+            label="Lanjut isi data izin"
+            style={styles.grow}
+            disabled={terpilih === null}
+            onPress={() => setLangkah('isi')}
+          />
+        ) : langkah === 'isi' ? (
+          <>
+            <AppButton
+              label="Kembali"
+              variant="secondary"
+              style={styles.narrow}
+              onPress={() => setLangkah('pilih')}
+            />
+            <AppButton
+              label="Tinjau pengajuan"
+              style={styles.grow}
+              onPress={() => {
+                const masalah = periksaIsian();
+                setValidasi(masalah);
+                if (masalah === null) setLangkah('konfirmasi');
+              }}
+            />
+          </>
+        ) : (
+          <>
+            <AppButton
+              label="Ubah data"
+              variant="secondary"
+              style={styles.narrow}
+              disabled={guard.isBusy}
+              onPress={() => setLangkah('isi')}
+            />
+            <AppButton
+              label="Kirim pengajuan"
+              style={styles.grow}
+              loading={guard.isBusy}
+              disabled={guard.isBusy}
+              onPress={() => void kirim()}
+            />
+          </>
+        )}
+      </>);
   return (
     <StackScreen title={JUDUL} onBack={kembaliLangkah} backLabel={labelKembali}>
       <KeyboardAwareScrollView
@@ -312,53 +358,10 @@ export default function BuatPengajuanScreen() {
             <Notice tone="danger" text={guard.error} />
           </Panel>
         ) : null}
+        {!bilahTetap() ? <AksiAkhirIsi>{aksiBawah}</AksiAkhirIsi> : null}
       </KeyboardAwareScrollView>
 
-      <ActionBar>
-        {langkah === 'pilih' ? (
-          <AppButton
-            label="Lanjut isi data izin"
-            style={styles.grow}
-            disabled={terpilih === null}
-            onPress={() => setLangkah('isi')}
-          />
-        ) : langkah === 'isi' ? (
-          <>
-            <AppButton
-              label="Kembali"
-              variant="secondary"
-              style={styles.narrow}
-              onPress={() => setLangkah('pilih')}
-            />
-            <AppButton
-              label="Tinjau pengajuan"
-              style={styles.grow}
-              onPress={() => {
-                const masalah = periksaIsian();
-                setValidasi(masalah);
-                if (masalah === null) setLangkah('konfirmasi');
-              }}
-            />
-          </>
-        ) : (
-          <>
-            <AppButton
-              label="Ubah data"
-              variant="secondary"
-              style={styles.narrow}
-              disabled={guard.isBusy}
-              onPress={() => setLangkah('isi')}
-            />
-            <AppButton
-              label="Kirim pengajuan"
-              style={styles.grow}
-              loading={guard.isBusy}
-              disabled={guard.isBusy}
-              onPress={() => void kirim()}
-            />
-          </>
-        )}
-      </ActionBar>
+      {bilahTetap() ? <ActionBar>{aksiBawah}</ActionBar> : null}
     </StackScreen>
   );
 }

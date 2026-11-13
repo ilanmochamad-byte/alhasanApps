@@ -15,6 +15,7 @@ import { Notice } from '@/components/ui/notice';
 import { ReceiptCard } from '@/components/ui/receipt-card';
 import { useKeuanganMutation } from '@/hooks/use-keuangan-mutation';
 import { usePrivateResource } from '@/hooks/use-private-resource';
+import { StatGrid } from '@/components/ui/stat-card';
 import { labelPeriode, periodeKini, pratinjauSatuSantriSah, rupiah, sidikJari } from '@/keuangan/forms';
 
 const JUDUL = 'Tagihan satu santri';
@@ -106,6 +107,15 @@ function Form({ santriId }: { santriId: number }) {
         <ThemedText type="caption" themeColor="textSecondary">Nominal diambil dari tarif unit dan penyesuaian santri. Tarif diatur di website.</ThemedText>
       </Kartu>
       <Pesan text={galat} tone="danger" />
+      {/* §4.9 (TL-13): pratinjau sebagai StatGrid dari angka respons server, lalu rinciannya. */}
+      {pratinjau && r ? (
+        <StatGrid items={[
+          { icon: 'plus', label: 'Akan terbit', value: String(pratinjau.jumlah.Terbit) },
+          { icon: 'check-circle', label: 'Sudah ada', value: String(pratinjau.jumlah.SudahAda), tone: 'info' },
+          { icon: 'info', label: 'Dilewati', value: String(pratinjau.jumlah.Dilewati), tone: 'warning' },
+          { icon: 'wallet', label: 'Total terbit', value: rupiah(pratinjau.total_terbit), tone: 'violet' },
+        ]} />
+      ) : null}
       {pratinjau && r ? (
         r.hasil === 'Terbit' ? (
           <>

@@ -5,6 +5,7 @@ import { rapor, type AttitudeDetail } from '@/api/rapor';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
 import { PrivateField } from '@/components/private-field';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { DropdownField } from '@/components/ui/dropdown-field';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { HistoryList, Notice, RaporPage, useRaporResource } from '@/components/rapor-shared';
@@ -31,6 +32,7 @@ function Session({ mode }: { mode: string }) {
   </>}</RaporPage>;
 }
 function Form({ mode, detail, busy, save }: { mode: string; detail: AttitudeDetail; busy: boolean; save: (body: Record<string, unknown>) => Promise<void> }) {
+  const [lembarKoreksi, setLembarKoreksi] = useState(false);
   const [values, setValues] = useState({ adab: detail.sikap?.adab ?? '', kedisiplinan: detail.sikap?.kedisiplinan ?? '', tanggung_jawab: detail.sikap?.tanggung_jawab ?? '', catatan: detail.sikap?.catatan ?? '', alasan: '' });
   return <>
     <KartuIsi nada="sorot">
@@ -40,16 +42,18 @@ function Form({ mode, detail, busy, save }: { mode: string; detail: AttitudeDeta
     {Object.entries(aspects).map(([key, label]) => <DropdownField key={key} label={label} value={values[key as keyof typeof aspects]} options={predicates} onChange={value => setValues(old => ({ ...old, [key]: value }))} disabled={busy} />)}
     <PrivateField label="Catatan pembimbing" value={values.catatan} onChangeText={catatan => setValues(old => ({ ...old, catatan }))} multiline maxLength={2000} editable={!busy} />
     </KartuIsi>
-    <KartuIsi>
-    <PrivateField label="Alasan koreksi (wajib untuk koreksi)" value={values.alasan} onChangeText={alasan => setValues(old => ({ ...old, alasan }))} multiline maxLength={1000} editable={!busy} />
-    </KartuIsi>
     {mode === 'murobi' ? <AppButton label="Ketahui sikap tanpa mengubah isi" disabled={busy || !detail.sikap} onPress={() => void save({ action: 'diketahui', alasan: '' })} /> : <>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
         <AppButton label="Simpan draf sikap" variant="secondary" style={{ flexGrow: 1, flexBasis: 150 }} disabled={busy} onPress={() => void save({ ...values, action: 'draf' })} />
         <AppButton label="Serahkan sikap" style={{ flexGrow: 1, flexBasis: 150 }} disabled={busy} onPress={() => void save({ ...values, action: 'serahkan' })} />
       </View>
     </>}
-    <AppButton label="Koreksi sikap beralasan" variant="secondary" disabled={busy || !detail.sikap} onPress={() => void save({ ...values, action: 'koreksi' })} />
+    {/* §4.7 (TL-15): koreksi beralasan di lembar bawah. */}
+    <AppButton label="Koreksi sikap beralasan" variant="secondary" disabled={busy || !detail.sikap} onPress={() => setLembarKoreksi(true)} />
+    <BottomSheet visible={lembarKoreksi} keyboardAware title="Koreksi sikap" onClose={() => { if (!busy) setLembarKoreksi(false); }}>
+      <PrivateField label="Alasan koreksi (wajib untuk koreksi)" value={values.alasan} onChangeText={alasan => setValues(old => ({ ...old, alasan }))} multiline maxLength={1000} editable={!busy} />
+      <AppButton label="Simpan koreksi" loading={busy} disabled={busy} onPress={() => void save({ ...values, action: 'koreksi' }).then(() => setLembarKoreksi(false))} />
+    </BottomSheet>
     <HistoryList rows={detail.riwayat} />
   </>;
 }

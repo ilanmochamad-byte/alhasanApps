@@ -67,14 +67,16 @@ function Detail({ id }: { id: number }) {
   const keSantri = () => router.push({ pathname: '/keuangan/santri/[id]', params: { id: String(t.santri.id) } });
   return (
     <Halaman title={JUDUL} actions={<TombolMuatUlang onPress={() => void load()} />}
+      // §4.9 (TL-11): satu tindakan utama di bilah; "Bayar dari tabungan" di ⋯
+      // bersama revisi/batal (hanya ditawarkan selama masih ada sisa).
       menu={kelola ? [
+        ...(habis ? [] : [{ label: 'Bayar dari tabungan', icon: 'wallet' as const, onPress: () => ke('/keuangan/bayar-tabungan') }]),
         { label: 'Revisi atau batalkan tagihan', icon: 'refresh', onPress: () => ke('/keuangan/ubah-tagihan') },
         { label: 'Keuangan santri ini', icon: 'person', onPress: keSantri },
       ] : undefined}
       bawah={kelola ? (
         <View style={styles.bilah}>
           <AppButton label="Catat pembayaran tunai/transfer" icon="plus" disabled={habis} onPress={() => ke('/keuangan/bayar')} />
-          <AppButton label="Bayar dari tabungan" variant="secondary" disabled={habis} onPress={() => ke('/keuangan/bayar-tabungan')} />
         </View>
       ) : undefined}>
       <View style={[styles.invoice, { backgroundColor: theme.card, borderColor: theme.border, boxShadow: Elevation.card }]}>
