@@ -43,6 +43,7 @@ export function useIzinWaliAkses() {
 export function Halaman({
   title,
   menu,
+  actions,
   onBack,
   footer,
   overlay,
@@ -51,6 +52,8 @@ export function Halaman({
 }: PropsWithChildren<{
   title: string;
   menu?: HeaderMenuItem[];
+  /** Tombol ikon di kepala (mis. Muat ulang). */
+  actions?: ReactNode;
   onBack?: () => void;
   /** Bilah tindakan tetap di bawah, di luar area gulir. */
   footer?: ReactNode;
@@ -66,7 +69,7 @@ export function Halaman({
     return () => sub.remove();
   }, []);
   return (
-    <StackScreen title={title} menu={menu} onBack={onBack}>
+    <StackScreen title={title} menu={menu} onBack={onBack} actions={actions}>
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <ScrollView keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="never" style={{ backgroundColor: theme.background }}
           contentContainerStyle={[styles.page, { paddingBottom: 40 + bottomSpace }]}>

@@ -16,6 +16,7 @@ import { ScreenHeader } from '@/components/screen-header';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { ActionBar } from '@/components/ui/action-bar';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Field } from '@/components/ui/app-field';
 import { DateField } from '@/components/ui/date-field';
 import { InfoRow } from '@/components/ui/info-row';
@@ -74,6 +75,17 @@ export default function EditProfilScreen() {
   const [pesanFoto, setPesanFoto] = useState<{ teks: string; nada: 'danger' | 'primary' } | null>(null);
   const [konflik, setKonflik] = useState(false);
   const [sibuk, setSibuk] = useState<'simpan' | 'foto' | null>(null);
+  const [lembarFoto, setLembarFoto] = useState(false);
+  /**
+   * Tutup lembar foto lalu jalankan tindakan. Web: langsung (pemilih berkas
+   * peramban butuh aktivasi pengguna yang masih berlaku). Native: menunggu
+   * animasi Modal selesai agar pemilih sistem/dialog tidak bertabrakan.
+   */
+  function setelahLembar(aksi: () => void) {
+    setLembarFoto(false);
+    if (process.env.EXPO_OS === 'web') aksi();
+    else setTimeout(aksi, 400);
+  }
   const berjalan = useRef(false);
 
   useEffect(() => { if (!data) void muat(); }, [data, muat]);
@@ -214,14 +226,15 @@ export default function EditProfilScreen() {
         contentInsetAdjustmentBehavior="never"
         contentContainerStyle={styles.content}>
 
-        {/* Redesain gelombang 2: avatar besar berlencana kamera. Tombol Ganti/
-            Hapus foto tetap langsung (pemilih foto sistem), bukan lembar bawah. */}
+        {/* §4.1: avatar besar berlencana kamera; ubah/hapus foto lewat lembar
+            bawah. Alur unggah, batas berkas, dan konfirmasi hapus tidak berubah. */}
         <View style={styles.foto}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={data.foto.ada ? 'Ubah foto profil' : 'Tambahkan foto profil'}
+            accessibilityHint="Membuka pilihan foto profil"
             disabled={sibuk !== null}
-            onPress={() => void pilihFoto()}
+            onPress={() => setLembarFoto(true)}
             style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}>
             <ProfilAvatar nama={form.draf.nama || data.pribadi.nama || ''} ukuran={ukuranAvatar} />
             <View style={[styles.lencana, { backgroundColor: theme.primary, borderColor: theme.background }]}>
@@ -235,14 +248,17 @@ export default function EditProfilScreen() {
           {pesanFoto ? (
             <ThemedText selectable type="caption" themeColor={pesanFoto.nada} accessibilityLiveRegion="polite" style={styles.tengah}>{pesanFoto.teks}</ThemedText>
           ) : null}
-          <View style={[styles.fotoAksi, fontScale > 1.35 && styles.fotoAksiBertumpuk]}>
-            <AppButton label={data.foto.ada ? 'Ganti foto' : 'Pilih foto'} icon="camera" size="sm" variant="secondary"
-              loading={sibuk === 'foto'} disabled={sibuk !== null} onPress={() => void pilihFoto()} />
-            {data.foto.ada ? (
-              <AppButton label="Hapus foto" size="sm" variant="outline" disabled={sibuk !== null} onPress={konfirmasiHapusFoto} />
-            ) : null}
-          </View>
+          <AppButton label="Ubah foto" icon="camera" size="sm" variant="secondary"
+            loading={sibuk === 'foto'} disabled={sibuk !== null} onPress={() => setLembarFoto(true)} />
         </View>
+        <BottomSheet visible={lembarFoto} title="Foto profil" onClose={() => setLembarFoto(false)}>
+          <AppButton label={data.foto.ada ? 'Ganti foto' : 'Pilih foto'} icon="camera" variant="secondary"
+            disabled={sibuk !== null} onPress={() => setelahLembar(() => void pilihFoto())} />
+          {data.foto.ada ? (
+            <AppButton label="Hapus foto" variant="outline" disabled={sibuk !== null} onPress={() => setelahLembar(konfirmasiHapusFoto)} />
+          ) : null}
+          <AppButton label="Batal" variant="line" onPress={() => setLembarFoto(false)} />
+        </BottomSheet>
 
         <Panel>
           <Overline>Data diri</Overline>
@@ -310,7 +326,5 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   tengah: { textAlign: 'center' },
-  fotoAksi: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10 },
-  fotoAksiBertumpuk: { flexDirection: 'column', alignSelf: 'stretch' },
   simpan: { flex: 1 },
 });

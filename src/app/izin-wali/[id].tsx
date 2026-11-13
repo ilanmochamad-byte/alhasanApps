@@ -14,12 +14,14 @@ import { waktuPendek } from '@/components/kesehatan-shared';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { ActionBar } from '@/components/ui/action-bar';
+import { IconButton } from '@/components/ui/icon-button';
 import { Field } from '@/components/ui/app-field';
 import { AvatarInisial } from '@/components/ui/avatar-inisial';
 import { Chip, ChipRow } from '@/components/ui/chip';
 import { Notice } from '@/components/ui/notice';
 import { Segmented } from '@/components/ui/segmented';
 import { StatusPill } from '@/components/ui/status-pill';
+import { SuccessPanel } from '@/components/ui/success-panel';
 import { Divider, Overline, Panel } from '@/components/ui/surface';
 import { Radius } from '@/constants/theme';
 import { useIzinWaliMutation } from '@/hooks/use-izin-wali-mutation';
@@ -44,11 +46,16 @@ export default function IzinWaliDetailScreen() {
 }
 
 function Detail({ id, baru }: { id: number; baru?: string }) {
+  const router = useRouter();
   const { tujuanDibuka } = useNotifications();
-  const [pesan, setPesan] = useState<string | null>(baru === '1' ? 'Pengajuan terkirim.' : baru === 'ulang' ? 'Pengajuan ini sudah terkirim sebelumnya; tidak ada pengajuan kedua.' : null);
+  // P-Sukses (§4.5, TL-07): pengajuan baru → layar sukses di atas rincian yang
+  // sudah dimuat; "Lihat pengajuan" menutupnya. Kiriman ulang (replay) tetap
+  // berupa pesan di rincian.
+  const [suksesBaru, setSuksesBaru] = useState(baru === '1');
+  const [pesan, setPesan] = useState<string | null>(baru === 'ulang' ? 'Pengajuan ini sudah terkirim sebelumnya; tidak ada pengajuan kedua.' : null);
   const [konflik, setKonflik] = useState(false);
   const [drafKey, setDrafKey] = useState(0);
-  const bersihkan = useCallback(() => { setDrafKey(k => k + 1); setPesan(null); }, []);
+  const bersihkan = useCallback(() => { setDrafKey(k => k + 1); setPesan(null); setSuksesBaru(false); }, []);
   const fetcher = useCallback(async () => {
     if (!Number.isSafeInteger(id) || id < 1) throw new Error('Penunjuk pengajuan tidak valid.');
     const hasil = await izinWali.detail(id);
@@ -68,6 +75,18 @@ function Detail({ id, baru }: { id: number; baru?: string }) {
 
   if (error) return <Halaman title={JUDUL}><ErrorState message={error} onRetry={() => void load()} /></Halaman>;
   if (!data) return <Halaman title={JUDUL}><LoadingState label="Memeriksa akses pengajuan izin…" /></Halaman>;
+  if (suksesBaru && data.peran_akses === 'wali') {
+    return (
+      <Halaman title={JUDUL}>
+        <SuccessPanel
+          title="Pengajuan terkirim"
+          message={`Pengajuan izin ${data.pengajuan.santri.nama} sudah diterima. Status: ${data.pengajuan.status_label}.`}>
+          <AppButton label="Lihat pengajuan" icon="arrow-right" onPress={() => setSuksesBaru(false)} />
+          <AppButton label="Kembali ke daftar izin" variant="line" onPress={() => router.replace('/izin-wali')} />
+        </SuccessPanel>
+      </Halaman>
+    );
+  }
   const atas = (
     <>
       <Kepala data={data} />
@@ -75,7 +94,8 @@ function Detail({ id, baru }: { id: number; baru?: string }) {
       {konflik ? <AppButton label="Muat versi terbaru" variant="secondary" onPress={() => { setKonflik(false); void load(); }} /> : null}
     </>
   );
-  const bawah = <AppButton label="Muat ulang" icon="refresh" variant="secondary" onPress={() => void load()} />;
+  // TL-08: Muat ulang menjadi tombol ikon di kepala (label tetap "Muat ulang").
+  const bawah = <IconButton icon="refresh" accessibilityLabel="Muat ulang" onPress={() => void load()} />;
   const umum = { id, data, reject, selesai, galat, atas, bawah };
   return data.peran_akses === 'wali'
     ? <BagianWali key={drafKey} {...umum} data={data} />
@@ -91,7 +111,7 @@ type Umum<T> = {
   galat: () => void;
   /** Kepala, pesan hasil, dan tombol konflik — digambar di atas isi. */
   atas: ReactNode;
-  /** Tombol muat ulang di dasar isi. */
+  /** Tombol muat ulang (ikon di kepala layar). */
   bawah: ReactNode;
 };
 
@@ -152,11 +172,10 @@ function BagianWali({ id, data, reject, selesai, galat, atas, bawah }: Umum<Deta
 
   if (p.ringkas || !p.pengaju_sendiri) {
     return (
-      <Halaman title={JUDUL}>
+      <Halaman title={JUDUL} actions={bawah}>
         {atas}
         <Notice tone="neutral" icon="lock" title="Diajukan wali lain" selectable={false}
           text="Anda hanya melihat status ringkas. Alasan, catatan, dan tindakan hanya tersedia bagi wali yang mengajukan." />
-        {bawah}
       </Halaman>
     );
   }
@@ -197,7 +216,7 @@ function BagianWali({ id, data, reject, selesai, galat, atas, bawah }: Umum<Deta
   ) : null;
 
   return (
-    <Halaman title={JUDUL} footer={bilah}>
+    <Halaman title={JUDUL} footer={bilah} actions={bawah}>
       {atas}
       <Panel style={{ gap: 0 }}>
         <Overline>Isi pengajuan (versi {p.version})</Overline>
@@ -221,7 +240,6 @@ function BagianWali({ id, data, reject, selesai, galat, atas, bawah }: Umum<Deta
         </Panel>
       ) : null}
       <Riwayat items={data.riwayat} />
-      {bawah}
     </Halaman>
   );
 }
@@ -254,10 +272,13 @@ function BagianPetugas({ id, data, reject, selesai, galat, atas, bawah }: Umum<D
       'Tinjauan ini sudah tercatat sebelumnya; tidak ada tindakan kedua.');
   }
   const murobiMemutus = data.peran_akses === 'murobi' && t.buka_v2;
+  const penetapan = usePenetapan({ id, version: p.version, reject, selesai, galat, aktif: Boolean(t.tetapkan_pembimbing) });
   const bilah = tinjau ? (
     <ActionBar>
       <AppButton label={label} variant={tindakan === 'tolak' ? 'danger' : 'primary'} style={styles.lebar} loading={guard.isBusy} disabled={guard.isBusy} onPress={() => void kirim()} />
     </ActionBar>
+  ) : t.tetapkan_pembimbing && penetapan.tombol ? (
+    <ActionBar>{penetapan.tombol}</ActionBar>
   ) : murobiMemutus ? (
     <ActionBar>
       <AppButton label={t.putuskan ? 'Putuskan di Perizinan' : 'Lihat di Perizinan'} variant={t.putuskan ? 'primary' : 'secondary'} style={styles.lebar}
@@ -265,7 +286,7 @@ function BagianPetugas({ id, data, reject, selesai, galat, atas, bawah }: Umum<D
     </ActionBar>
   ) : null;
   return (
-    <Halaman title={JUDUL} footer={bilah}>
+    <Halaman title={JUDUL} footer={bilah} actions={bawah}>
       {atas}
       <Panel style={{ gap: 0 }}>
         <Overline>Isi pengajuan (versi {p.version})</Overline>
@@ -288,7 +309,7 @@ function BagianPetugas({ id, data, reject, selesai, galat, atas, bawah }: Umum<D
           <ThemedText type="caption" themeColor="textMuted">Tombol tindakan berada di bawah layar.</ThemedText>
         </Panel>
       ) : null}
-      {t.tetapkan_pembimbing ? <AksiPenetapan id={id} version={p.version} reject={reject} selesai={selesai} galat={galat} /> : null}
+      {t.tetapkan_pembimbing ? penetapan.panel : null}
       {data.peran_akses === 'admin' && (t.tetapkan_murobi || t.putuskan_pengganti) && t.buka_v2 ? (
         <Panel style={{ gap: 8 }}>
           <Overline>Tahap murobi</Overline>
@@ -332,21 +353,27 @@ function BagianPetugas({ id, data, reject, selesai, galat, atas, bawah }: Umum<D
         </Panel>
       ) : null}
       <Riwayat items={data.riwayat} petugas />
-      {bawah}
     </Halaman>
   );
 }
 
 type AksiProps = { id: number; version: number; reject: (e: unknown) => void; selesai: Umum<unknown>['selesai']; galat: Umum<unknown>['galat'] };
 
-function AksiPenetapan({ id, version, reject, selesai, galat }: AksiProps) {
-  const fetcher = useCallback(() => izinWali.kandidat(id), [id]);
+/**
+ * Penetapan pembimbing oleh admin (TL-08): isian (pilihan + alasan) di badan
+ * layar, tombol "Tetapkan pembimbing" di bilah bawah. Kandidat tetap dimuat saat
+ * rincian dibuka, sama seperti sebelumnya.
+ */
+function usePenetapan({ id, version, reject, selesai, galat, aktif }: AksiProps & { aktif: boolean }) {
+  // Tanpa hak penetapan: tidak ada permintaan kandidat (sama dengan sebelumnya).
+  const fetcher = useCallback(() => (aktif ? izinWali.kandidat(id) : Promise.resolve({ items: [] as KandidatPembimbing[] })), [aktif, id]);
   const { data, error, load } = usePrivateResource(fetcher, undefined, true);
   const [pilihan, setPilihan] = useState<number | null>(null);
   const [alasan, setAlasan] = useState('');
   const [validasi, setValidasi] = useState<string | null>(null);
   const guard = useIzinWaliMutation('izin-wali-penetapan', reject, galat);
-  async function kirim(kandidat: KandidatPembimbing[]) {
+  async function kirim() {
+    const kandidat = data?.items ?? [];
     const masalah = pilihan === null || !kandidat.some(k => k.pengurus_id === pilihan) ? 'Pilih pembimbing sah.' : periksaAlasan(alasan, 'Alasan penetapan pembimbing');
     setValidasi(masalah);
     if (masalah !== null || pilihan === null) return;
@@ -354,7 +381,8 @@ function AksiPenetapan({ id, version, reject, selesai, galat }: AksiProps) {
     const hasil = await guard.run(JSON.stringify({ id, pilihan, teks, version }), key => izinWali.tetapkanPembimbing(id, pilihan, teks, version, key));
     selesai(hasil, 'Pembimbing ditetapkan. Pengajuan masuk antrean pembimbing tersebut.', 'Penetapan ini sudah tercatat sebelumnya.');
   }
-  return (
+  const siap = Boolean(data && data.items.length > 0);
+  const panel = (
     <Panel style={{ gap: 10 }}>
       <Overline>Tetapkan pembimbing</Overline>
       {error ? <Pesan text={error} tone="danger" /> : !data ? <ThemedText themeColor="textSecondary">Memuat kandidat pembimbing sah…</ThemedText> : data.items.length === 0 ? (
@@ -370,11 +398,15 @@ function AksiPenetapan({ id, version, reject, selesai, galat }: AksiProps) {
           {pilihan !== null ? <ThemedText type="caption" themeColor="textSecondary">{data.items.find(k => k.pengurus_id === pilihan)?.targets.join(' · ')}</ThemedText> : null}
           <Field label="Alasan penetapan" accessibilityLabel="Alasan penetapan" hint="Wajib" value={alasan} onChangeText={setAlasan} multiline placeholder="Minimal 3 karakter" />
           <Pesan text={validasi ?? guard.error} tone="danger" />
-          <AppButton label="Tetapkan pembimbing" loading={guard.isBusy} disabled={guard.isBusy} onPress={() => void kirim(data.items)} />
+          <ThemedText type="caption" themeColor="textMuted">Tombol Tetapkan pembimbing berada di bawah layar.</ThemedText>
         </>
       )}
     </Panel>
   );
+  const tombol = siap ? (
+    <AppButton label="Tetapkan pembimbing" style={styles.lebar} loading={guard.isBusy} disabled={guard.isBusy} onPress={() => void kirim()} />
+  ) : null;
+  return { panel, tombol };
 }
 
 // ---------------------------------------------------------------------------

@@ -62,10 +62,16 @@ export default function LoginScreen() {
               accessibilityLabel="Alhasan Apps"
             />
             <View style={styles.intro}>
+              {/* §4.1: sapaan sebagai judul, ajakan masuk sebagai subjudul. Penanda
+                  "sudah di Beranda" pada uji memakai sapaan Beranda yang berkoma
+                  ("Assalamu'alaikum,") sehingga tidak tertukar dengan layar ini. */}
               <ThemedText selectable type={fontScale > 1.35 ? 'h2' : 'display'} accessibilityRole="header" style={styles.title}>
+                Assalamu&rsquo;alaikum
+              </ThemedText>
+              <ThemedText selectable type="bodyBold" style={styles.subtitle}>
                 Masuk ke akun pesantren Anda
               </ThemedText>
-              <ThemedText selectable type="body" themeColor="textSecondary" style={styles.subtitle}>
+              <ThemedText selectable type="caption" themeColor="textSecondary" style={styles.subtitle}>
                 Satu akun untuk jadwal mengajar, absensi pertemuan, dan perizinan santri.
               </ThemedText>
             </View>

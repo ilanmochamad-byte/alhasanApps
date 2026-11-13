@@ -14,6 +14,7 @@ import { useTheme } from '@/hooks/use-theme';
  * terperas.
  */
 export function EntityRow({
+  leading,
   avatarName,
   icon,
   tone = 'primary',
@@ -32,6 +33,8 @@ export function EntityRow({
   accessibilityRole,
   selected,
 }: {
+  /** Isi kiri khusus (mis. blok jam jadwal); menggantikan avatar/ikon. */
+  leading?: ReactNode;
   /** Nama untuk avatar inisial (santri/orang). */
   avatarName?: string;
   /** Ikon jenis; dipakai bila `avatarName` tidak diisi. */
@@ -102,7 +105,9 @@ export function EntityRow({
       ]}>
       {/* Teks sistem sangat besar: avatar/ikon (hiasan) disembunyikan agar judul
           mendapat lebar penuh dan tidak terpecah di tengah kata. */}
-      {bertumpuk ? null : avatarName ? (
+      {bertumpuk ? null : leading ? (
+        leading
+      ) : avatarName ? (
         <AvatarInisial nama={avatarName} tone={tone} />
       ) : icon ? (
         <View style={[styles.ikon, { backgroundColor: warna.bg }]}>

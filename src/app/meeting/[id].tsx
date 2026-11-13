@@ -419,7 +419,7 @@ export default function MeetingScreen() {
 
       <ActionBar>
         <AppButton
-          label={meeting.status === 'Selesai' ? 'Simpan koreksi' : 'Konfirmasi dan kirim'}
+          label={meeting.status === 'Selesai' ? 'Simpan koreksi' : 'Kirim absensi'}
           style={styles.grow}
           onPress={confirmSubmit}
           loading={submitting}

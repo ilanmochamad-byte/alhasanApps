@@ -59,6 +59,7 @@ function RootNavigator() {
             (← · judul tengah); geser-tepi iOS dan tombol kembali Android tetap. */}
         <Stack.Screen name="akun/edit-profil" options={{ title: 'Edit profil', headerShown: false }} />
         <Stack.Screen name="akun/ganti-password" options={{ title: 'Ganti password', headerShown: false }} />
+        <Stack.Screen name="akun/data-diri" options={{ title: 'Data diri', headerShown: false }} />
         {/* Redesain gelombang 2 Fase 2: layar pengajian, perizinan, dan notifikasi
             menggambar kepala `stack` sendiri (← · judul · ⋯); geser-tepi iOS dan
             tombol kembali Android tetap bekerja. */}

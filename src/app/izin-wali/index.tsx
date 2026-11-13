@@ -7,7 +7,7 @@ import { AppButton } from '@/components/app-button';
 import { Halaman, KartuPengajuan, Pager } from '@/components/izin-wali-shared';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { Fab, FabArea, FAB_RUANG_BAWAH } from '@/components/ui/fab';
+import { Fab, FabArea, FAB_RUANG_BAWAH, useFabTerlaluLebar } from '@/components/ui/fab';
 import { FilterPills } from '@/components/ui/filter-pills';
 import { Notice } from '@/components/ui/notice';
 import { Segmented } from '@/components/ui/segmented';
@@ -39,6 +39,7 @@ function Pintu() {
   const fetcher = useCallback(() => izinWali.akses(), []);
   const { data, error, load } = usePrivateResource(fetcher);
   const [pilihan, setPilihan] = useState<PeranIzinWali | null>(null);
+  const { terlaluLebar: fabTerlaluLebar, onLebar: onLebarFab } = useFabTerlaluLebar(fabMelewatiSetengahLayar(fontScale, width), width);
   if (error) return <Halaman title={JUDUL}><ErrorState message={error} onRetry={() => void load()} /></Halaman>;
   if (!data) return <Halaman title={JUDUL}><LoadingState label="Memeriksa akses perizinan…" /></Halaman>;
   const peran = URUTAN.filter(p => data[p]);
@@ -51,7 +52,6 @@ function Pintu() {
   // jadi dasarnya adalah area aman bawah perangkat. Bila FAB dapat melewati
   // setengah layar pada teks sangat besar, dipakai tombol lebar penuh di atas.
   const fabWali = aktif === 'wali' && data.boleh_mengajukan;
-  const fabTerlaluLebar = fabMelewatiSetengahLayar(fontScale, width);
   const ajukan = () => router.push('/izin-wali/buat');
   return (
     <Halaman
@@ -59,7 +59,7 @@ function Pintu() {
       bottomSpace={fabWali && !fabTerlaluLebar ? FAB_RUANG_BAWAH + 16 + insets.bottom : 0}
       overlay={fabWali && !fabTerlaluLebar ? (
         <FabArea>
-          <Fab label="Ajukan izin" accessibilityLabel="Ajukan izin baru" onPress={ajukan} bottomOffset={16 + (Platform.OS === 'ios' ? 0 : insets.bottom)} />
+          <Fab label="Ajukan izin" accessibilityLabel="Ajukan izin baru" onPress={ajukan} bottomOffset={16 + (Platform.OS === 'ios' ? 0 : insets.bottom)} onLebar={onLebarFab} />
         </FabArea>
       ) : null}>
       {peran.length > 1 ? (
