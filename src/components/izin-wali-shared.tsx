@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type PropsWithChildren, type ReactNode } from 'react';
-import { AppState, ScrollView, StyleSheet, View } from 'react-native';
+import { AppState, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { ApiError } from '@/api/client';
 import { izinWali, type PengajuanPetugas, type PengajuanWali } from '@/api/izin-wali';
@@ -43,6 +43,7 @@ export function useIzinWaliAkses() {
 export function Halaman({
   title,
   menu,
+  actions,
   onBack,
   footer,
   overlay,
@@ -51,6 +52,8 @@ export function Halaman({
 }: PropsWithChildren<{
   title: string;
   menu?: HeaderMenuItem[];
+  /** Tombol ikon di kepala (mis. Muat ulang). */
+  actions?: ReactNode;
   onBack?: () => void;
   /** Bilah tindakan tetap di bawah, di luar area gulir. */
   footer?: ReactNode;
@@ -60,19 +63,24 @@ export function Halaman({
   bottomSpace?: number;
 }>) {
   const theme = useTheme();
+  const { fontScale } = useWindowDimensions();
+  const bilahTetap = fontScale <= 1.35;
   const [aktif, setAktif] = useState(AppState.currentState === 'active' || AppState.currentState === undefined);
   useEffect(() => {
     const sub = AppState.addEventListener('change', state => setAktif(state === 'active'));
     return () => sub.remove();
   }, []);
   return (
-    <StackScreen title={title} menu={menu} onBack={onBack}>
+    <StackScreen title={title} menu={menu} onBack={onBack} actions={actions}>
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <ScrollView keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="never" style={{ backgroundColor: theme.background }}
           contentContainerStyle={[styles.page, { paddingBottom: 40 + bottomSpace }]}>
           {children}
+          {/* TL-22: teks sistem > 1,35× — bilah tindakan ikut digulir di akhir isi
+              agar area isi tidak terhimpit kepala dua baris dan bilah tetap. */}
+          {footer && !bilahTetap ? <View style={styles.footerGulir}>{footer}</View> : null}
         </ScrollView>
-        {footer}
+        {bilahTetap ? footer : null}
         {overlay}
         {!aktif ? (
           <View style={[StyleSheet.absoluteFill, styles.cover, { backgroundColor: theme.background }]} accessibilityElementsHidden>
@@ -144,6 +152,7 @@ export function Pager({ page, total, perPage, onChange }: { page: number; total:
 }
 
 const styles = StyleSheet.create({
+  footerGulir: { marginHorizontal: -16, marginTop: 8 },
   page: { paddingHorizontal: Layout.screen, paddingTop: 12, gap: Layout.cardGap, maxWidth: 760, width: '100%', alignSelf: 'center' },
   cover: { alignItems: 'center', justifyContent: 'center' },
 });

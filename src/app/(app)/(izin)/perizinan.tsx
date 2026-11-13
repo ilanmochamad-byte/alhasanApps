@@ -14,7 +14,7 @@ import { ScreenHeader } from '@/components/screen-header';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { EntityRow } from '@/components/ui/entity-row';
-import { Fab, FabArea, FAB_RUANG_BAWAH } from '@/components/ui/fab';
+import { Fab, FabArea, FAB_RUANG_BAWAH, useFabTerlaluLebar } from '@/components/ui/fab';
 import { FilterPills } from '@/components/ui/filter-pills';
 import { IconButton } from '@/components/ui/icon-button';
 import { Notice } from '@/components/ui/notice';
@@ -148,7 +148,7 @@ function PerizinanSession() {
   // K-8: FAB ikon + teks di kanan bawah. Pada teks sistem sangat besar tombol
   // melebar; bila lebarnya dapat melewati setengah layar, dipakai alternatif
   // yang disetujui: tombol pil lebar penuh di bawah judul, sebelum kotak cari.
-  const fabTerlaluLebar = fabMelewatiSetengahLayar(fontScale, width);
+  const { terlaluLebar: fabTerlaluLebar, onLebar: onLebarFab } = useFabTerlaluLebar(fabMelewatiSetengahLayar(fontScale, width), width);
   const dapatMengajukan = capabilities.aksi.dapat_membuat_pengajuan && !orangTua;
   // Ruang kosong di dasar daftar setinggi FAB + 16 (K-8). Di iOS isi layar tab
   // bergulir di balik bilah tab, sehingga tinggi bilah ikut ditambahkan; di
@@ -356,7 +356,7 @@ function PerizinanSession() {
       {dapatMengajukan && !fabTerlaluLebar ? (
         /* K-8: FAB di atas bilah tab dan hilang saat kotak cari aktif. */
         <FabArea hidden={Platform.OS === 'web' && cariAktif}>
-          <Fab label="Ajukan izin" accessibilityLabel="Ajukan izin baru" onPress={ajukan} bottomOffset={16} />
+          <Fab label="Ajukan izin" accessibilityLabel="Ajukan izin baru" onPress={ajukan} bottomOffset={16} onLebar={onLebarFab} />
         </FabArea>
       ) : null}
     </View>

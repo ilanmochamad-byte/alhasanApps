@@ -11,7 +11,7 @@ import { formatTanggal, statusIcon, statusPillTone } from '@/components/izin-car
 import { StackScreen } from '@/components/screen-shell';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { ActionBar } from '@/components/ui/action-bar';
+import { ActionBar, AksiAkhirIsi, bilahTetap } from '@/components/ui/action-bar';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Field } from '@/components/ui/app-field';
 import { AvatarInisial } from '@/components/ui/avatar-inisial';
@@ -19,6 +19,7 @@ import { Chip, ChipRow } from '@/components/ui/chip';
 import { InfoRow } from '@/components/ui/info-row';
 import { Notice } from '@/components/ui/notice';
 import { StatusPill } from '@/components/ui/status-pill';
+import { SuccessPanel } from '@/components/ui/success-panel';
 import { Divider, Overline, Panel } from '@/components/ui/surface';
 import { Layout, Radius } from '@/constants/theme';
 import { useIzinWaliMutation } from '@/hooks/use-izin-wali-mutation';
@@ -65,6 +66,12 @@ function IzinDetailSession() {
   // `baru=1` dari formulir pengajuan: hasil kirim tampil sebagai panel sukses di sini.
   const [pesan, setPesan] = useState<string | null>(params.baru === '1' ? 'Pengajuan terkirim. Status dan riwayatnya dapat dipantau di halaman ini.' : null);
 
+  // P-Sukses (§4.4, TL-07): sesudah pengajuan baru, layar sukses tampil di atas
+  // rincian yang sudah dimuat; "Lihat pengajuan" menutupnya. Permintaan tetap
+  // POST lalu GET rincian, persis seperti sebelumnya.
+  const [suksesBaru, setSuksesBaru] = useState(params.baru === '1');
+  // Tindakan sekunder (TL-08) dibuka dari ⋯ dalam lembar bawah.
+  const [lembar, setLembar] = useState<'tetapkan' | 'batal' | null>(null);
   const [keputusanDipilih, setKeputusanDipilih] = useState<'Disetujui' | 'Ditolak' | null>(null);
   const [alasan, setAlasan] = useState('');
   const [alasanPenggantian, setAlasanPenggantian] = useState('');
@@ -76,6 +83,7 @@ function IzinDetailSession() {
     setKeputusanDipilih(null);
     setAlasan(''); setAlasanPenggantian(''); setAlasanBatal('');
     setAlasanTetapkan(''); setMurobiTerpilih(null); setPesan(null);
+    setLembar(null); setSuksesBaru(false);
   }, []);
   const fetcher = useCallback(async (): Promise<{ detail: IzinDetailResponse; routing: RoutingResponse | null }> => {
     const detail = await api.izinDetail(id, mode);
@@ -123,8 +131,8 @@ function IzinDetailSession() {
     [alasan, alasanPenggantian, detail, id, keputusanGuard, load, mode],
   );
 
-  const batalkan = useCallback(async () => {
-    if (!detail) return;
+  const batalkan = useCallback(async (): Promise<boolean> => {
+    if (!detail) return false;
     const payload = { alasan: alasanBatal, version: detail.pengajuan.version };
     const hasil = await batalGuard.run(
       JSON.stringify({ id, mode, payload }),
@@ -138,13 +146,15 @@ function IzinDetailSession() {
       );
       setAlasanBatal('');
       await load(true);
+      return true;
     }
+    return false;
   }, [alasanBatal, batalGuard, detail, id, load, mode]);
 
   const tujuanMurobi = murobiTerpilih ?? routing?.kandidat[0]?.guru_id ?? routing?.murobi_berhak[0]?.guru_id ?? null;
 
-  const tetapkanMurobi = useCallback(async () => {
-    if (!detail || tujuanMurobi === null) return;
+  const tetapkanMurobi = useCallback(async (): Promise<boolean> => {
+    if (!detail || tujuanMurobi === null) return false;
     const payload = {
       murobi_guru_id: tujuanMurobi,
       alasan: alasanTetapkan,
@@ -158,7 +168,9 @@ function IzinDetailSession() {
       setPesan('Murobi tujuan ditetapkan. Pengajuan masuk ke antrean murobi tersebut.');
       setAlasanTetapkan('');
       await load(true);
+      return true;
     }
+    return false;
   }, [alasanTetapkan, detail, id, load, tujuanMurobi, tetapkanGuard]);
 
   if (error && !detail) {
@@ -210,8 +222,102 @@ function IzinDetailSession() {
     />
   );
 
+  const isiTetapkan = (
+    <>
+      {routing ? (
+        <ThemedText selectable type="caption" themeColor="textSecondary">
+          {routing.routing.catatan ?? 'Belum ada catatan routing.'}
+        </ThemedText>
+      ) : null}
+      <View accessibilityRole="radiogroup" accessibilityLabel="Pilih murobi tujuan">
+        <ChipRow>
+          {daftarMurobi.map((guru) => (
+            <Chip
+              key={guru.guru_id}
+              accessibilityRole="radio"
+              label={guru.nama}
+              selected={guru.guru_id === tujuanMurobi}
+              disabled={sedangMutasi}
+              style={styles.pilihan}
+              onPress={() => setMurobiTerpilih(guru.guru_id)}
+            />
+          ))}
+        </ChipRow>
+      </View>
+      {daftarMurobi.length === 0 ? (
+        <Notice tone="warning" text="Belum ada guru dengan penugasan murobi aktif pada tahun ajaran ini." />
+      ) : null}
+      <Field
+        label="Alasan penetapan"
+        hint="Wajib"
+        value={alasanTetapkan}
+        onChangeText={setAlasanTetapkan}
+        editable={!sedangMutasi}
+        multiline
+        placeholder="Wajib diisi"
+      />
+      <Notice tone="danger" text={tetapkanGuard.error} />
+    </>
+  );
+  const isiBatal = (
+    <>
+      <ThemedText selectable type="caption" themeColor="textSecondary">
+        Pembatalan hanya dapat dilakukan sebelum ada keputusan dan wajib memuat alasan.
+      </ThemedText>
+      <Field
+        value={alasanBatal}
+        onChangeText={setAlasanBatal}
+        editable={!sedangMutasi}
+        multiline
+        placeholder="Alasan pembatalan"
+      />
+      <Notice tone="danger" text={batalGuard.error} />
+    </>
+  );
+  const tetapkanSekunder = aksi.tetapkan_murobi && !tetapkanDiBilah;
+  const batalSekunder = aksi.batalkan && !batalDiBilah;
+  const menu = [
+    ...(tetapkanSekunder ? [{ label: 'Tetapkan murobi', icon: 'users' as const, onPress: () => setLembar('tetapkan') }] : []),
+    ...(batalSekunder ? [{ label: 'Batalkan pengajuan', icon: 'close' as const, danger: true, onPress: () => setLembar('batal') }] : []),
+  ];
+
+  if (suksesBaru) {
+    return (
+      <StackScreen title={JUDUL}>
+        <View style={styles.sukses}>
+          <SuccessPanel
+            title="Pengajuan terkirim"
+            message={`Pengajuan izin ${pengajuan.santri.nama} sudah diterima dengan status ${pengajuan.status}. Status dan riwayatnya dapat dipantau di rincian pengajuan.`}>
+            <AppButton label="Lihat pengajuan" icon="arrow-right" onPress={() => setSuksesBaru(false)} />
+            <AppButton label="Kembali ke Perizinan" variant="line" onPress={() => router.replace('/perizinan')} />
+          </SuccessPanel>
+        </View>
+      </StackScreen>
+    );
+  }
+
+  // TL-22: tindakan utama di bilah tetap, atau di akhir isi pada teks sangat besar.
+  const isiBilah = dapatMemutuskan ? (<>
+          <AppButton
+            label="Tolak"
+            variant="outline"
+            icon="close"
+            style={styles.barButton}
+            loading={keputusanGuard.isBusy}
+            disabled={sedangMutasi}
+            onPress={() => setKeputusanDipilih('Ditolak')}
+          />
+          <AppButton
+            label="Setujui"
+            icon="check"
+            style={styles.barButtonWide}
+            loading={keputusanGuard.isBusy}
+            disabled={sedangMutasi}
+            onPress={() => setKeputusanDipilih('Disetujui')}
+          />
+        </>) : tetapkanDiBilah ? tombolTetapkan : batalDiBilah ? tombolBatal : null;
   const content = (
-    <StackScreen title={JUDUL} subtitle={`#${pengajuan.id}`}>
+    <StackScreen title={JUDUL} subtitle={`#${pengajuan.id}`} menu={menu.length > 0 ? menu : undefined}>
       <KeyboardAwareScrollView
         contentInsetAdjustmentBehavior="never"
         style={{ backgroundColor: theme.background }}
@@ -310,73 +416,25 @@ function IzinDetailSession() {
           />
         ) : null}
 
-        {aksi.tetapkan_murobi ? (
+        {/* Tindakan utama di bilah bawah memerlukan isian di badan layar;
+            tindakan sekunder dibuka dari ⋯ (lembar bawah). */}
+        {tetapkanDiBilah ? (
           <Panel>
             <Overline>Penetapan / perbaikan routing murobi</Overline>
-            {routing ? (
-              <ThemedText selectable type="caption" themeColor="textSecondary">
-                {routing.routing.catatan ?? 'Belum ada catatan routing.'}
-              </ThemedText>
-            ) : null}
-            <View accessibilityRole="radiogroup" accessibilityLabel="Pilih murobi tujuan">
-              <ChipRow>
-                {daftarMurobi.map((guru) => (
-                  <Chip
-                    key={guru.guru_id}
-                    accessibilityRole="radio"
-                    label={guru.nama}
-                    selected={guru.guru_id === tujuanMurobi}
-                    disabled={sedangMutasi}
-                    style={styles.pilihan}
-                    onPress={() => setMurobiTerpilih(guru.guru_id)}
-                  />
-                ))}
-              </ChipRow>
-            </View>
-            {daftarMurobi.length === 0 ? (
-              <Notice tone="warning" text="Belum ada guru dengan penugasan murobi aktif pada tahun ajaran ini." />
-            ) : null}
-            <Field
-              label="Alasan penetapan"
-              hint="Wajib"
-              value={alasanTetapkan}
-              onChangeText={setAlasanTetapkan}
-              editable={!sedangMutasi}
-              multiline
-              placeholder="Wajib diisi"
-            />
-            <Notice tone="danger" text={tetapkanGuard.error} />
-            {tetapkanDiBilah ? (
-              <ThemedText selectable type="caption" themeColor="textMuted">
-                Tombol Tetapkan murobi berada di bawah layar.
-              </ThemedText>
-            ) : (
-              tombolTetapkan
-            )}
+            {isiTetapkan}
+            <ThemedText selectable type="caption" themeColor="textMuted">
+              Tombol Tetapkan murobi berada di bawah layar.
+            </ThemedText>
           </Panel>
         ) : null}
 
-        {aksi.batalkan ? (
+        {batalDiBilah ? (
           <Panel>
             <Overline>Pembatalan</Overline>
-            <ThemedText selectable type="caption" themeColor="textSecondary">
-              Pembatalan hanya dapat dilakukan sebelum ada keputusan dan wajib memuat alasan.
+            {isiBatal}
+            <ThemedText selectable type="caption" themeColor="textMuted">
+              Tombol Batalkan pengajuan berada di bawah layar.
             </ThemedText>
-            <Field
-              value={alasanBatal}
-              onChangeText={setAlasanBatal}
-              editable={!sedangMutasi}
-              multiline
-              placeholder="Alasan pembatalan"
-            />
-            <Notice tone="danger" text={batalGuard.error} />
-            {batalDiBilah ? (
-              <ThemedText selectable type="caption" themeColor="textMuted">
-                Tombol Batalkan pengajuan berada di bawah layar.
-              </ThemedText>
-            ) : (
-              tombolBatal
-            )}
           </Panel>
         ) : null}
 
@@ -443,32 +501,33 @@ function IzinDetailSession() {
             ))}
           </Panel>
         ) : null}
+        {!bilahTetap() && isiBilah ? <AksiAkhirIsi>{isiBilah}</AksiAkhirIsi> : null}
       </KeyboardAwareScrollView>
 
-      {dapatMemutuskan ? (
-        <ActionBar>
+      {bilahTetap() && isiBilah ? <ActionBar>{isiBilah}</ActionBar> : null}
+      {lembar === 'tetapkan' && tetapkanSekunder ? (
+        <BottomSheet visible keyboardAware title="Tetapkan murobi" onClose={() => { if (!sedangMutasi) setLembar(null); }}>
+          {isiTetapkan}
           <AppButton
-            label="Tolak"
-            variant="outline"
-            icon="close"
-            style={styles.barButton}
-            loading={keputusanGuard.isBusy}
-            disabled={sedangMutasi}
-            onPress={() => setKeputusanDipilih('Ditolak')}
+            label="Tetapkan murobi"
+            icon="users"
+            loading={tetapkanGuard.isBusy}
+            disabled={sedangMutasi || tujuanMurobi === null}
+            onPress={() => void tetapkanMurobi().then((ok) => { if (ok) setLembar(null); })}
           />
+        </BottomSheet>
+      ) : null}
+      {lembar === 'batal' && batalSekunder ? (
+        <BottomSheet visible keyboardAware title="Batalkan pengajuan" onClose={() => { if (!sedangMutasi) setLembar(null); }}>
+          {isiBatal}
           <AppButton
-            label="Setujui"
-            icon="check"
-            style={styles.barButtonWide}
-            loading={keputusanGuard.isBusy}
+            label="Batalkan pengajuan"
+            variant="danger"
+            loading={batalGuard.isBusy}
             disabled={sedangMutasi}
-            onPress={() => setKeputusanDipilih('Disetujui')}
+            onPress={() => void batalkan().then((ok) => { if (ok) setLembar(null); })}
           />
-        </ActionBar>
-      ) : tetapkanDiBilah ? (
-        <ActionBar>{tombolTetapkan}</ActionBar>
-      ) : batalDiBilah ? (
-        <ActionBar>{tombolBatal}</ActionBar>
+        </BottomSheet>
       ) : null}
       {dapatMemutuskan && keputusanDipilih !== null ? (
         <BottomSheet
@@ -543,4 +602,5 @@ const styles = StyleSheet.create({
   koreksiItem: { borderTopWidth: 1, paddingTop: 9, gap: 2 },
   barButton: { flex: 1 },
   barButtonWide: { flex: 1.35 },
+  sukses: { flex: 1, justifyContent: 'center', paddingHorizontal: Layout.screen, maxWidth: 560, width: '100%', alignSelf: 'center' },
 });

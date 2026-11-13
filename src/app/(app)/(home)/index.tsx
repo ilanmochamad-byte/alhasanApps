@@ -13,7 +13,7 @@ import type { ScheduleOccurrence, TodayResponse } from '@/api/types';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
 import { KartuIdentitas } from '@/components/profil-shared';
-import { ScheduleCard, formatDate } from '@/components/schedule-card';
+import { JadwalBaris, ScheduleCard, formatDate } from '@/components/schedule-card';
 import { ScreenHeader } from '@/components/screen-header';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
@@ -274,10 +274,9 @@ export default function HomeScreen() {
             </ThemedText>
           ) : (
             sisaHariIni.map((schedule) => (
-              <ScheduleCard
+              <JadwalBaris
                 key={`${schedule.id}-${schedule.occurrence_date}`}
                 schedule={schedule}
-                hideDate
                 onPress={() => openSchedule(schedule)}
               />
             ))

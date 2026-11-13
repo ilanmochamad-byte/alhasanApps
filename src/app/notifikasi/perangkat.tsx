@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { actionableError, api } from '@/api/client';
 import type { PerangkatPush } from '@/api/types';
@@ -99,20 +99,25 @@ export default function PerangkatPushScreen() {
           Push jarak jauh hanya bekerja pada perangkat nyata dari build EAS yang ditandatangani dengan
           credential push. Expo Go, emulator, dan simulator tidak didukung.
         </ThemedText>
-        {pushAktifDiSini ? (
-          <AppButton
-            label="Matikan push di perangkat ini"
-            variant="outline"
-            disabled={sibuk}
-            onPress={() => void jalankan(matikanPush)}
-          />
-        ) : (
-          <AppButton
-            label="Nyalakan push"
+        {/* §4.11 (TL-09): sakelar "Push di perangkat ini" memanggil fungsi
+            nyalakan/matikan yang sama dengan dua tombol sebelumnya. */}
+        <View style={[styles.sakelar, { borderTopColor: theme.divider }]}>
+          <View style={styles.kepalaTeks}>
+            <ThemedText type="bodyBold">Push di perangkat ini</ThemedText>
+            <ThemedText type="caption" themeColor="textSecondary">
+              {pushAktifDiSini ? 'Menyala' : pushState.status === 'memeriksa' ? 'Memeriksa…' : 'Mati'}
+            </ThemedText>
+          </View>
+          <Switch
+            accessibilityLabel="Push di perangkat ini"
+            accessibilityHint={pushAktifDiSini ? 'Matikan push di perangkat ini' : 'Nyalakan push di perangkat ini'}
+            value={pushAktifDiSini}
             disabled={sibuk || pushState.status === 'memeriksa'}
-            onPress={() => void jalankan(nyalakanPush)}
+            trackColor={{ false: theme.border, true: theme.primary }}
+            thumbColor={theme.card}
+            onValueChange={(nyala) => void jalankan(nyala ? nyalakanPush : matikanPush)}
           />
-        )}
+        </View>
       </Panel>
 
       <Notice tone="danger" text={error} />
@@ -194,6 +199,7 @@ export default function PerangkatPushScreen() {
 }
 
 const styles = StyleSheet.create({
+  sakelar: { flexDirection: 'row', alignItems: 'center', gap: 12, borderTopWidth: 1, paddingTop: 12, minHeight: 56 },
   content: { paddingHorizontal: Layout.screen, paddingTop: 12, paddingBottom: 60, gap: 14, maxWidth: 760, width: '100%', alignSelf: 'center' },
   kepala: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   kepalaTeks: { flex: 1, gap: 4 },

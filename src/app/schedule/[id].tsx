@@ -10,7 +10,7 @@ import { formatDate } from '@/components/schedule-card';
 import { StackScreen } from '@/components/screen-shell';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { ActionBar } from '@/components/ui/action-bar';
+import { ActionBar, AksiAkhirIsi, bilahTetap } from '@/components/ui/action-bar';
 import { Field } from '@/components/ui/app-field';
 import { Badge, ChipRow } from '@/components/ui/chip';
 import { InfoRow } from '@/components/ui/info-row';
@@ -116,6 +116,27 @@ export default function ScheduleDetailScreen() {
   const gabungan = kelas.length > 1;
   const selesai = schedule.meeting?.status === 'Selesai';
 
+  // TL-22: tindakan di bilah tetap, atau di akhir isi pada teks sangat besar.
+  const aksiBawah = (<>
+        {sudahAda ? (
+          <AppButton
+            label={selesai ? 'Buka absensi tersimpan' : 'Isi absensi'}
+            icon="check"
+            style={styles.grow}
+            onPress={() =>
+              router.push({ pathname: '/meeting/[id]', params: { id: String(schedule.meeting!.id) } })
+            }
+          />
+        ) : (
+          <AppButton
+            label="Buka pertemuan"
+            icon="plus"
+            style={styles.grow}
+            onPress={() => void openMeeting()}
+            loading={opening}
+          />
+        )}
+      </>);
   return (
     <StackScreen title={JUDUL}>
       <KeyboardAwareScrollView
@@ -187,28 +208,10 @@ export default function ScheduleDetailScreen() {
         )}
 
         <Notice tone="danger" text={error} />
+        {!bilahTetap() ? <AksiAkhirIsi>{aksiBawah}</AksiAkhirIsi> : null}
       </KeyboardAwareScrollView>
 
-      <ActionBar>
-        {sudahAda ? (
-          <AppButton
-            label={selesai ? 'Buka absensi tersimpan' : 'Isi absensi'}
-            icon="check"
-            style={styles.grow}
-            onPress={() =>
-              router.push({ pathname: '/meeting/[id]', params: { id: String(schedule.meeting!.id) } })
-            }
-          />
-        ) : (
-          <AppButton
-            label="Buka pertemuan"
-            icon="plus"
-            style={styles.grow}
-            onPress={() => void openMeeting()}
-            loading={opening}
-          />
-        )}
-      </ActionBar>
+      {bilahTetap() ? <ActionBar>{aksiBawah}</ActionBar> : null}
     </StackScreen>
   );
 }

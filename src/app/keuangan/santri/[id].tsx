@@ -31,14 +31,16 @@ type Bagian = 'ringkasan' | 'tagihan' | 'tabungan';
  */
 export default function SantriKeuanganScreen() {
   const { profile } = useAuth();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  return <Detail key={`${profile?.id}:${id}`} id={Number(id)} />;
+  const { id, bagian } = useLocalSearchParams<{ id: string; bagian?: string }>();
+  // `bagian` (opsional, TL-12): pintasan dari kartu anak membuka tab Tagihan/Tabungan.
+  const awal: Bagian = bagian === 'tagihan' || bagian === 'tabungan' ? bagian : 'ringkasan';
+  return <Detail key={`${profile?.id}:${id}`} id={Number(id)} bagianAwal={awal} />;
 }
 
-function Detail({ id }: { id: number }) {
+function Detail({ id, bagianAwal }: { id: number; bagianAwal: Bagian }) {
   const router = useRouter();
   const [page, setPage] = useState(1);
-  const [bagian, setBagian] = useState<Bagian>('ringkasan');
+  const [bagian, setBagian] = useState<Bagian>(bagianAwal);
   const [pesan, setPesan] = useState<string | null>(null);
   const fetcher = useCallback(async () => {
     if (!Number.isSafeInteger(id) || id < 1) throw new Error('Penunjuk santri tidak valid.');

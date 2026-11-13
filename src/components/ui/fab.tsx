@@ -24,12 +24,15 @@ export function Fab({
   onPress,
   accessibilityLabel,
   bottomOffset = 16,
+  onLebar,
 }: {
   label: string;
   icon?: IconName;
   onPress: () => void;
   accessibilityLabel?: string;
   bottomOffset?: number;
+  /** Lebar terukur (web): pembesaran teks peramban tidak mengubah `fontScale`. */
+  onLebar?: (lebar: number) => void;
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -38,6 +41,7 @@ export function Fab({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       onPress={onPress}
+      onLayout={onLebar ? (e) => onLebar(e.nativeEvent.layout.width) : undefined}
       style={({ pressed }) => [
         styles.fab,
         {
@@ -115,4 +119,16 @@ export function FabArea({ hidden, children }: { hidden?: boolean; children: Reac
       {children}
     </View>
   );
+}
+
+/**
+ * K-8 (TL-10): FAB beralih ke tombol lebar penuh di atas bila lebarnya dapat
+ * melewati setengah layar. Native memakai perkiraan dari skala teks sistem;
+ * web juga memakai lebar FAB yang terukur, karena pembesaran teks peramban
+ * (zoom teks 200%) melebarkan FAB tanpa mengubah `fontScale`.
+ */
+export function useFabTerlaluLebar(perkiraan: boolean, lebarLayar: number) {
+  const [lebarFab, setLebarFab] = useState<number | null>(null);
+  const terukur = Platform.OS === 'web' && lebarFab !== null && lebarFab > lebarLayar / 2;
+  return { terlaluLebar: perkiraan || terukur, onLebar: Platform.OS === 'web' ? setLebarFab : undefined };
 }

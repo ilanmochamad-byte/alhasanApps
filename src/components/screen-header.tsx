@@ -126,7 +126,10 @@ function KepalaStack({ title, subtitle, actions, onBack, menu, backLabel }: Prop
                 last={index === menu!.length - 1}
                 onPress={() => {
                   setMenuTerbuka(false);
-                  item.onPress();
+                  // Native: tunggu lembar menu tertutup sebelum tindakan membuka
+                  // lembar/dialog lain (dua Modal beruntun dapat bertabrakan di iOS).
+                  if (process.env.EXPO_OS === 'web') item.onPress();
+                  else setTimeout(item.onPress, 350);
                 }}
               />
             ))}

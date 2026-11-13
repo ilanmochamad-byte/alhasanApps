@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback } from 'react';
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View, useColorScheme, useWindowDimensions } from 'react-native';
+import { Alert, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View, useColorScheme, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { akun } from '@/api/akun';
@@ -14,7 +14,6 @@ import { MODE_LABEL } from '@/components/mode-switcher';
 import { ProfilAvatar, StatusChips, useStatusProfil } from '@/components/profil-shared';
 import { ScreenHeader } from '@/components/screen-header';
 import { ErrorState } from '@/components/screen-state';
-import { InfoRow } from '@/components/ui/info-row';
 import { ListRow, RowGroup } from '@/components/ui/list-row';
 import { ProfileHeader } from '@/components/ui/profile-header';
 import { Overline } from '@/components/ui/surface';
@@ -22,17 +21,11 @@ import { Layout } from '@/constants/theme';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { useTheme } from '@/hooks/use-theme';
 import { kelompokPenugasan } from '@/keamanan/format';
-import { alamatLengkap, rincianPenugasan, ringkasMengajar } from '@/profil/format';
+import { jarakAtasLayarTab } from '@/lib/tampilan';
+import { rincianPenugasan, ringkasMengajar } from '@/profil/format';
 import { useProfil } from '@/profil/profil-context';
 
 const VERSION = Constants.expoConfig?.version ?? '—';
-
-const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-/** 1990-02-01 → "1 Februari 1990" tanpa Intl agar sama di Hermes dan web. */
-function formatTanggal(iso: string) {
-  const [t, b, h] = iso.split('-').map(Number);
-  return t && b && h ? `${h} ${BULAN[b - 1]} ${t}` : iso;
-}
 
 /**
  * Tab Profil (redesain V2).
@@ -74,8 +67,6 @@ export default function ProfilScreen() {
   }, []);
   const identitas = usePrivateResource(muatIdentitas).data?.identitas;
   const mengajar = pribadi ? ringkasMengajar(pribadi.mengajar) : [];
-  const alamat = pribadi ? alamatLengkap(pribadi.pribadi) : null;
-  const kosong = 'Belum diisi';
   const penugasan = kelompokPenugasan(identitas?.penugasan ?? []);
 
   // Perilaku konfirmasi keluar dipindahkan apa adanya dari layar Beranda V1.
@@ -102,15 +93,12 @@ export default function ProfilScreen() {
           : []),
       ]
     : [];
-  const ttl = pribadi
-    ? [pribadi.pribadi.tempat_lahir, pribadi.pribadi.tanggal_lahir ? formatTanggal(pribadi.pribadi.tanggal_lahir) : null].filter(Boolean).join(', ')
-    : '';
 
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="never"
       style={{ backgroundColor: theme.background }}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
+      contentContainerStyle={[styles.content, { paddingTop: jarakAtasLayarTab(Platform.OS, insets.top) }]}
       refreshControl={<RefreshControl refreshing={false} onRefresh={() => void muatPribadi()} tintColor={theme.primary} />}>
       {/* K-10: layar tab memakai ← ke Beranda di atas judul besar. */}
       <ScreenHeader variant="akar" title="Profil" subtitle="Identitas, penugasan, dan pengaturan akun" />
@@ -155,18 +143,17 @@ export default function ProfilScreen() {
         <ErrorState message={galatPribadi} onRetry={() => void muatPribadi()} />
       ) : null}
 
+      {/* §4.2: Data diri › membuka rinciannya sendiri (akun/data-diri). */}
       {pribadi ? (
-        <View style={styles.group}>
-          <Overline>Data diri</Overline>
-          <RowGroup>
-            {pribadi.pribadi.nip ? <InfoRow icon="info" label="NIP / nomor identitas" value={pribadi.pribadi.nip} /> : null}
-            {pribadi.pribadi.nik ? <InfoRow icon="info" label="NIK" value={pribadi.pribadi.nik} /> : null}
-            <InfoRow icon="calendar" label="Tempat, tanggal lahir" value={ttl || kosong} />
-            <InfoRow icon="home" label="Alamat rumah" value={alamat ?? kosong} />
-            <InfoRow icon="phone" label="No. HP" value={pribadi.pribadi.no_hp ?? kosong} />
-            <InfoRow icon="mail" label="Email" value={pribadi.pribadi.email ?? kosong} last />
-          </RowGroup>
-        </View>
+        <RowGroup>
+            <ListRow
+              icon="person"
+              title="Data diri"
+              subtitle="Identitas, tempat dan tanggal lahir, alamat, kontak"
+              onPress={() => router.push('/akun/data-diri')}
+              last
+            />
+        </RowGroup>
       ) : null}
 
       {pribadi ? (
@@ -234,8 +221,9 @@ export default function ProfilScreen() {
         </View>
       ) : null}
 
+      {!tampilanLama || cakupan.length > 0 ? (
       <View style={styles.group}>
-        <Overline>Akun &amp; pemberitahuan</Overline>
+        <Overline>Akun</Overline>
         <RowGroup>
           {!tampilanLama ? (
             <ListRow
@@ -243,6 +231,7 @@ export default function ProfilScreen() {
               title="Ganti password"
               subtitle="Perlu password saat ini; sesi di perangkat lain akan keluar"
               onPress={() => router.push('/akun/ganti-password')}
+              last={cakupan.length === 0}
             />
           ) : null}
           {cakupan.length > 0 ? (
@@ -256,8 +245,16 @@ export default function ProfilScreen() {
               }
               value={cakupan.length > 1 ? 'Ganti' : undefined}
               onPress={cakupan.length > 1 ? () => router.push('/perizinan') : undefined}
+              last
             />
           ) : null}
+        </RowGroup>
+      </View>
+      ) : null}
+
+      <View style={styles.group}>
+        <Overline>Pemberitahuan</Overline>
+        <RowGroup>
           <ListRow
             icon="device"
             title="Perangkat & push"

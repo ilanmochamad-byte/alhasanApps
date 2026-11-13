@@ -5,6 +5,7 @@ import { rapor, type Grade, type GradeDetail } from '@/api/rapor';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
 import { PrivateField } from '@/components/private-field';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { DropdownField } from '@/components/ui/dropdown-field';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { HistoryList, Notice, RaporPage, useRaporResource } from '@/components/rapor-shared';
@@ -34,6 +35,9 @@ function Session({ substitute }: { substitute: boolean }) {
 }
 function GradeForm({ detail, substitute, busy, save }: { detail: GradeDetail; substitute: boolean; busy: boolean; save: (action: string, rows: Grade[], reason: string) => Promise<void> }) {
   const [rows, setRows] = useState(() => gradeDraft(detail.nilai)); const [reason, setReason] = useState('');
+  // §4.7 (TL-15): koreksi beralasan di lembar bawah. Mode pengganti mewajibkan
+  // alasan untuk setiap tindakan, sehingga kolom alasannya tetap di halaman.
+  const [lembarKoreksi, setLembarKoreksi] = useState(false);
   function change(i: number, patch: Partial<Grade>) { setRows(old => old.map((row, n) => n === i ? { ...row, ...patch } : row)); }
   return <>
     <KartuIsi nada="sorot">
@@ -51,16 +55,25 @@ function GradeForm({ detail, substitute, busy, save }: { detail: GradeDetail; su
     <KartuIsi>
     {rows.map((row, i) => <PrivateField key={`note:${row.komponen}:${row.nomor_harian}`} label={`Catatan ${row.komponen} ${row.nomor_harian || ''}`} value={row.catatan} multiline maxLength={2000} editable={!busy} onChangeText={catatan => change(i, { catatan })} />)}
     </KartuIsi>
-    <JudulBagianIsi title="Alasan" icon="lock" />
-    <KartuIsi>
-    <PrivateField label={substitute ? 'Alasan pengganti / koreksi (wajib)' : 'Alasan koreksi / tindakan admin'} value={reason} onChangeText={setReason} multiline maxLength={1000} editable={!busy} />
-    <ThemedText type="caption" themeColor="textSecondary">Nilai kosong tidak menjadi 0. Koreksi tersimpan harus beralasan, kemudian diserahkan dan diverifikasi ulang.</ThemedText>
-    </KartuIsi>
+    {substitute ? <>
+      <JudulBagianIsi title="Alasan" icon="lock" />
+      <KartuIsi>
+      <PrivateField label="Alasan pengganti / koreksi (wajib)" value={reason} onChangeText={setReason} multiline maxLength={1000} editable={!busy} />
+      <ThemedText type="caption" themeColor="textSecondary">Nilai kosong tidak menjadi 0. Koreksi tersimpan harus beralasan, kemudian diserahkan dan diverifikasi ulang.</ThemedText>
+      </KartuIsi>
+    </> : (
+      <ThemedText type="caption" themeColor="textSecondary">Nilai kosong tidak menjadi 0. Koreksi tersimpan harus beralasan, kemudian diserahkan dan diverifikasi ulang.</ThemedText>
+    )}
     <View style={gaya.aksi}>
       <AppButton label="Simpan draf nilai" variant="secondary" style={gaya.sel} disabled={busy} onPress={() => void save('draf', rows, reason)} />
       <AppButton label="Serahkan nilai" style={gaya.sel} disabled={busy} onPress={() => void save('serahkan', rows, reason)} />
     </View>
-    <AppButton label="Koreksi nilai beralasan" variant="secondary" disabled={busy} onPress={() => void save('koreksi', rows, reason)} />
+    <AppButton label="Koreksi nilai beralasan" variant="secondary" disabled={busy} onPress={() => substitute ? void save('koreksi', rows, reason) : setLembarKoreksi(true)} />
+    <BottomSheet visible={lembarKoreksi && !substitute} keyboardAware title="Koreksi nilai" onClose={() => { if (!busy) setLembarKoreksi(false); }}>
+      <ThemedText type="caption" themeColor="textSecondary">Koreksi tersimpan harus beralasan, kemudian diserahkan dan diverifikasi ulang.</ThemedText>
+      <PrivateField label="Alasan koreksi / tindakan admin" value={reason} onChangeText={setReason} multiline maxLength={1000} editable={!busy} />
+      <AppButton label="Simpan koreksi" loading={busy} disabled={busy} onPress={() => void save('koreksi', rows, reason).then(() => setLembarKoreksi(false))} />
+    </BottomSheet>
     <HistoryList rows={detail.riwayat} />
   </>;
 }

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import type { ScheduleOccurrence } from '@/api/types';
 import { AppIcon } from '@/components/app-icon';
 import { ThemedText } from '@/components/themed-text';
+import { EntityRow } from '@/components/ui/entity-row';
 import { StatusPill, type StatusTone } from '@/components/ui/status-pill';
 import { Elevation, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -98,6 +99,56 @@ export function ScheduleCard({
         <AppIcon name="chevron-right" size={18} themeColor="textMuted" />
       )}
     </Pressable>
+  );
+}
+
+/**
+ * Baris jadwal untuk daftar "Jadwal hari ini" di Beranda (§4.2, tindak lanjut
+ * TL-05): `EntityRow` dengan blok jam di kiri, kitab + seluruh kelas, tempat ·
+ * kitab, pil status, dan nilai "Absen" untuk sesi hari ini yang belum selesai.
+ * Data dan label aksesibilitas sama dengan `ScheduleCard` (layar Jadwal tetap
+ * memakai kartu).
+ */
+export function JadwalBaris({
+  schedule,
+  onPress,
+  today = isoHariIni(),
+}: {
+  schedule: ScheduleOccurrence;
+  onPress: () => void;
+  today?: string;
+}) {
+  const theme = useTheme();
+  const { fontScale } = useWindowDimensions();
+  const bertumpuk = fontScale > 1.35;
+  const kelas = labelKelas(schedule);
+  const status = statusSesi(schedule.meeting, schedule.occurrence_date, today);
+  const jam = (
+    <View style={[styles.time, { backgroundColor: status.perluAbsen ? theme.primarySoft : theme.backgroundElement }]}>
+      <ThemedText selectable style={styles.timeStart}>{schedule.start_time}</ThemedText>
+      <ThemedText selectable style={[styles.timeEnd, { color: theme.textSecondary }]}>{schedule.end_time}</ThemedText>
+    </View>
+  );
+  return (
+    <EntityRow
+      leading={jam}
+      title={`${schedule.subject} · ${kelas}`}
+      // Teks sangat besar: blok jam disembunyikan EntityRow, jam pindah ke subjudul.
+      subtitle={`${bertumpuk ? `${schedule.start_time}–${schedule.end_time} · ` : ''}${schedule.place} · ${schedule.book}`}
+      pill={<StatusPill label={status.label} tone={NADA_PIL[status.nada]} icon={status.ikon} />}
+      value={status.perluAbsen ? 'Absen' : undefined}
+      valueTone="primary"
+      highlight={status.perluAbsen ? 'primary' : undefined}
+      onPress={onPress}
+      accessibilityLabel={[
+        `${schedule.subject}, ${kelas}`,
+        `${schedule.start_time} sampai ${schedule.end_time}`,
+        status.label,
+        status.perluAbsen ? 'ketuk untuk absen' : null,
+      ]
+        .filter(Boolean)
+        .join(', ')}
+    />
   );
 }
 
