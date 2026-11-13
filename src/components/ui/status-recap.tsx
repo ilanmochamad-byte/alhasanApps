@@ -1,6 +1,8 @@
 import { StyleSheet, View } from 'react-native';
 
 import type { AttendanceStatus } from '@/api/types';
+import { AppIcon } from '@/components/app-icon';
+import { IKON_KEHADIRAN } from '@/components/status-selector';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -70,7 +72,7 @@ export function StatusRecap({
           const persen = jumlahTotal > 0 ? Math.round((nilai / jumlahTotal) * 100) : 0;
           return (
             <View key={key} style={styles.legendRow}>
-              <View style={[styles.swatch, { backgroundColor: palette[key] }]} />
+              <AppIcon name={IKON_KEHADIRAN[key]} size={14} color={palette[key]} />
               <ThemedText selectable type="caption" style={styles.legendLabel}>
                 {key}
               </ThemedText>
@@ -94,7 +96,6 @@ const styles = StyleSheet.create({
   segment: { height: 14 },
   legend: { gap: 9 },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  swatch: { width: 11, height: 11, borderRadius: 3 },
   legendLabel: { flex: 1, fontSize: 13 },
   legendValue: { fontVariant: ['tabular-nums'] },
   // Lebar minimum (bukan tetap) agar "100%" pada teks besar tidak terpecah.

@@ -354,8 +354,7 @@ function PerizinanSession() {
       </KeyboardAwareScrollView>
 
       {dapatMengajukan && !fabTerlaluLebar ? (
-        /* K-8: tinggi bilah tab diambil sistem (lihat `FabArea`); di web bilah
-           navigasi berada di atas isi. FAB hilang saat kotak cari aktif. */
+        /* K-8: FAB di atas bilah tab dan hilang saat kotak cari aktif. */
         <FabArea hidden={Platform.OS === 'web' && cariAktif}>
           <Fab label="Ajukan izin" accessibilityLabel="Ajukan izin baru" onPress={ajukan} bottomOffset={16} />
         </FabArea>

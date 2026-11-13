@@ -25,9 +25,8 @@ export default function AppTabs() {
   const adaPerizinan = capabilities.list.length > 0;
 
   return (
-    // Redesain tampilan Fase 3: bilah navigasi web berada di alur tata letak
-    // (di atas konten), bukan lapisan absolut yang menutupi kepala layar.
     <Tabs style={styles.root}>
+      <TabSlot style={styles.slot} />
       <TabList asChild>
         <CustomTabList>
           <TabTrigger name="home" href="/" asChild>
@@ -52,18 +51,17 @@ export default function AppTabs() {
           </TabTrigger>
         </CustomTabList>
       </TabList>
-      <TabSlot style={styles.slot} />
     </Tabs>
   );
 }
 
 export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
   return (
-    <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
+    <Pressable {...props} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}>
       <ThemedView
         type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
         style={styles.tabButtonView}>
-        <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
+        <ThemedText type="small" style={styles.label} themeColor={isFocused ? 'text' : 'textSecondary'}>
           {children}
         </ThemedText>
       </ThemedView>
@@ -73,10 +71,8 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
 
 export function CustomTabList(props: TabListProps) {
   return (
-    <View {...props} style={styles.tabListContainer}>
+    <View {...props} testID="bilah-tab-web" style={styles.tabListContainer}>
       <ThemedView type="backgroundElement" style={styles.innerContainer}>
-        <ThemedText type="smallBold" style={styles.brandText}>Al Hasan</ThemedText>
-
         {props.children}
       </ThemedView>
     </View>
@@ -85,33 +81,36 @@ export function CustomTabList(props: TabListProps) {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  slot: { flex: 1 },
+  slot: { flex: 1, minHeight: 0 },
   tabListContainer: {
     width: '100%',
-    padding: Spacing.three,
+    padding: Spacing.two,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
   },
   innerContainer: {
     paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.five,
+    paddingHorizontal: Spacing.two,
     borderRadius: Spacing.five,
     flexDirection: 'row',
     alignItems: 'center',
-    flexGrow: 1,
+    width: '100%',
+    flexShrink: 1,
     gap: Spacing.two,
     maxWidth: MaxContentWidth,
   },
-  brandText: {
-    marginRight: 'auto',
-  },
+  tabButton: { flex: 1, minWidth: 44 },
+  label: { textAlign: 'center' },
   pressed: {
     opacity: 0.7,
   },
   tabButtonView: {
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.three,
+    paddingHorizontal: Spacing.one,
     borderRadius: Spacing.three,
   },
 });

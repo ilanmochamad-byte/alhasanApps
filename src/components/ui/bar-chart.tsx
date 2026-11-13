@@ -41,14 +41,14 @@ export function BarChart({
             accessibilityState={{ selected: aktif }}
             onPress={() => setTerpilih(aktif ? undefined : d.key)}
             style={styles.kolom}>
-            <ThemedText type="caption" numberOfLines={1} style={[styles.nilai, { color: theme.primary, opacity: aktif ? 1 : 0 }]}>
+            <ThemedText type="caption" style={[styles.nilai, { color: theme.primary, opacity: aktif ? 1 : 0 }]}>
               {nilai}
             </ThemedText>
             <View style={[styles.lintasan, { height, backgroundColor: theme.backgroundElement }]}>
               <View
                 style={[
                   styles.batang,
-                  { height: `${Math.max(rasio[i] * 100, d.value > 0 ? 3 : 0)}%`, backgroundColor: aktif ? theme.primary : theme.primaryBorder },
+                  { height: `${Math.max(rasio[i] * 100, d.value > 0 ? 3 : 0)}%`, backgroundColor: aktif ? theme.primary : theme.textSecondary },
                 ]}
               />
             </View>
@@ -63,9 +63,9 @@ export function BarChart({
 }
 
 const styles = StyleSheet.create({
-  grafik: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-  kolom: { flex: 1, alignItems: 'center', gap: 6, minHeight: 44 },
-  nilai: { fontWeight: '800', textAlign: 'center' },
+  grafik: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', gap: 8 },
+  kolom: { flexGrow: 1, flexBasis: 44, minWidth: 44, minHeight: 44, alignItems: 'center', gap: 6 },
+  nilai: { alignSelf: 'stretch', fontWeight: '800', textAlign: 'center' },
   lintasan: { alignSelf: 'stretch', borderRadius: Radius.sm, justifyContent: 'flex-end', overflow: 'hidden' },
   batang: { borderRadius: Radius.sm },
   label: { textAlign: 'center' },

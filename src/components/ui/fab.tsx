@@ -93,7 +93,8 @@ export function useKeyboardVisible() {
  *    menyusut ketika digulir);
  *  - Android: isi layar tab sudah dibungkus area aman bawah oleh native tabs,
  *    sehingga dasar wadah = tepi atas bilah Material 3;
- *  - web: bilah navigasi berada di atas isi, dasar wadah = dasar jendela.
+ *  - web: bilah tab berada sesudah isi dalam alur tata letak, sehingga
+ *    dasar wadah = tepi atas bilah tab.
  * FAB tidak digambar saat papan ketik terbuka atau `hidden` (kotak cari aktif).
  * Lapisan tidak menangkap sentuhan di luar tombol.
  */
