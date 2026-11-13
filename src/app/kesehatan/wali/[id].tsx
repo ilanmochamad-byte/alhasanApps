@@ -4,7 +4,7 @@ import { useCallback } from 'react';
 import { kesehatan } from '@/api/kesehatan';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { Halaman, KontenRingkasan } from '@/components/kesehatan-shared';
+import { Halaman, HalamanKeadaan, KontenRingkasan } from '@/components/kesehatan-shared';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { usePrivateResource } from '@/hooks/use-private-resource';
@@ -32,10 +32,10 @@ function Detail({ id }: { id: number }) {
     return hasil;
   }, [id, tujuanDibuka]);
   const { data, error, load } = usePrivateResource(fetcher);
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!data) return <LoadingState label="Memeriksa akses informasi kesehatan…" />;
+  if (error) return <HalamanKeadaan title="Informasi kesehatan"><ErrorState message={error} onRetry={() => void load()} /></HalamanKeadaan>;
+  if (!data) return <HalamanKeadaan title="Informasi kesehatan"><LoadingState label="Memeriksa akses informasi kesehatan…" /></HalamanKeadaan>;
   return (
-    <Halaman>
+    <Halaman title="Informasi kesehatan">
       <KontenRingkasan p={data} />
       <ThemedText type="caption" themeColor="textSecondary">Untuk pertanyaan, hubungi klinik pesantren.</ThemedText>
       <AppButton label="Muat ulang" variant="secondary" onPress={() => void load()} />

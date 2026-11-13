@@ -2,6 +2,7 @@ import { Stack } from 'expo-router/stack';
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
+import { HalamanKeadaan } from '@/components/kesehatan-shared';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -35,11 +36,21 @@ export default function KesehatanLayout() {
       }).catch(() => { /* No private screen is rendered on failure. */ });
     };
   }, [key, attempt]);
-  if (status === 'error') return <ErrorState message="Perlindungan informasi kesehatan belum tersedia. Perbarui aplikasi lalu buka kembali."
-    onRetry={() => { setStatus('loading'); setAttempt(v => v + 1); }} />;
-  if (status !== 'ready') return <LoadingState label="Menyiapkan perlindungan informasi kesehatan…" />;
+  // Saat perlindungan disiapkan atau gagal, kepala ← tetap tampil (K-10);
+  // isi kesehatan belum dipasang sama sekali.
+  if (status === 'error') {
+    return (
+      <HalamanKeadaan title="Kesehatan">
+        <ErrorState message="Perlindungan informasi kesehatan belum tersedia. Perbarui aplikasi lalu buka kembali."
+          onRetry={() => { setStatus('loading'); setAttempt(v => v + 1); }} />
+      </HalamanKeadaan>
+    );
+  }
+  if (status !== 'ready') return <HalamanKeadaan title="Kesehatan"><LoadingState label="Menyiapkan perlindungan informasi kesehatan…" /></HalamanKeadaan>;
+  // Redesain gelombang 2 Fase 4: setiap layar menggambar kepala `stack` sendiri
+  // (← · judul · ⋯); geser-tepi iOS dan tombol kembali Android tetap bekerja.
   return (
-    <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal', contentStyle: { backgroundColor: theme.background } }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
       <Stack.Screen name="index" options={{ title: 'Kesehatan' }} />
       <Stack.Screen name="daftar" options={{ title: 'Kunjungan klinik' }} />
       <Stack.Screen name="catat" options={{ title: 'Catatan kunjungan' }} />

@@ -4,11 +4,11 @@ import { View } from 'react-native';
 
 import { keamanan } from '@/api/keamanan';
 import { Baris, waktuPendek } from '@/components/kesehatan-shared';
-import { CatatanHanyaBaca, Halaman, Lencana } from '@/components/keamanan-shared';
+import { JudulBagianIsi, KartuIsi, KepalaRincian } from '@/components/halaman-stack';
+import { CatatanHanyaBaca, Halaman, HalamanKeadaan, Lencana, PilKerahasiaan } from '@/components/keamanan-shared';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { Badge, ChipRow } from '@/components/ui/chip';
-import { Card, Panel } from '@/components/ui/surface';
+import { Card } from '@/components/ui/surface';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { labelStatusKasus, nadaPembinaan } from '@/keamanan/format';
 
@@ -19,18 +19,15 @@ export default function KeamananKonselingDetailScreen() {
   const nomor = Number(id);
   const fetcher = useCallback(() => keamanan.konselingDetail(nomor), [nomor]);
   const { data, error, load } = usePrivateResource(fetcher);
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!data) return <LoadingState label="Memuat rincian kasus…" />;
+  if (error) return <HalamanKeadaan title="Rincian kasus"><ErrorState message={error} onRetry={() => void load()} /></HalamanKeadaan>;
+  if (!data) return <HalamanKeadaan title="Rincian kasus"><LoadingState label="Memuat rincian kasus…" /></HalamanKeadaan>;
   const k = data.kasus;
   return (
-    <Halaman>
-      <ThemedText type="h3">{k.santri_nama}</ThemedText>
-      <ChipRow>
-        <Lencana label={labelStatusKasus(k.status)} nada={nadaPembinaan(k.status)} />
-        <Badge label={k.kerahasiaan} />
-      </ChipRow>
-      <Panel>
-        <View style={{ gap: 10 }}>
+    <Halaman title="Rincian kasus">
+      <KepalaRincian nama={k.santri_nama} judul={k.santri_nama} keterangan={`${k.semester} ${k.tahun}`}
+        pills={<><Lencana label={labelStatusKasus(k.status)} nada={nadaPembinaan(k.status)} /><PilKerahasiaan label={k.kerahasiaan} /></>} />
+      <KartuIsi gap={0}>
+        <View>
           <Baris label="Santri" value={`${k.santri_nama} · ${k.semester} ${k.tahun}`} />
           <Baris label="Tujuan" value={k.tujuan} />
           <Baris label="Dibuka" value={waktuPendek(k.dibuka_pada)} />
@@ -38,10 +35,10 @@ export default function KeamananKonselingDetailScreen() {
           {k.ringkasan_penutupan ? <Baris label="Ringkasan penutupan" value={k.ringkasan_penutupan} /> : null}
           {k.alasan_pembatalan ? <Baris label="Alasan pembatalan" value={k.alasan_pembatalan} /> : null}
         </View>
-      </Panel>
+      </KartuIsi>
       <ThemedText type="h3">Sesi ({data.sesi.length})</ThemedText>
-      <Panel>
-        <View style={{ gap: 12 }}>
+      <KartuIsi gap={0}>
+        <View>
           {data.sesi.length === 0 ? <ThemedText themeColor="textSecondary">Belum ada sesi.</ThemedText> : null}
           {data.sesi.map(s => (
             <View key={s.id} style={{ gap: 2 }}>
@@ -53,8 +50,8 @@ export default function KeamananKonselingDetailScreen() {
             </View>
           ))}
         </View>
-      </Panel>
-      <ThemedText type="h3">Pelanggaran tertaut</ThemedText>
+      </KartuIsi>
+      <JudulBagianIsi title="Pelanggaran tertaut" />
       {data.tautan.length === 0 ? <ThemedText themeColor="textSecondary">Tidak ada pelanggaran tertaut.</ThemedText> : null}
       {data.tautan.map(t => (
         <Card key={t.pelanggaran_id} accessibilityLabel={`Buka pelanggaran ${t.kategori}`}
@@ -65,17 +62,17 @@ export default function KeamananKonselingDetailScreen() {
           </View>
         </Card>
       ))}
-      <ThemedText type="h3">Linimasa</ThemedText>
-      <Panel>
-        <View style={{ gap: 8 }}>
+      <JudulBagianIsi title="Linimasa" />
+      <KartuIsi gap={0}>
+        <View>
           {data.linimasa.map((e, i) => <ThemedText key={i}>{waktuPendek(e.waktu)} · {e.jenis}</ThemedText>)}
         </View>
-      </Panel>
+      </KartuIsi>
       {data.riwayat_revisi.length > 0 ? (
         <>
-          <ThemedText type="h3">Riwayat revisi kasus</ThemedText>
-          <Panel>
-            <View style={{ gap: 8 }}>
+          <JudulBagianIsi title="Riwayat revisi kasus" />
+          <KartuIsi gap={0}>
+            <View>
               {data.riwayat_revisi.map((r, i) => (
                 <View key={i} style={{ gap: 2 }}>
                   <ThemedText type="bodyBold">Revisi dari versi {r.versi_sebelum}</ThemedText>
@@ -84,7 +81,7 @@ export default function KeamananKonselingDetailScreen() {
                 </View>
               ))}
             </View>
-          </Panel>
+          </KartuIsi>
         </>
       ) : null}
       <CatatanHanyaBaca text="Hanya baca. Pembukaan rincian ini tercatat di jejak audit tanpa isi. Kasus Rahasia tidak pernah ditampilkan kepada Keamanan." />

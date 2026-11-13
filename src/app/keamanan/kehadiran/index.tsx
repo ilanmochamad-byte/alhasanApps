@@ -1,18 +1,17 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { View } from 'react-native';
 
 import { keamanan } from '@/api/keamanan';
 import { AppButton } from '@/components/app-button';
 import { Pager } from '@/components/izin-wali-shared';
 import { tanggalPanjang } from '@/components/kesehatan-shared';
-import { CatatanHanyaBaca, Halaman, Lencana } from '@/components/keamanan-shared';
+import { TombolMuatUlangKepala } from '@/components/halaman-stack';
+import { CatatanHanyaBaca, Halaman, KolomCariSantri, Lencana } from '@/components/keamanan-shared';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { Chip, ChipRow } from '@/components/ui/chip';
-import { Field } from '@/components/ui/app-field';
 import { DateField } from '@/components/ui/date-field';
-import { Card } from '@/components/ui/surface';
+import { EntityRow } from '@/components/ui/entity-row';
+import { FilterPills } from '@/components/ui/filter-pills';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { nadaKehadiran, periksaRentang, STATUS_KEHADIRAN } from '@/keamanan/format';
 
@@ -36,27 +35,23 @@ export default function KeamananKehadiranScreen() {
     const pesan = periksaRentang(dari, sampai);
     setGalat(pesan);
     if (pesan === null) { setTerapan({ dari, sampai }); setPage(1); }
+    return pesan === null;
   };
   return (
-    <Halaman>
-      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
-        <View style={{ flex: 1 }}>
-          <Field label="Cari santri" accessibilityLabel="Cari santri menurut nama atau NIS" value={cari} onChangeText={setCari}
-            placeholder="Nama atau NIS santri" maxLength={100} autoCorrect={false} returnKeyType="search"
-            onSubmitEditing={() => { setQ(cari.trim()); setPage(1); }} />
-        </View>
-        <AppButton label="Cari" size="sm" variant="secondary" onPress={() => { setQ(cari.trim()); setPage(1); }} />
-      </View>
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <View style={{ flex: 1 }}><DateField label="Dari" value={dari} onChange={setDari} /></View>
-        <View style={{ flex: 1 }}><DateField label="Sampai" value={sampai} onChange={setSampai} /></View>
-      </View>
-      <AppButton label="Terapkan tanggal" size="sm" variant="secondary" onPress={terapkan} />
+    <Halaman title="Kehadiran pengajian" subtitle="Hanya melihat" actions={<TombolMuatUlangKepala onPress={() => void load()} />}>
+      <KolomCariSantri label="Cari santri menurut nama atau NIS" value={cari} onChange={setCari} onCari={() => { setQ(cari.trim()); setPage(1); }}
+        filterActive={terapan.dari !== '' || terapan.sampai !== ''}
+        filter={tutup => (
+          <>
+            <DateField label="Dari" value={dari} onChange={setDari} />
+            <DateField label="Sampai" value={sampai} onChange={setSampai} />
+            {galat ? <ThemedText accessibilityRole="alert" themeColor="danger">{galat}</ThemedText> : null}
+            <AppButton label="Terapkan tanggal" onPress={() => { if (terapkan()) tutup(); }} />
+          </>
+        )} />
       {galat ? <ThemedText accessibilityRole="alert" themeColor="danger">{galat}</ThemedText> : null}
-      <ChipRow>
-        <Chip accessibilityRole="radio" label="Semua status" selected={status === ''} onPress={() => { setStatus(''); setPage(1); }} />
-        {STATUS_KEHADIRAN.map(s => <Chip key={s} accessibilityRole="radio" label={s} selected={status === s} onPress={() => { setStatus(s); setPage(1); }} />)}
-      </ChipRow>
+      <FilterPills bungkus accessibilityLabel="Status kehadiran" value={status} onChange={v => { setStatus(v); setPage(1); }}
+        options={[{ value: '', label: 'Semua status' }, ...STATUS_KEHADIRAN.map(s => ({ value: s as string, label: s as string }))]} />
       {error ? <ErrorState message={error} onRetry={() => void load()} /> : !data ? <LoadingState label="Memuat kehadiran…" /> : (
         <>
           <ThemedText type="caption" themeColor="textSecondary">
@@ -65,18 +60,13 @@ export default function KeamananKehadiranScreen() {
           <ThemedText type="caption" themeColor="textSecondary">
             {STATUS_KEHADIRAN.map(s => `${s} ${data.summary.statuses[s] ?? 0}`).join(' · ')}
           </ThemedText>
-          {data.items.length === 0 ? <EmptyState title="Belum ada catatan kehadiran" message="Tidak ada catatan kehadiran pada rentang dan status ini." /> : null}
+          {data.items.length === 0 ? <EmptyState icon="calendar" title="Belum ada catatan kehadiran" message="Tidak ada catatan kehadiran pada rentang dan status ini." /> : null}
           {data.items.map(r => (
-            <Card key={r.attendance_id} accessibilityLabel={`Buka pertemuan ${r.subject} ${r.meeting_date}`}
-              onPress={() => router.push({ pathname: '/keamanan/kehadiran/[id]', params: { id: String(r.meeting_id) } })}>
-              <View style={{ gap: 6 }}>
-                <ThemedText type="bodyBold">{r.subject_name}</ThemedText>
-                <ThemedText type="caption" themeColor="textSecondary">
-                  {tanggalPanjang(r.meeting_date)} · {r.subject} · {r.class_name} · {r.teacher_name}
-                </ThemedText>
-                <ChipRow><Lencana label={r.attendance_status} nada={nadaKehadiran(r.attendance_status)} /></ChipRow>
-              </View>
-            </Card>
+            <EntityRow key={r.attendance_id} avatarName={r.subject_name} title={r.subject_name}
+              subtitle={`${tanggalPanjang(r.meeting_date)} · ${r.subject} · ${r.class_name} · ${r.teacher_name}`}
+              accessibilityLabel={`Buka pertemuan ${r.subject} ${r.meeting_date}`}
+              onPress={() => router.push({ pathname: '/keamanan/kehadiran/[id]', params: { id: String(r.meeting_id) } })}
+              pill={<Lencana label={r.attendance_status} nada={nadaKehadiran(r.attendance_status)} />} />
           ))}
           <Pager page={data.pagination.current_page} total={data.pagination.total} perPage={data.pagination.per_page} onChange={setPage} />
         </>

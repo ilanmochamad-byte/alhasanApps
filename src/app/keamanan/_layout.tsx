@@ -7,7 +7,8 @@ export default function KeamananLayout() {
   const theme = useTheme();
   return (
     <KeamananProtection>
-    <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal', contentStyle: { backgroundColor: theme.background } }}>
+    {/* Redesain gelombang 2 Fase 4: setiap layar menggambar kepala `stack` sendiri. */}
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
       <Stack.Screen name="index" options={{ title: 'Keamanan' }} />
       <Stack.Screen name="kehadiran/index" options={{ title: 'Kehadiran pengajian' }} />
       <Stack.Screen name="kehadiran/[id]" options={{ title: 'Rincian pertemuan' }} />

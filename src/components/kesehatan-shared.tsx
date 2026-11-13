@@ -1,14 +1,19 @@
-import { useCallback, useEffect, useState, type PropsWithChildren, type ReactNode } from 'react';
-import { AppState, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, type ReactNode } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
 import { kesehatan, type Akses, type AksesWali, type Proyeksi } from '@/api/kesehatan';
+import { AppIcon } from '@/components/app-icon';
+import { HalamanStack, HalamanStackKeadaan, type KepalaHalaman } from '@/components/halaman-stack';
 import { ThemedText } from '@/components/themed-text';
-import { Badge } from '@/components/ui/chip';
+import { Notice } from '@/components/ui/notice';
+import { StatusPill } from '@/components/ui/status-pill';
 import { Panel } from '@/components/ui/surface';
+import { Radius } from '@/constants/theme';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { useTheme } from '@/hooks/use-theme';
 import type { StatusPembinaan } from '@/lib/home-menu';
+import { nadaStatusKesehatan } from '@/kesehatan/forms';
 
 // Komponen bersama layar kesehatan V5. Isi klinis tidak dibuat `selectable`
 // (tidak ada salin otomatis) dan tidak pernah dicetak ke konsol/log.
@@ -32,60 +37,69 @@ export function useKesehatanAkses() {
 export type AksesGabungan = { akses: Akses | null; wali: AksesWali | null };
 
 /**
- * Halaman kesehatan. Saat aplikasi tidak aktif (pengalih aplikasi, layar
- * kunci), isi ditutup agar cuplikan layar OS tidak memuat isi kesehatan;
- * isian formulir tetap utuh di bawah penutup.
+ * Halaman kesehatan (redesain gelombang 2 Fase 4): kepala ← · judul · ⋯ di
+ * luar area gulir (K-7, K-10). Saat aplikasi tidak aktif (pengalih aplikasi,
+ * layar kunci), isi ditutup agar cuplikan layar OS tidak memuat isi
+ * kesehatan; isian formulir tetap utuh di bawah penutup.
  */
-export function Halaman({ children }: PropsWithChildren) {
+export function Halaman({ children, ...kepala }: KepalaHalaman & { bawah?: ReactNode; children: ReactNode }) {
+  return <HalamanStack {...kepala} penutup="Informasi kesehatan disembunyikan.">{children}</HalamanStack>;
+}
+
+/** Memuat/galat/kosong/ditolak dalam kerangka yang sama: ← tetap terjangkau. */
+export function HalamanKeadaan({ children, ...kepala }: KepalaHalaman & { children: ReactNode }) {
+  return <HalamanStackKeadaan {...kepala}>{children}</HalamanStackKeadaan>;
+}
+
+/** Pesan hasil/galat: ikon + teks (bukan warna saja). */
+export function Pesan({ text, tone = 'info' }: { text: string | null; tone?: 'info' | 'danger' | 'success' }) {
+  if (!text) return null;
+  return <Notice text={text} tone={tone} />;
+}
+
+/** Tombol "Cari" di dalam kolom cari: pencarian lewat server, bukan saringan lokal. */
+export function TombolCariKecil({ onPress }: { onPress: () => void }) {
   const theme = useTheme();
-  const [aktif, setAktif] = useState(AppState.currentState === 'active' || AppState.currentState === undefined);
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', state => setAktif(state === 'active'));
-    return () => sub.remove();
-  }, []);
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: theme.background }}
-        contentContainerStyle={styles.page}>
-        {children}
-      </ScrollView>
-      {!aktif ? (
-        <View style={[StyleSheet.absoluteFill, styles.cover, { backgroundColor: theme.background }]} accessibilityElementsHidden>
-          <ThemedText themeColor="textSecondary">Informasi kesehatan disembunyikan.</ThemedText>
-        </View>
-      ) : null}
-    </View>
+    <Pressable accessibilityRole="button" accessibilityLabel="Cari" onPress={onPress} hitSlop={4}
+      style={({ pressed }) => [styles.cari, { backgroundColor: theme.primary, opacity: pressed ? 0.8 : 1 }]}>
+      <ThemedText type="labelSmall" style={{ color: theme.onPrimary, fontWeight: '800' }}>Cari</ThemedText>
+    </Pressable>
   );
 }
 
-export function Pesan({ text, tone = 'info' }: { text: string | null; tone?: 'info' | 'danger' | 'success' }) {
-  if (!text) return null;
-  return <ThemedText accessibilityRole="alert" themeColor={tone === 'danger' ? 'danger' : tone === 'success' ? 'success' : 'textSecondary'}>{text}</ThemedText>;
-}
-
 /** Label + nilai. Nilai kosong ditampilkan "—", sama dengan web. */
-export function Baris({ label, value }: { label: string; value: ReactNode }) {
+export function Baris({ label, value, last }: { label: string; value: ReactNode; last?: boolean }) {
+  const theme = useTheme();
   return (
-    <View style={styles.row}>
-      <ThemedText type="caption" themeColor="textSecondary">{label}</ThemedText>
+    <View style={[styles.row, !last && { borderBottomWidth: 1, borderBottomColor: theme.divider }]}>
+      <ThemedText type="labelSmall" themeColor="textSecondary">{label}</ThemedText>
       {typeof value === 'string' || value === null || value === undefined
-        ? <ThemedText>{value === null || value === undefined || value === '' ? '—' : value}</ThemedText>
+        ? <ThemedText type="bodyBold">{value === null || value === undefined || value === '' ? '—' : value}</ThemedText>
         : value}
     </View>
   );
 }
 
+/** Pil status kesehatan: ikon + teks. Draf/menunggu = jam, tercatat/berlaku = centang, ditarik/berakhir = silang. */
 export function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'Draf' || status === 'Menunggu hasil' || status === 'Terbuka' ? 'warning'
-    : status === 'Ditarik' || status === 'Dinonaktifkan' || status === 'Berakhir' ? 'danger'
-    : status === 'Tercatat' || status === 'Terbit' || status === 'Aktif' || status === 'Hasil diketahui' || status === 'Selesai' ? 'primary' : 'neutral';
-  return <Badge label={status} tone={tone} />;
+  return <StatusPill label={status} tone={nadaStatusKesehatan(status)} />;
+}
+
+/** Penanda kecil (jumlah obat, rujukan, "Perlu perhatian"): ikon + teks. */
+export function Penanda({ label, nada = 'neutral' }: { label: string; nada?: 'neutral' | 'warning' | 'danger' | 'success' }) {
+  return <StatusPill label={label} tone={nada} icon={nada === 'neutral' ? 'info' : undefined} />;
 }
 
 /** Proyeksi wali — dipakai pratinjau petugas, versi berlaku internal, dan layar wali sehingga ketiganya identik. */
 export function KontenRingkasan({ p }: { p: Proyeksi }) {
   return (
-    <Panel style={{ gap: 12 }}>
+    <Panel style={{ gap: 4 }}>
+      <View style={styles.kop}>
+        <AppIcon name="medical" size={20} themeColor="primary" />
+        <ThemedText type="bodyBold" style={{ flex: 1 }}>Informasi kesehatan untuk orang tua</ThemedText>
+        <StatusBadge status={p.status} />
+      </View>
       <Baris label="Santri" value={p.santri.nama} />
       <Baris label="Tanggal kunjungan klinik" value={tanggalPanjang(p.tanggal_kunjungan)} />
       <Baris label="Dari" value="Klinik Pesantren Al Hasan" />
@@ -122,7 +136,7 @@ export function waktuPendek(nilai: string | null): string {
 }
 
 const styles = StyleSheet.create({
-  page: { padding: 18, gap: 14, maxWidth: 800, width: '100%', alignSelf: 'center', paddingBottom: 70 },
-  row: { gap: 3 },
-  cover: { alignItems: 'center', justifyContent: 'center' },
+  row: { gap: 3, paddingVertical: 10 },
+  cari: { minHeight: 44, minWidth: 60, paddingHorizontal: 14, borderRadius: Radius.pill, alignItems: 'center', justifyContent: 'center', marginVertical: -6 },
+  kop: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 6 },
 });

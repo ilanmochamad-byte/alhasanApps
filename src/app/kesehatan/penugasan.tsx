@@ -4,13 +4,14 @@ import { View } from 'react-native';
 import { kesehatan, type DaftarPenugasan, type Penugasan } from '@/api/kesehatan';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { Halaman, Pesan, StatusBadge, tanggalPanjang } from '@/components/kesehatan-shared';
+import { Halaman, HalamanKeadaan, Pesan, StatusBadge, tanggalPanjang } from '@/components/kesehatan-shared';
 import { PrivateField } from '@/components/private-field';
 import { EmptyState, ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { Chip, ChipRow } from '@/components/ui/chip';
 import { DateField } from '@/components/ui/date-field';
 import { DropdownField } from '@/components/ui/dropdown-field';
+import { FilterPills } from '@/components/ui/filter-pills';
 import { Card, Panel } from '@/components/ui/surface';
 import { useMutationGuard } from '@/hooks/use-mutation-guard';
 import { usePrivateResource } from '@/hooks/use-private-resource';
@@ -37,16 +38,16 @@ function Kelola() {
   const [pesan, setPesan] = useState<string | null>(null);
   const fetcher = useCallback(() => kesehatan.penugasan(status, page), [status, page]);
   const { data, error, load } = usePrivateResource<DaftarPenugasan>(fetcher);
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!data) return <LoadingState label="Memuat penugasan…" />;
+  if (error) return <HalamanKeadaan title="Penugasan kesehatan"><ErrorState message={error} onRetry={() => void load()} /></HalamanKeadaan>;
+  if (!data) return <HalamanKeadaan title="Penugasan kesehatan"><LoadingState label="Memuat penugasan…" /></HalamanKeadaan>;
   const total = Math.max(1, Math.ceil(data.total / data.per_page));
   const selesai = (teks: string) => { setPesan(teks); void load(); };
   return (
-    <Halaman>
+    <Halaman title="Penugasan kesehatan">
       <Pesan text={pesan} tone="success" />
       <FormBaru opsi={data.opsi} onSelesai={selesai} />
       <ThemedText type="h3">Penugasan ({data.total})</ThemedText>
-      <ChipRow>{STATUS.map(s => <Chip key={s.value} label={s.label} selected={status === s.value} onPress={() => { setStatus(s.value); setPage(1); }} />)}</ChipRow>
+      <FilterPills bungkus accessibilityLabel="Saring status penugasan" options={STATUS} value={status} onChange={v => { setStatus(v); setPage(1); }} />
       {data.rows.length === 0 ? <EmptyState title="Belum ada penugasan" message="Tambahkan pengurus sebagai petugas kesehatan." /> : null}
       {data.rows.map(p => <BarisPenugasan key={`${p.id}:${p.diperbarui_pada}`} p={p} onSelesai={selesai} />)}
       {total > 1 ? (
@@ -119,8 +120,8 @@ function BarisPenugasan({ p, onSelesai }: { p: Penugasan; onSelesai: (pesan: str
         {p.alasan_pengakhiran ? <ThemedText>Alasan pengakhiran: {p.alasan_pengakhiran}</ThemedText> : null}
         {aksi === null ? (
           <ChipRow>
-            {p.aktif && p.status !== 'Berakhir' ? <Chip label="Akhiri" onPress={() => setAksi('akhiri')} /> : null}
-            {p.aktif ? <Chip label="Nonaktifkan" onPress={() => setAksi('nonaktifkan')} /> : <Chip label="Aktifkan kembali" onPress={() => setAksi('aktifkan')} />}
+            {p.aktif && p.status !== 'Berakhir' ? <Chip label="Akhiri" style={sentuh} onPress={() => setAksi('akhiri')} /> : null}
+            {p.aktif ? <Chip label="Nonaktifkan" style={sentuh} onPress={() => setAksi('nonaktifkan')} /> : <Chip label="Aktifkan kembali" style={sentuh} onPress={() => setAksi('aktifkan')} />}
           </ChipRow>
         ) : (
           <View style={{ gap: 10 }}>
@@ -135,3 +136,6 @@ function BarisPenugasan({ p, onSelesai }: { p: Penugasan; onSelesai: (pesan: str
     </Card>
   );
 }
+
+/** Target sentuh ≥ 44 pt untuk chip tindakan (aturan aksesibilitas gelombang 1). */
+const sentuh = { minHeight: 44, minWidth: 44 };

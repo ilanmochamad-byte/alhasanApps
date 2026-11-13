@@ -28,6 +28,7 @@ export function EntityRow({
   highlight,
   onPress,
   accessibilityLabel,
+  accessibilityHint,
   accessibilityRole,
   selected,
 }: {
@@ -53,6 +54,8 @@ export function EntityRow({
   highlight?: 'warning' | 'primary';
   onPress?: () => void;
   accessibilityLabel?: string;
+  /** Keterangan tambahan yang dibacakan sesudah nama (mis. kerahasiaan kasus). */
+  accessibilityHint?: string;
   /** `radio` untuk baris pilihan tunggal (mis. pilih santri). */
   accessibilityRole?: 'button' | 'radio';
   selected?: boolean;
@@ -85,6 +88,7 @@ export function EntityRow({
       accessibilityState={accessibilityRole === 'radio' ? { selected: Boolean(selected) } : undefined}
       aria-checked={accessibilityRole === 'radio' ? Boolean(selected) : undefined}
       accessibilityLabel={accessibilityLabel ?? [title, subtitle, value].filter(Boolean).join(', ')}
+      accessibilityHint={accessibilityHint}
       disabled={!onPress}
       onPress={onPress}
       style={({ pressed }) => [

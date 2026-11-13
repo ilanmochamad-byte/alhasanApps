@@ -5,13 +5,17 @@ import { View } from 'react-native';
 import { kesehatan, type PenyaringLaporan, type Tertunda } from '@/api/kesehatan';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { Baris, Halaman, StatusBadge, tanggalPanjang, waktuPendek } from '@/components/kesehatan-shared';
+import { KartuIsi, TombolMuatUlangKepala } from '@/components/halaman-stack';
+import { Baris, Halaman, HalamanKeadaan, StatusBadge, tanggalPanjang, waktuPendek } from '@/components/kesehatan-shared';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { Badge, ChipRow } from '@/components/ui/chip';
 import { DateField } from '@/components/ui/date-field';
 import { DropdownField } from '@/components/ui/dropdown-field';
-import { Segmented } from '@/components/ui/segmented';
+import { BarChart } from '@/components/ui/bar-chart';
+import { FilterPills } from '@/components/ui/filter-pills';
+import { HeroCard } from '@/components/ui/hero-card';
+import { StatGrid } from '@/components/ui/stat-card';
 import { Card, Panel } from '@/components/ui/surface';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { namaBulan, periodeLaporan, type PresetPeriode } from '@/kesehatan/forms';
@@ -30,6 +34,7 @@ export default function LaporanScreen() {
 const PRESET: { value: PresetPeriode | 'atur'; label: string }[] = [
   { value: 'bulan_ini', label: 'Bulan ini' }, { value: 'bulan_lalu', label: 'Bulan lalu' }, { value: '30_hari', label: '30 hari' }, { value: 'atur', label: 'Atur' },
 ];
+const JUDUL = 'Laporan layanan klinik';
 const angka = (n: number) => n.toLocaleString('id-ID');
 
 function LaporanKlinik() {
@@ -49,14 +54,17 @@ function LaporanKlinik() {
   const buka = (id: number) => router.push({ pathname: '/kesehatan/kunjungan/[id]', params: { id: String(id) } });
 
   if (error) {
-    return <ErrorState message={error} onRetry={() => { const awal = { ...periodeLaporan('bulan_ini'), kelas_id: '' }; setPreset('bulan_ini'); setIsian(awal); setTerapan(awal); void load(); }} />;
+    return (
+      <HalamanKeadaan title={JUDUL}>
+        <ErrorState message={error} onRetry={() => { const awal = { ...periodeLaporan('bulan_ini'), kelas_id: '' }; setPreset('bulan_ini'); setIsian(awal); setTerapan(awal); void load(); }} />
+      </HalamanKeadaan>
+    );
   }
   const binaan = data?.akses.cakupan === 'binaan';
   return (
-    <Halaman>
-      <ThemedText type="h3">Laporan layanan klinik</ThemedText>
-      <Panel style={{ gap: 12 }}>
-        <Segmented options={PRESET} value={preset} onChange={pilihPreset} variant="radio" accessibilityLabel="Periode laporan" />
+    <Halaman title={JUDUL} actions={<TombolMuatUlangKepala onPress={() => void load()} />}>
+      <FilterPills bungkus options={PRESET} value={preset} onChange={pilihPreset} accessibilityLabel="Periode laporan" />
+      <KartuIsi>
         {preset === 'atur' ? (
           <>
             <DateField label="Dari tanggal" value={isian.dari} onChange={dari => setIsian({ ...isian, dari })} />
@@ -67,13 +75,21 @@ function LaporanKlinik() {
           options={[{ value: '', label: 'Semua kelas' }, ...(data?.kelas_pilihan ?? []).map(k => ({ value: String(k.id), label: k.nama })), { value: 'tanpa', label: 'Belum ditempatkan' }]}
           onChange={kelas_id => setIsian({ ...isian, kelas_id })} />
         <AppButton label="Terapkan" icon="filter" onPress={() => setTerapan(isian)} />
-      </Panel>
+      </KartuIsi>
       {!data ? <LoadingState label="Menyusun laporan…" /> : (
         <>
           <ThemedText themeColor="textSecondary">
             {tanggalPanjang(data.periode.dari)} – {tanggalPanjang(data.periode.sampai)} ({data.periode.hari} hari).{' '}
             {binaan ? 'Kunjungan tercatat santri binaan Anda saja.' : 'Seluruh santri.'} Tanpa isi klinis.
           </ThemedText>
+          {/* Angka utama langsung dari respons server; tanpa pembanding karangan. */}
+          <HeroCard overline="Jumlah kunjungan" value={angka(data.kunjungan.total)} caption={`${angka(data.kunjungan.santri)} santri · ${data.periode.hari} hari`} />
+          <StatGrid items={[
+            { icon: 'arrow-right', label: 'Rujukan', value: angka(data.rujukan.total), tone: 'info', labelDulu: true },
+            { icon: 'medical', label: 'Dengan obat', value: angka(data.kunjungan.dengan_obat), tone: 'primary', labelDulu: true },
+            { icon: 'refresh', label: 'Dikoreksi', value: angka(data.kunjungan.dikoreksi), tone: 'violet', labelDulu: true },
+            ...(data.kunjungan.draf !== null ? [{ icon: 'clock' as const, label: 'Draf', value: angka(data.kunjungan.draf), tone: 'warning' as const, labelDulu: true }] : []),
+          ]} />
           <Panel style={{ gap: 10 }}>
             <ThemedText type="bodyBold">Kunjungan</ThemedText>
             <Baris label="Kunjungan" value={`${angka(data.kunjungan.total)} (${angka(data.kunjungan.santri)} santri)`} />
@@ -97,6 +113,20 @@ function LaporanKlinik() {
           ) : null}
           <DaftarTertunda judul="Rujukan menunggu hasil" data={data.tertunda.rujukan} tanggal="Dirujuk sejak" kosong="Tidak ada rujukan yang menunggu hasil." buka={buka} />
           <DaftarTertunda judul="Tindak lanjut belum selesai" data={data.tertunda.tindak_lanjut} tanggal="Target terdekat" kosong="Tidak ada tindak lanjut yang terbuka." buka={buka} />
+          {data.per_kelas.length > 1 ? (
+            <KartuIsi>
+              <ThemedText type="bodyBold">Kunjungan per kelas</ThemedText>
+              <BarChart accessibilityLabel="Grafik kunjungan per kelas saat ini"
+                data={data.per_kelas.map(r => ({ key: String(r.kelas?.id ?? 'tanpa'), label: r.kelas?.nama ?? 'Belum ditempatkan', value: r.kunjungan, display: angka(r.kunjungan) }))} />
+            </KartuIsi>
+          ) : null}
+          {data.per_bulan.length > 1 ? (
+            <KartuIsi>
+              <ThemedText type="bodyBold">Kunjungan per bulan</ThemedText>
+              <BarChart accessibilityLabel="Grafik kunjungan per bulan"
+                data={data.per_bulan.map(r => ({ key: r.bulan, label: namaBulan(r.bulan), value: r.kunjungan, display: angka(r.kunjungan) }))} />
+            </KartuIsi>
+          ) : null}
           <Panel style={{ gap: 8 }}>
             <ThemedText type="bodyBold">Per kelas saat ini</ThemedText>
             {data.per_kelas.length === 0 ? <ThemedText themeColor="textSecondary">Tidak ada kunjungan.</ThemedText> : data.per_kelas.map(r => (
@@ -132,7 +162,6 @@ function LaporanKlinik() {
               ))}
             </Panel>
           ) : null}
-          <AppButton label="Muat ulang" variant="secondary" onPress={() => void load()} />
         </>
       )}
     </Halaman>

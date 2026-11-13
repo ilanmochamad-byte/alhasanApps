@@ -143,3 +143,16 @@ export function namaBulan(bulan: string): string {
   const m = /^(\d{4})-(\d{2})$/.exec(bulan);
   return m ? `${NAMA_BULAN[Number(m[2]) - 1] ?? m[2]} ${m[1]}` : bulan;
 }
+
+/**
+ * Nada pil status kesehatan (redesain gelombang 2 Fase 4). Hanya tampilan:
+ * status tetap teks dari server. Draf/menunggu/terbuka = jam (warning),
+ * ditarik/dinonaktifkan/berakhir = silang (danger), tercatat/terbit/aktif/
+ * diketahui/selesai = centang (success), lainnya netral.
+ */
+export function nadaStatusKesehatan(status: string): 'success' | 'warning' | 'danger' | 'neutral' {
+  if (status === 'Draf' || status === 'Menunggu hasil' || status === 'Terbuka' || status === 'Akan datang') return 'warning';
+  if (status === 'Ditarik' || status === 'Dinonaktifkan' || status === 'Berakhir') return 'danger';
+  if (status === 'Tercatat' || status === 'Terbit' || status === 'Aktif' || status === 'Hasil diketahui' || status === 'Selesai') return 'success';
+  return 'neutral';
+}

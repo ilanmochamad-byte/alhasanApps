@@ -6,11 +6,13 @@ import { actionableError } from '@/api/client';
 import { kesehatan, type IsianRingkasan, type Pratinjau, type RingkasanInternal } from '@/api/kesehatan';
 import { useAuth } from '@/auth/auth-context';
 import { AppButton } from '@/components/app-button';
-import { Halaman, KontenRingkasan, Pesan, StatusBadge, tanggalPanjang, waktuPendek } from '@/components/kesehatan-shared';
+import { BarisPilIsi, TombolMuatUlangKepala } from '@/components/halaman-stack';
+import { Halaman, HalamanKeadaan, KontenRingkasan, Pesan, StatusBadge, tanggalPanjang, waktuPendek } from '@/components/kesehatan-shared';
 import { PrivateField } from '@/components/private-field';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { Chip, ChipRow } from '@/components/ui/chip';
+import { Chip } from '@/components/ui/chip';
+import { Notice } from '@/components/ui/notice';
 import { Divider, Panel } from '@/components/ui/surface';
 import { useMutationGuard } from '@/hooks/use-mutation-guard';
 import { usePrivateResource } from '@/hooks/use-private-resource';
@@ -28,6 +30,7 @@ export default function RingkasanScreen() {
   return <Ringkasan key={`${profile?.id}:${id}`} id={Number(id)} />;
 }
 
+const JUDUL = 'Ringkasan untuk wali';
 const KOSONG = { ringkasan: '', tindakan_umum: '', tindak_lanjut_wali: '', alasan: '' };
 
 function Ringkasan({ id }: { id: number }) {
@@ -47,8 +50,8 @@ function Ringkasan({ id }: { id: number }) {
   const { data, error, load } = usePrivateResource<RingkasanInternal>(fetcher, bersihkan, true);
   const terbit = useMutationGuard('kesehatan-terbit');
   const tarik = useMutationGuard('kesehatan-tarik');
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!data) return <LoadingState label="Memuat ringkasan untuk wali…" />;
+  if (error) return <HalamanKeadaan title={JUDUL}><ErrorState message={error} onRetry={() => void load()} /></HalamanKeadaan>;
+  if (!data) return <HalamanKeadaan title={JUDUL}><LoadingState label="Memuat ringkasan untuk wali…" /></HalamanKeadaan>;
 
   const kepala = data.ringkasan;
   const penggantian = kepala !== null;
@@ -84,12 +87,13 @@ function Ringkasan({ id }: { id: number }) {
   }
 
   return (
-    <Halaman>
+    <Halaman title={JUDUL} actions={<TombolMuatUlangKepala onPress={() => { bersihkan(); setPesan(null); void load(); }} />}>
       <ThemedText type="h3">{data.kunjungan.santri.nama} · {tanggalPanjang(data.kunjungan.tanggal)}</ThemedText>
-      <ChipRow>
+      <BarisPilIsi>
         {kepala ? <StatusBadge status={kepala.status} /> : <StatusBadge status="Belum terbit" />}
         {data.akses.catat ? null : <StatusBadge status="Hanya baca" />}
-      </ChipRow>
+      </BarisPilIsi>
+      <Notice tone="info" icon="users" text="Ringkasan untuk wali terpisah dari catatan klinis: hanya isi di bawah ini yang dilihat orang tua." />
       <Pesan text={pesan} />
 
       <ThemedText type="h3">Yang dilihat wali saat ini</ThemedText>
@@ -116,7 +120,7 @@ function Ringkasan({ id }: { id: number }) {
               <ThemedText type="h3">Pratinjau — persis seperti dilihat wali</ThemedText>
               <KontenRingkasan p={pratinjau.pratinjau} />
               <ThemedText>Penerima berakun yang berhak saat ini: {pratinjau.penerima}. Notifikasi berisi pemberitahuan umum tanpa isi kesehatan.</ThemedText>
-              <Chip label="Saya sudah memeriksa pratinjau dan ingin menerbitkannya" accessibilityRole="radio" selected={konfirmasi} onPress={() => setKonfirmasi(!konfirmasi)} />
+              <Chip style={{ minHeight: 44 }} label="Saya sudah memeriksa pratinjau dan ingin menerbitkannya" accessibilityRole="radio" selected={konfirmasi} onPress={() => setKonfirmasi(!konfirmasi)} />
               <AppButton label={penggantian ? 'Terbitkan versi baru' : 'Terbitkan'} loading={terbit.isBusy} disabled={!konfirmasi || terbit.isBusy} onPress={() => void terbitkan()} />
             </View>
           ) : null}
@@ -161,7 +165,6 @@ function Ringkasan({ id }: { id: number }) {
           ))}
         </Panel>
       ) : null}
-      <AppButton label="Muat ulang" variant="secondary" onPress={() => { bersihkan(); setPesan(null); void load(); }} />
     </Halaman>
   );
 }

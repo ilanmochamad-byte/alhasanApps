@@ -17,6 +17,7 @@ export function FilterPills<T extends string>({
   onChange,
   accessibilityLabel,
   role = 'radio',
+  bungkus = false,
 }: {
   options: FilterPillOption<T>[];
   value: T;
@@ -24,6 +25,11 @@ export function FilterPills<T extends string>({
   accessibilityLabel?: string;
   /** `tab` bila pil mengganti kelompok isi (tab kelas asal); bawaan `radio`. */
   role?: 'radio' | 'tab';
+  /**
+   * Selalu membungkus ke baris berikutnya (bukan digeser ke samping), mis.
+   * pil status berangka yang harus terlihat semua tanpa melewati lebar layar.
+   */
+  bungkus?: boolean;
 }) {
   const { fontScale } = useWindowDimensions();
   const pil = options.map((option) => (
@@ -37,7 +43,7 @@ export function FilterPills<T extends string>({
       onPress={() => onChange(option.value)}
     />
   ));
-  if (fontScale > 1.35) {
+  if (bungkus || fontScale > 1.35) {
     return (
       <View accessibilityRole={role === 'tab' ? 'tablist' : 'radiogroup'} accessibilityLabel={accessibilityLabel} style={styles.bungkus}>
         {pil}

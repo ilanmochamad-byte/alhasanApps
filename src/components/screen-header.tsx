@@ -19,10 +19,10 @@ type Props = {
    *  - `beranda`: logo "Alhasan apps" + lonceng, tanpa ←;
    *  - `akar`: ← ke tab Beranda, lalu judul besar kiri + subjudul;
    *  - `stack`: ← · judul tengah · ⋯.
-   * Tanpa `variant`, kepala lama dipertahankan untuk layar yang belum
-   * dipindahkan (fase berikutnya).
+   * Fase 4 memindahkan layar terakhir; kepala lama tanpa ← dihapus sehingga
+   * setiap kepala selain Beranda wajib memiliki tombol kembali.
    */
-  variant?: 'beranda' | 'akar' | 'stack';
+  variant: 'beranda' | 'akar' | 'stack';
   title?: string;
   /** Satu kalimat penjelas di bawah judul. */
   subtitle?: string;
@@ -45,8 +45,7 @@ type Props = {
 export function ScreenHeader(props: Props) {
   if (props.variant === 'beranda') return <KepalaBeranda />;
   if (props.variant === 'akar') return <KepalaAkar {...props} />;
-  if (props.variant === 'stack') return <KepalaStack {...props} />;
-  return <KepalaLama {...props} />;
+  return <KepalaStack {...props} />;
 }
 
 function KepalaBeranda() {
@@ -138,64 +137,8 @@ function KepalaStack({ title, subtitle, actions, onBack, menu, backLabel }: Prop
   );
 }
 
-/** Kepala sebelum gelombang 2 — tidak diubah; dipakai layar fase berikutnya. */
-function KepalaLama({ title, actions, bell = true, onBack, subtitle }: Props) {
-  const { fontScale } = useWindowDimensions();
-  const tombol = (
-    <>
-      {actions}
-      {bell ? <NotificationBell /> : null}
-    </>
-  );
-  // Teks sistem sangat besar: tombol aksi naik ke baris sendiri agar judul
-  // mendapat lebar penuh dan tidak terpecah di tengah kata.
-  if (fontScale > 1.35) {
-    return (
-      <View style={styles.stack}>
-        <View style={[styles.row, styles.rowLama]}>
-          {onBack ? (
-            <IconButton icon="chevron-left" plain accessibilityLabel="Kembali" onPress={onBack} />
-          ) : null}
-          <View style={styles.spacer} />
-          {tombol}
-        </View>
-        <ThemedText selectable type="h1">
-          {title}
-        </ThemedText>
-        {subtitle ? (
-          <ThemedText selectable type="caption" themeColor="textSecondary" style={styles.subtitle}>
-            {subtitle}
-          </ThemedText>
-        ) : null}
-      </View>
-    );
-  }
-  return (
-    <View style={[styles.row, styles.rowLama]}>
-      {onBack ? (
-        <IconButton icon="chevron-left" plain accessibilityLabel="Kembali" onPress={onBack} />
-      ) : null}
-      <View style={styles.title}>
-        <ThemedText selectable type="h1">
-          {title}
-        </ThemedText>
-        {subtitle ? (
-          <ThemedText selectable type="caption" themeColor="textSecondary" style={styles.subtitle}>
-            {subtitle}
-          </ThemedText>
-        ) : null}
-      </View>
-      {tombol}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  rowLama: { paddingBottom: 10 },
-  title: { flex: 1 },
-  stack: { gap: 6, paddingBottom: 10 },
-  subtitle: { fontSize: 14, lineHeight: 19 },
   spacer: { flex: 1 },
   beranda: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   akar: { gap: 6, paddingBottom: 4 },

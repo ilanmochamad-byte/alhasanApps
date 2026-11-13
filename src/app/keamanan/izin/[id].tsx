@@ -5,11 +5,10 @@ import { View } from 'react-native';
 import { keamanan } from '@/api/keamanan';
 import { rentang } from '@/components/izin-wali-shared';
 import { Baris, waktuPendek } from '@/components/kesehatan-shared';
-import { CatatanHanyaBaca, Halaman, Lencana } from '@/components/keamanan-shared';
+import { GarisWaktu, JudulBagianIsi, KartuIsi, KepalaRincian } from '@/components/halaman-stack';
+import { CatatanHanyaBaca, Halaman, HalamanKeadaan, Lencana } from '@/components/keamanan-shared';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { Badge, ChipRow } from '@/components/ui/chip';
-import { Panel } from '@/components/ui/surface';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { nadaStatus } from '@/izin-wali/forms';
 
@@ -19,19 +18,16 @@ export default function KeamananIzinDetailScreen() {
   const nomor = Number(id);
   const fetcher = useCallback(() => keamanan.izinDetail(nomor), [nomor]);
   const { data, error, load } = usePrivateResource(fetcher);
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
-  if (!data) return <LoadingState label="Memuat rincian izin…" />;
+  if (error) return <HalamanKeadaan title="Rincian izin"><ErrorState message={error} onRetry={() => void load()} /></HalamanKeadaan>;
+  if (!data) return <HalamanKeadaan title="Rincian izin"><LoadingState label="Memuat rincian izin…" /></HalamanKeadaan>;
   const p = data.pengajuan;
   const k = data.keputusan;
   return (
-    <Halaman>
-      <ThemedText type="h3">{p.santri.nama}</ThemedText>
-      <ChipRow>
-        <Lencana label={p.status_label} nada={nadaStatus(p.status)} />
-        <Badge label={`Asal ${p.asal.toLowerCase()}`} />
-      </ChipRow>
-      <Panel>
-        <View style={{ gap: 10 }}>
+    <Halaman title="Rincian izin">
+      <KepalaRincian nama={p.santri.nama} judul={p.santri.nama} keterangan={`NIS ${p.santri.nis} · ${rentang(p.tgl_izin, p.tgl_kembali)}`}
+        pills={<><Lencana label={p.status_label} nada={nadaStatus(p.status)} /><Lencana label={`Asal ${p.asal.toLowerCase()}`} nada="neutral" /></>} />
+      <KartuIsi gap={0}>
+        <View>
           <Baris label="Santri" value={`${p.santri.nama} · NIS ${p.santri.nis}`} />
           <Baris label="Kamar / kelas" value={`${p.kamar ?? '—'} · ${p.kelas ?? '—'}`} />
           <Baris label="Tahun ajaran" value={p.tahun_ajaran} />
@@ -55,9 +51,9 @@ export default function KeamananIzinDetailScreen() {
             </>
           ) : null}
         </View>
-      </Panel>
-      <ThemedText type="h3">Keputusan</ThemedText>
-      <Panel>
+      </KartuIsi>
+      <JudulBagianIsi title="Keputusan" />
+      <KartuIsi>
         {k === null ? <ThemedText themeColor="textSecondary">Belum diputus.</ThemedText> : (
           <View style={{ gap: 10 }}>
             <Baris label="Hasil" value={k.hasil} />
@@ -74,21 +70,16 @@ export default function KeamananIzinDetailScreen() {
             <ThemedText>Alasan koreksi: {c.alasan_koreksi}</ThemedText>
           </View>
         ))}
-      </Panel>
-      <ThemedText type="h3">Riwayat</ThemedText>
-      <Panel>
-        <View style={{ gap: 12 }}>
-          {data.riwayat.map(r => (
-            <View key={r.id} style={{ gap: 2 }}>
-              <ThemedText type="bodyBold">{r.status_sebelum_label ? `${r.status_sebelum_label} → ` : ''}{r.status_sesudah_label}</ThemedText>
-              <ThemedText type="caption" themeColor="textSecondary">
-                {waktuPendek(r.created_at)} · {r.pelaku_nama ?? 'Sistem'}{r.pelaku_kapasitas ? ` (${r.pelaku_kapasitas})` : ''}
-              </ThemedText>
-              {r.alasan ? <ThemedText>{r.alasan}</ThemedText> : null}
-            </View>
-          ))}
-        </View>
-      </Panel>
+      </KartuIsi>
+      <JudulBagianIsi title="Riwayat" />
+      <KartuIsi>
+        <GarisWaktu items={data.riwayat.map(r => ({
+          key: r.id,
+          judul: `${r.status_sebelum_label ? `${r.status_sebelum_label} → ` : ''}${r.status_sesudah_label}`,
+          waktu: `${waktuPendek(r.created_at)} · ${r.pelaku_nama ?? 'Sistem'}${r.pelaku_kapasitas ? ` (${r.pelaku_kapasitas})` : ''}`,
+          isi: r.alasan ? <ThemedText>{r.alasan}</ThemedText> : undefined,
+        }))} />
+      </KartuIsi>
       <CatatanHanyaBaca text="Hanya baca. Pembukaan rincian ini tercatat di jejak audit tanpa isi. Cetak/PDF tersedia di website." />
     </Halaman>
   );

@@ -1,13 +1,16 @@
-import { useCallback, useEffect, useState, type PropsWithChildren } from 'react';
-import { AppState, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useState, type PropsWithChildren, type ReactNode } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
 import { keamanan } from '@/api/keamanan';
+import { AppIcon } from '@/components/app-icon';
+import { TombolCariKecil } from '@/components/kesehatan-shared';
+import { SearchBar } from '@/components/ui/search-bar';
+import { HalamanStack, HalamanStackKeadaan, type KepalaHalaman } from '@/components/halaman-stack';
 import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
-import { Badge } from '@/components/ui/chip';
+import { StatusPill, type StatusTone } from '@/components/ui/status-pill';
 import { usePrivateResource } from '@/hooks/use-private-resource';
-import { useTheme } from '@/hooks/use-theme';
 import type { Nada } from '@/keamanan/format';
 
 // Komponen bersama layar Keamanan (penugasan lintas guru/pengurus Fase 4).
@@ -63,49 +66,78 @@ export function KeamananProtection({ children }: PropsWithChildren) {
       }).catch(() => { /* Tidak ada layar Keamanan yang tampil bila gagal. */ });
     };
   }, [key, attempt]);
-  if (status === 'error') return <ErrorState message="Perlindungan informasi Keamanan belum tersedia. Perbarui aplikasi lalu buka kembali."
-    onRetry={() => { setStatus('loading'); setAttempt(v => v + 1); }} />;
-  if (status !== 'ready') return <LoadingState label="Menyiapkan perlindungan informasi Keamanan…" />;
+  // Saat perlindungan disiapkan atau gagal, kepala ← tetap tampil (K-10);
+  // isi Keamanan belum dipasang sama sekali.
+  if (status === 'error') {
+    return (
+      <HalamanKeadaan title="Keamanan">
+        <ErrorState message="Perlindungan informasi Keamanan belum tersedia. Perbarui aplikasi lalu buka kembali."
+          onRetry={() => { setStatus('loading'); setAttempt(v => v + 1); }} />
+      </HalamanKeadaan>
+    );
+  }
+  if (status !== 'ready') return <HalamanKeadaan title="Keamanan"><LoadingState label="Menyiapkan perlindungan informasi Keamanan…" /></HalamanKeadaan>;
   return children;
 }
 
-/** Halaman Keamanan. Saat aplikasi tidak aktif, isi ditutup agar cuplikan OS tidak memuat data santri. */
-export function Halaman({ children }: PropsWithChildren) {
-  const theme = useTheme();
-  const [aktif, setAktif] = useState(AppState.currentState === 'active' || AppState.currentState === undefined);
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', state => setAktif(state === 'active'));
-    return () => sub.remove();
-  }, []);
-  return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: theme.background }}
-        contentContainerStyle={styles.page}>
-        {children}
-      </ScrollView>
-      {!aktif ? (
-        <View style={[StyleSheet.absoluteFill, styles.cover, { backgroundColor: theme.background }]} accessibilityElementsHidden>
-          <ThemedText themeColor="textSecondary">Informasi Keamanan disembunyikan.</ThemedText>
-        </View>
-      ) : null}
-    </View>
-  );
+/**
+ * Halaman Keamanan (redesain gelombang 2 Fase 4): kepala ← · judul di luar
+ * area gulir (K-7, K-10), tanpa tombol tindakan. Saat aplikasi tidak aktif,
+ * isi ditutup agar cuplikan OS tidak memuat data santri.
+ */
+export function Halaman({ children, ...kepala }: KepalaHalaman & { children: ReactNode }) {
+  return <HalamanStack {...kepala} penutup="Informasi Keamanan disembunyikan.">{children}</HalamanStack>;
 }
 
+/** Memuat/galat/kosong/ditolak dalam kerangka yang sama: ← tetap terjangkau. */
+export function HalamanKeadaan({ children, ...kepala }: KepalaHalaman & { children: ReactNode }) {
+  return <HalamanStackKeadaan {...kepala}>{children}</HalamanStackKeadaan>;
+}
+
+const NADA_PIL: Record<Nada, StatusTone> = { neutral: 'neutral', primary: 'success', warning: 'warning', danger: 'danger' };
+
+/** Pil status: ikon + teks (bukan warna saja); nada tetap dari pembantu `keamanan/format`. */
 export function Lencana({ label, nada }: { label: string; nada: Nada }) {
-  return <Badge label={label} tone={nada} />;
+  return <StatusPill label={label} tone={NADA_PIL[nada]} />;
+}
+
+/** Penanda kerahasiaan kasus: ikon gembok + teks dari server (mis. "Internal"). */
+export function PilKerahasiaan({ label }: { label: string }) {
+  return <StatusPill label={label} tone="neutral" icon="lock" />;
+}
+
+/**
+ * Kolom cari nama/NIS (pencarian lewat server, menjangkau seluruh halaman) +
+ * tombol penyaring opsional yang membuka lembar bawah (tanggal).
+ */
+export function KolomCariSantri({ value, onChange, onCari, label = 'Cari santri', filter, filterActive }: {
+  value: string;
+  onChange: (v: string) => void;
+  onCari: () => void;
+  label?: string;
+  filter?: (tutup: () => void) => ReactNode;
+  filterActive?: boolean;
+}) {
+  return (
+    <SearchBar accessibilityLabel={label} placeholder="Nama atau NIS santri" value={value} onChangeText={onChange}
+      maxLength={100} onSubmitEditing={onCari} filter={filter} filterTitle="Saring tanggal" filterActive={filterActive}
+      trailing={<TombolCariKecil onPress={onCari} />} />
+  );
 }
 
 /** Pengingat tetap di setiap layar: Keamanan hanya membaca. */
 export function CatatanHanyaBaca({ text }: { text?: string }) {
   return (
-    <ThemedText type="caption" themeColor="textSecondary" testID="keamanan-hanya-baca">
-      {text ?? 'Hanya baca. Pencatatan, keputusan, dan koreksi dilakukan petugas yang berwenang. Cetak/PDF tersedia di website.'}
-    </ThemedText>
+    <View testID="keamanan-hanya-baca" style={styles.hanyaBaca}>
+      <AppIcon name="eye" size={16} themeColor="textSecondary" />
+      <ThemedText type="caption" themeColor="textSecondary" style={styles.flex}>
+        {text ?? 'Hanya baca. Pencatatan, keputusan, dan koreksi dilakukan petugas yang berwenang. Cetak/PDF tersedia di website.'}
+      </ThemedText>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { padding: 18, gap: 14, maxWidth: 800, width: '100%', alignSelf: 'center', paddingBottom: 70 },
-  cover: { alignItems: 'center', justifyContent: 'center' },
+  hanyaBaca: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', paddingTop: 4 },
+  flex: { flex: 1 },
 });

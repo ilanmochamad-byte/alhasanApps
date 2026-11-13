@@ -76,16 +76,19 @@ function RootNavigator() {
         <Stack.Screen name="izin-wali" options={{ headerShown: false }} />
         {/* V2 Fase 4 — notifikasi. Redesain V2 memindahkannya dari tab ke
             tumpukan: pintu masuknya adalah lonceng di bilah judul. */}
-        <Stack.Screen name="pembinaan/index" options={{ title: 'Pembinaan' }} />
-        <Stack.Screen name="pembinaan/daftar" options={{ title: 'Daftar pembinaan' }} />
-        <Stack.Screen name="pembinaan/buat" options={{ title: 'Catat pembinaan' }} />
-        <Stack.Screen name="pembinaan/detail" options={{ title: 'Detail pembinaan' }} />
-        <Stack.Screen name="rapor/index" options={{ title: 'Rapor semester' }} />
-        <Stack.Screen name="rapor/nilai" options={{ title: 'Nilai mata pelajaran' }} />
-        <Stack.Screen name="rapor/sikap" options={{ title: 'Sikap semester' }} />
-        <Stack.Screen name="rapor/verifikasi" options={{ title: 'Verifikasi & penerbitan' }} />
-        <Stack.Screen name="rapor/[id]" options={{ title: 'Rapor keluarga' }} />
-        <Stack.Screen name="publikasi/[id]" options={{ title: 'Informasi pembinaan' }} />
+        {/* Redesain gelombang 2 Fase 4: pembinaan, rapor, dan publikasi menggambar
+            kepala `stack` sendiri (← · judul · ⋯); geser-tepi iOS dan tombol
+            kembali Android tetap bekerja. */}
+        <Stack.Screen name="pembinaan/index" options={{ title: 'Pembinaan', headerShown: false }} />
+        <Stack.Screen name="pembinaan/daftar" options={{ title: 'Daftar pembinaan', headerShown: false }} />
+        <Stack.Screen name="pembinaan/buat" options={{ title: 'Catat pembinaan', headerShown: false }} />
+        <Stack.Screen name="pembinaan/detail" options={{ title: 'Detail pembinaan', headerShown: false }} />
+        <Stack.Screen name="rapor/index" options={{ title: 'Rapor semester', headerShown: false }} />
+        <Stack.Screen name="rapor/nilai" options={{ title: 'Nilai mata pelajaran', headerShown: false }} />
+        <Stack.Screen name="rapor/sikap" options={{ title: 'Sikap semester', headerShown: false }} />
+        <Stack.Screen name="rapor/verifikasi" options={{ title: 'Verifikasi & penerbitan', headerShown: false }} />
+        <Stack.Screen name="rapor/[id]" options={{ title: 'Rapor keluarga', headerShown: false }} />
+        <Stack.Screen name="publikasi/[id]" options={{ title: 'Informasi pembinaan', headerShown: false }} />
         {/* V5 Fase 4 — kesehatan santri. Hak tiap layar diperiksa server. */}
         <Stack.Screen name="kesehatan" options={{ headerShown: false }} />
         {/* V6 Fase 4 — keuangan santri/BSA. Hak tiap layar diperiksa server. */}
