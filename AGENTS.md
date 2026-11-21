@@ -2,6 +2,14 @@
 
 Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
 
+# Optimasi Android Google Play — keputusan Human Developer 21 November 2026
+
+- Satu tahap untuk DEX/R8 (GP-1) dan API tampilan Android yang ditinggalkan (GP-2). **Claude Code implementator, Codex auditor independen**, bergantian; pengecualian tanpa auditor pada tindak lanjut redesain sebelumnya tidak berlaku untuk pekerjaan ini.
+- Sumber kebenaran di repo WebAlHasan: `docs/optimasi-android-play/rencana.md` dan `prompts-implementasi-audit.md`; ringkasan mobile `docs/optimasi-android-play/README.md`. Persiapan Codex hanya dokumen, bukan implementasi atau audit binary.
+- Branch dokumen kedua repo `codex/rencana-optimasi-android-play`, baseline main mobile `84ddebbbdedc022dae42f323cd37ae9fcc471cc2` (1.9.0), web `37e67ef652ab598644fb2c7314b079d4c34abd48`; fetch berhasil saat persiapan. Branch implementasi/audit `claude/optimasi-android-play` dari branch dokumen bila belum digabung, atau main yang memuatnya. Verifikasi ulang saat mulai; tanpa worktree/implementasi di main.
+- Perubahan paket lokal pekerjaan lain dipertahankan dan tidak dicampurkan. Patch versi naik tepat sekali saat implementasi, menjadi 1.9.1 jika main masih 1.9.0; nomor build tetap EAS remote. Optimasi harus dibuktikan pada AAB/Release final, bukan hanya Debug/Metro atau config JSON. Keterbatasan AAB asli, metrik, API residual, fisik, Push dan Play dicatat terpisah.
+- Agen menguji, commit/push dan berhenti untuk giliran berikutnya. Tidak merge/deploy/publikasi produksi/OTA, perubahan bisnis server atau PRD/fase lain. Konfirmasi Play dan keputusan produksi Human Developer terpisah dari audit teknis lokal; gerbang lama tidak otomatis tertutup.
+
 
 # PRD V4 Fase 5 — keputusan Human Developer 17 Oktober 2026
 
