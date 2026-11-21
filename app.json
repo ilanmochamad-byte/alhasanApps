@@ -2,7 +2,7 @@
   "expo": {
     "name": "alhasanApps",
     "slug": "alhasanApps",
-    "version": "1.9.0",
+    "version": "1.9.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "alhasanapps",
@@ -71,7 +71,17 @@
           "defaultChannel": "perizinan",
           "enableBackgroundRemoteNotifications": false
         }
-      ]
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ],
+      "./plugins/with-android-r8-optimize"
     ],
     "experiments": {
       "typedRoutes": true,
