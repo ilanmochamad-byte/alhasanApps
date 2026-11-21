@@ -10,6 +10,13 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before 
 - Perubahan paket lokal pekerjaan lain dipertahankan dan tidak dicampurkan. Patch versi naik tepat sekali saat implementasi, menjadi 1.9.1 jika main masih 1.9.0; nomor build tetap EAS remote. Optimasi harus dibuktikan pada AAB/Release final, bukan hanya Debug/Metro atau config JSON. Keterbatasan AAB asli, metrik, API residual, fisik, Push dan Play dicatat terpisah.
 - Agen menguji, commit/push dan berhenti untuk giliran berikutnya. Tidak merge/deploy/publikasi produksi/OTA, perubahan bisnis server atau PRD/fase lain. Konfirmasi Play dan keputusan produksi Human Developer terpisah dari audit teknis lokal; gerbang lama tidak otomatis tertutup.
 
+## Implementasi Claude Code — optimasi Android Google Play (21 November 2026)
+
+- Branch `claude/optimasi-android-play` dari `origin/main` `82f156a` (dokumen persiapan sudah digabung PR #35); commit kode `747e55d`, versi **1.9.0 → 1.9.1**. Dibuat dan di-push dari **klon bersih** (`npm ci` lock ter-commit); edit `package.json`/`package-lock.json` pekerjaan lain di checkout `~/alhasanApps` tidak disentuh (hash tetap) dan tidak ikut commit — checkout itu sengaja tidak dipindah ke commit baru agar edit tersebut tidak bertabrakan. Audit sebaiknya juga dari klon bersih.
+- GP-1: `expo-build-properties` ~57.0.23 (minify + shrink release) dan `plugins/with-android-r8-optimize.js` (`proguard-android-optimize.txt`, AGP patch 8.12.3). AAB rilis 19 asli EAS: 5 DEX 46.992.180 B tanpa R8 → final 1 DEX 10.411.972 B, `r8.json` R8 8.12.22 (tanpa obfuscation/optimasi/shrinking 19,17/19,68/19,05%), `proguard.map` di AAB. `android analyze` tidak tersedia; skor Play belum terlihat.
+- GP-2: semua pemanggil API warna bilah/cutout di library (RN 0.86 core, Material 1.13.0 via react-native-screens, AndroidX, expo-image-picker crop); patch terbaru SDK 57 tidak mengubahnya. **Residual terbuka**, perlu upgrade SDK/RN atau penerimaan Human Developer.
+- Uji Release R8 tanpa Metro di emulator Android 16/15/12 (gestur, 3 tombol, cutout, gelap, teks 2×) dan upgrade 1.9.0→1.9.1 dengan sesi SecureStore; rincian serta batas (EAS, internal Play, fisik, Push nyata, Play App Signing belum diuji) di `docs/optimasi-android-play/IMPLEMENTASI.md` repo WebAlHasan. Belum diaudit Codex; tidak merge/deploy/rilis.
+
 
 # PRD V4 Fase 5 — keputusan Human Developer 17 Oktober 2026
 

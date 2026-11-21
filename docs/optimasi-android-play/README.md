@@ -2,13 +2,23 @@
 
 Keputusan Human Developer 21 November 2026: **Claude Code mengimplementasikan GP-1 DEX/R8 dan GP-2 API tampilan dalam satu paket; Codex mengaudit secara independen sesudah handoff.** Tidak berjalan bersamaan pada checkout yang sama.
 
-Sumber kebenaran lengkap di repo WebAlHasan:
+Sumber kebenaran dan laporan lengkap di repo WebAlHasan (branch `claude/optimasi-android-play`):
 
-- [Rencana dan kriteria K-1…K-7](../../../Documents/GitHub/webalhasan/WebAlHasan/docs/optimasi-android-play/rencana.md) — path repo web: `docs/optimasi-android-play/rencana.md`.
-- [Prompt implementasi dan audit](../../../Documents/GitHub/webalhasan/WebAlHasan/docs/optimasi-android-play/prompts-implementasi-audit.md).
+- `docs/optimasi-android-play/rencana.md` — rencana dan kriteria K-1…K-7.
+- `docs/optimasi-android-play/prompts-implementasi-audit.md` — prompt implementasi/audit.
+- `docs/optimasi-android-play/IMPLEMENTASI.md` — laporan implementasi, angka DEX, peta simbol GP-2, hasil uji, batas.
+- `docs/optimasi-android-play/manifest-bukti.md` — hash artefak dan lokasi privat (binary/mapping tidak di Git).
 
-Baseline main saat persiapan: mobile `84ddebbbdedc022dae42f323cd37ae9fcc471cc2` (1.9.0), web `37e67ef652ab598644fb2c7314b079d4c34abd48`. Branch dokumen kedua repo `codex/rencana-optimasi-android-play`; branch implementasi/audit `claude/optimasi-android-play`. Fetch dan verifikasi ulang saat mulai. Jika branch dokumen belum digabung, gunakan sebagai dasar fitur; bila sudah, gunakan main yang memuat dokumen. Tidak implementasi di main dan tidak worktree.
+## Ringkasan implementasi (Claude Code, 21 November 2026)
 
-Perubahan lokal `package.json`/`package-lock.json` milik pekerjaan lain harus dipertahankan, tidak dicampurkan atau dipakai diam-diam sebagai bukti sumber build. Paket ini dapat menambah plugin build/patch dependensi yang benar-benar diperlukan, terpisah dari edit tersebut. Versi patch naik tepat sekali saat implementasi (1.9.1 bila main masih 1.9.0), nomor build diurus EAS.
+Branch `claude/optimasi-android-play` dari `origin/main` `82f156a` (memuat dokumen persiapan). Versi **1.9.0 → 1.9.1** (patch, sekali); nomor build tetap EAS remote.
 
-Status persiapan: **dokumen saja**. Belum ada implementasi R8/API, build, audit binary atau unggahan Play. Hasil berikutnya harus membedakan audit teknis lokal dari konfirmasi Play/fisik/Push serta keputusan produksi Human Developer. Laporan lengkap berikutnya di web; ringkasan aktual ditambahkan di direktori ini.
+- `expo-build-properties` ~57.0.23: `enableMinifyInReleaseBuilds` dan `enableShrinkResourcesInReleaseBuilds` untuk Android release.
+- `plugins/with-android-r8-optimize.js`: release memakai `proguard-android-optimize.txt` (template memakai `proguard-android.txt` yang berisi `-dontoptimize`) dan AGP disematkan ke patch **8.12.3** (template 8.12.0) agar metadata `r8.json` terbaca Play. Gagal keras bila pola template berubah.
+- Tanpa aturan keep baru, tanpa patch `node_modules`, tanpa perubahan kode aplikasi, target SDK, edge-to-edge, atau perlindungan layar. Uji `tests/optimasi-android.test.ts`.
+- AAB rilis 19 (asli EAS): 5 DEX, 46.992.180 B, tanpa R8. AAB final: **1 DEX, 10.411.972 B**, `r8.json` R8 8.12.22 dengan bagian tanpa obfuscation/optimasi/shrinking 19,17% / 19,68% / 19,05% (±80% teroptimasi), `proguard.map` disertakan.
+- GP-2: seluruh pemanggil API warna bilah/cutout berada di library (React Native 0.86 core, Material 1.13.0 lewat react-native-screens, AndroidX, expo-image-picker crop). Patch terbaru dalam SDK 57 tidak mengubahnya. **Residual GP-2 tetap terbuka** sampai upgrade SDK/RN atau penerimaan eksplisit Human Developer.
+
+Perubahan `package.json`/`package-lock.json` milik pekerjaan lain di checkout lokal **tidak** ikut di-commit; commit ini dibuat dari klon bersih dengan lock ter-commit + `expo-build-properties` saja.
+
+Status: implementasi selesai untuk GP-1, residual GP-2 terbuka; **belum diaudit Codex**; build EAS, internal Play, perangkat fisik, Push nyata, dan Play App Signing **belum diuji**. Tidak merge, deploy, publikasi produksi, atau OTA.
