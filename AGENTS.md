@@ -10,6 +10,13 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before 
 - Perubahan paket lokal pekerjaan lain dipertahankan dan tidak dicampurkan. Patch versi naik tepat sekali saat implementasi, menjadi 1.9.1 jika main masih 1.9.0; nomor build tetap EAS remote. Optimasi harus dibuktikan pada AAB/Release final, bukan hanya Debug/Metro atau config JSON. Keterbatasan AAB asli, metrik, API residual, fisik, Push dan Play dicatat terpisah.
 - Agen menguji, commit/push dan berhenti untuk giliran berikutnya. Tidak merge/deploy/publikasi produksi/OTA, perubahan bisnis server atau PRD/fase lain. Konfirmasi Play dan keputusan produksi Human Developer terpisah dari audit teknis lokal; gerbang lama tidak otomatis tertutup.
 
+## Implementasi Claude Code — optimasi Android Google Play (21 November 2026)
+
+- Branch `claude/optimasi-android-play` dari `origin/main` `82f156a` (dokumen persiapan sudah digabung PR #35); commit kode `747e55d`, versi **1.9.0 → 1.9.1**. Dibuat dan di-push dari **klon bersih** (`npm ci` lock ter-commit); edit `package.json`/`package-lock.json` pekerjaan lain di checkout `~/alhasanApps` tidak disentuh (hash tetap) dan tidak ikut commit — checkout itu sengaja tidak dipindah ke commit baru agar edit tersebut tidak bertabrakan. Audit sebaiknya juga dari klon bersih.
+- GP-1: `expo-build-properties` ~57.0.23 (minify + shrink release) dan `plugins/with-android-r8-optimize.js` (`proguard-android-optimize.txt`, AGP patch 8.12.3). AAB rilis 19 asli EAS: 5 DEX 46.992.180 B tanpa R8 → final 1 DEX 10.411.972 B, `r8.json` R8 8.12.22 (tanpa obfuscation/optimasi/shrinking 19,17/19,68/19,05%), `proguard.map` di AAB. `android analyze` tidak tersedia; skor Play belum terlihat.
+- GP-2: semua pemanggil API warna bilah/cutout di library (RN 0.86 core, Material 1.13.0 via react-native-screens, AndroidX, expo-image-picker crop); patch terbaru SDK 57 tidak mengubahnya. **Residual terbuka**, perlu upgrade SDK/RN atau penerimaan Human Developer.
+- Uji Release R8 tanpa Metro di emulator Android 16/15/12 (gestur, 3 tombol, cutout, gelap, teks 2×) dan upgrade 1.9.0→1.9.1 dengan sesi SecureStore; rincian serta batas (EAS, internal Play, fisik, Push nyata, Play App Signing belum diuji) di `docs/optimasi-android-play/IMPLEMENTASI.md` repo WebAlHasan. Belum diaudit Codex; tidak merge/deploy/rilis.
+
 
 # PRD V4 Fase 5 — keputusan Human Developer 17 Oktober 2026
 
@@ -193,3 +200,13 @@ Claude Code mengimplementasikan hanya Fase 4 pada `claude/redesain-tampilan-v2-f
 - Audit `d152ba1` dari `dfba0ad` pada `claude/redesain-tampilan-v2-fase-4`. **Gelombang 2 belum lulus audit teknis lokal.** Koreksi tab/FAB Expo web, target dan kontras grafik, serta ikon legenda kehadiran. Versi tetap **1.8.0**, dependensi ter-commit sama sepanjang gelombang. Edit lokal manifest/lockfile berada di luar commit.
 - TypeScript/lint lulus, unit **113/0**, K-10 **304/0** atas seluruh 68 pola wajib, paritas jaringan **65 langkah sama / 344 permintaan**, dan V5 Fase 4 **78/0**. Laporan ringkas dan batas ada di `docs/redesain-tampilan-v2/fase-4/AUDIT-CODEX.md` serta laporan lengkap di WebAlHasan.
 - iOS Release simulator dan Android Debug + Metro diuji. Beberapa alur Android 2,0×, cuplikan pengalih, ketukan notifikasi sistem, selisih desain, serta regresi tersisa masih terbuka. Perangkat fisik, EAS/distribusi, Push nyata, UAT, dan gerbang produksi terdahulu mengikuti keputusan masing-masing. Handoff berhenti pada branch fitur.
+
+## Audit independen Codex — Optimasi Android Google Play (22 November 2026)
+
+- Audit handoff `4b20d25` (kode `747e55d`) dan web `757c15d`, branch `claude/optimasi-android-play`: **paket belum selesai penuh, audit teknis lokal belum lulus, Play/kesiapan produksi final belum terkonfirmasi**. GP-1 terbukti, F-1 P1 residual GP-2 20 instruksi/11 kelas tetap menghalangi K-4. F-2 P2 smoke iOS SDK 27.2 crash UIScene juga pada baseline; K-5 belum penuh.
+- AAB asli 19 unduhan auditor Play/EAS hash sama `015f4ddd…`; rebuild bersih AAB `92229e95…`, mapping `43799e8c…`, DEX 10.411.972 B. Android CLI resmi kini mengukur optimasi/obfuscation/shrinking **80,32/80,83/80,95%**, checksum EXACT_MATCH. Semua ≥25% secara lokal; bukan skor server Play 1.9.1.
+- tsc/lint 0, unit 124/0, web 35/0; Android Release R8 tanpa Metro diuji sendiri. Upgrade debug lokal 9/0 bukan upgrade Play. Hasil lengkap, kegagalan awal, kontrol oracle dan batas di `docs/optimasi-android-play/AUDIT-CODEX.md` WebAlHasan; ringkasan/pointer mobile lokasi sama.
+- Build/commit audit dari klon bersih `/private/tmp/oap-codex-audit/mobile`, checkout utama/edit paket lokal pekerjaan lain dipertahankan. Mobile audit hanya dokumen, versi tetap 1.9.1, EAS remote tetap 19 read-only. Tidak mengubah kode/config/lock atau mengambil patch lokal tak terkait.
+- K-7 final belum tersedia (Play 19/internal 4); fisik, Push nyata, signing/upgrade distribusi dan gerbang terdahulu tetap terbuka. Tidak merge/deploy/OTA/publikasi/tahap atau PRD lain; berhenti setelah commit/push fitur. Keputusan produksi tetap Human Developer.
+
+- Batas tambahan F-3 P2 (K-5): API31 gestur terang 8/0, tetapi gelap2×/profil belum tervalidasi karena input/snapshot UI gagal; probe baru yang menolak XML lama juga gagal dump pada baseline dan final (0/1 masing-masing). Tidak menghitung ini sebagai lulus atau regresi aplikasi terbukti. Profil API35/API36 24/0; oracle bisnis tetap identik. Rincian semua percobaan di laporan lengkap.
