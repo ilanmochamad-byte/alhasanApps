@@ -30,3 +30,7 @@ Status implementasi di atas adalah riwayat handoff. **Audit telah dilakukan dan 
 ## Tindak lanjut Claude Code — 22 November 2026
 
 Commit `3705c2f`: patch SDK 57 diselaraskan (`expo` 57.0.33, RN 0.86.3) dan `plugins/with-ios-scene-lifecycle.js` menutup crash start UIScene pada SDK iOS 27 (smoke simulator iOS 27.2 Release lulus). GP-2 tetap terbuka: upgrade SDK 58/RN 0.88.1 yang diuji hanya mengurangi residual 20/11 → 15/7, tidak diadopsi. Android 12 belum teruji (emulator API31 macet). AAB EAS 1.9.1 (20) `6137013c…10c1` sudah dibangun; unggahan internal menunggu kunci akun layanan Play. Laporan lengkap di repo **WebAlHasan** `docs/optimasi-android-play/TINDAK-LANJUT-CLAUDE.md`. Bukan audit independen; tidak merge/deploy/OTA/publikasi.
+
+## Audit ulang Codex — 22 November 2026
+
+Lihat [audit ulang](AUDIT-ULANG-CODEX.md). R8 tetap lulus lokal (80,18/80,68/80,81%), dan F-2 iOS ditutup pada simulator Release baru. GP-2 20/11, kelengkapan Android 12 F-3 dan konfirmasi Play final masih terbuka; **paket belum lulus utuh**. Versi tetap 1.9.1; tidak merge/deploy/rilis oleh auditor.
