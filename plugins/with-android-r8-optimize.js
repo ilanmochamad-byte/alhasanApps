@@ -21,7 +21,7 @@
 // yang lebih baru setelah diuji.
 //
 // Rekomendasi Play untuk 1.9.1 (22 November 2026): "Penyingkatan resource yang
-// dioptimalkan tidak diaktifkan". AGP 8.6+ menyediakan mode opt-in
+// dioptimalkan tidak diaktifkan". AGP 8.12+ menyediakan mode opt-in
 // `android.r8.optimizedResourceShrinking=true` (bawaan sejak AGP 9.0): R8
 // memangkas kode dan resource dalam satu analisis sehingga resource yang hanya
 // dirujuk kode mati ikut terbuang. Properti ini hanya bekerja bersama
