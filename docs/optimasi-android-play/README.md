@@ -22,3 +22,7 @@ Branch `claude/optimasi-android-play` dari `origin/main` `82f156a` (memuat dokum
 Perubahan `package.json`/`package-lock.json` milik pekerjaan lain di checkout lokal **tidak** ikut di-commit; commit ini dibuat dari klon bersih dengan lock ter-commit + `expo-build-properties` saja.
 
 Status: implementasi selesai untuk GP-1, residual GP-2 terbuka; **belum diaudit Codex**; build EAS, internal Play, perangkat fisik, Push nyata, dan Play App Signing **belum diuji**. Tidak merge, deploy, publikasi produksi, atau OTA.
+
+## Audit independen Codex — 22 November 2026
+
+Status implementasi di atas adalah riwayat handoff. **Audit telah dilakukan dan belum lulus paket utuh:** GP-1 memenuhi ketiga minimum lokal (80,32/80,83/80,95%), tetapi residual GP-2 menghalangi K-4 dan K-5 belum tervalidasi sepenuhnya. K-7 untuk final belum tersedia. Lihat [ringkasan audit](AUDIT-CODEX.md) dan laporan lengkap `docs/optimasi-android-play/AUDIT-CODEX.md` di WebAlHasan. Tidak merge/deploy/rilis.
