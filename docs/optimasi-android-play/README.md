@@ -26,3 +26,7 @@ Status: implementasi selesai untuk GP-1, residual GP-2 terbuka; **belum diaudit 
 ## Audit independen Codex — 22 November 2026
 
 Status implementasi di atas adalah riwayat handoff. **Audit telah dilakukan dan belum lulus paket utuh:** GP-1 memenuhi ketiga minimum lokal (80,32/80,83/80,95%), tetapi residual GP-2 menghalangi K-4 dan K-5 belum tervalidasi sepenuhnya. K-7 untuk final belum tersedia. Lihat [ringkasan audit](AUDIT-CODEX.md) dan laporan lengkap `docs/optimasi-android-play/AUDIT-CODEX.md` di WebAlHasan. Tidak merge/deploy/rilis.
+
+## Tindak lanjut Claude Code — 22 November 2026
+
+Commit `3705c2f`: patch SDK 57 diselaraskan (`expo` 57.0.33, RN 0.86.3) dan `plugins/with-ios-scene-lifecycle.js` menutup crash start UIScene pada SDK iOS 27 (smoke simulator iOS 27.2 Release lulus). GP-2 tetap terbuka: upgrade SDK 58/RN 0.88.1 yang diuji hanya mengurangi residual 20/11 → 15/7, tidak diadopsi. Android 12 belum teruji (emulator API31 macet). AAB EAS 1.9.1 (20) `6137013c…10c1` sudah dibangun; unggahan internal menunggu kunci akun layanan Play. Laporan lengkap di repo **WebAlHasan** `docs/optimasi-android-play/TINDAK-LANJUT-CLAUDE.md`. Bukan audit independen; tidak merge/deploy/OTA/publikasi.
