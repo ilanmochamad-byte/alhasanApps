@@ -4,7 +4,10 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
+  type ScrollResponderType,
+  type ScrollViewInstance,
   type ScrollViewProps,
+  type TextInputInstance,
   type TextInputProps,
 } from 'react-native';
 
@@ -39,7 +42,7 @@ export function KeyboardAwareScrollView({
   keyboardShouldPersistTaps = 'handled',
   ...props
 }: KeyboardAwareScrollViewProps) {
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<ScrollViewInstance>(null);
   const pendingScrolls = useRef<ReturnType<typeof setTimeout>[]>([]);
   const pendingInput = useRef<unknown>(null);
 
@@ -49,7 +52,11 @@ export function KeyboardAwareScrollView({
 
     scrollViewRef.current
       ?.getScrollResponder()
-      ?.scrollResponderScrollNativeHandleToKeyboard(focusedInput, extraKeyboardOffset, true);
+      ?.scrollResponderScrollNativeHandleToKeyboard(
+        focusedInput as Parameters<ScrollResponderType['scrollResponderScrollNativeHandleToKeyboard']>[0],
+        extraKeyboardOffset,
+        true,
+      );
   }, [extraKeyboardOffset]);
 
   const revealInput = useCallback((input: unknown) => {
@@ -92,7 +99,7 @@ export function KeyboardAwareScrollView({
 }
 
 /** TextInput that asks the nearest KeyboardAwareScrollView to reveal it. */
-export const KeyboardAwareTextInput = forwardRef<TextInput, TextInputProps>(
+export const KeyboardAwareTextInput = forwardRef<TextInputInstance, TextInputProps>(
   function KeyboardAwareTextInput({ onFocus, ...props }, ref) {
     const keyboardContext = useContext(KeyboardContext);
 

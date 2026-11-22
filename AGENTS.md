@@ -1,6 +1,6 @@
 # Expo HAS CHANGED
 
-Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
+Read the exact versioned docs at https://docs.expo.dev/versions/v58.0.0/ before writing any code.
 
 # Optimasi Android Google Play — keputusan Human Developer 21 November 2026
 
@@ -227,3 +227,8 @@ Claude Code mengimplementasikan hanya Fase 4 pada `claude/redesain-tampilan-v2-f
 - TypeScript/lint lulus, unit **129/0**, native terarah Android 12/15/16 **68/0**, satu inspeksi cache privat dilewati. Percobaan awal TypeScript tanpa tipe Expo, benturan prebuild/Gradle auditor, dan profil 0/1 akibat sesi tersisa dicatat; suite asli profil setelah sesi bersih **24/0**. Helper tanggal web diperkuat tanpa mengubah sepuluh assertion bisnis.
 - **Keseluruhan paket Optimasi Android tetap belum lulus teknis lokal penuh:** residual F-1/P1 GP-2 sekarang **18 instruksi/10 kelas**, bukan 20/11; batas F-3/P2 Android12 audit sebelumnya belum seluruhnya ditutup. EAS/Play/pre-launch 1.9.2, fisik, Push nyata, upgrade/signing distribusi dan gerbang lama belum terkonfirmasi. Tidak menerima residual atas nama Human Developer.
 - Auditor hanya mengoreksi komentar AGP 8.12, dokumentasi/bukti dan helper uji web; runtime/config/lock mobile tidak berubah, versi tetap **1.9.2**. Checkout mobile utama beserta dua edit paket dan lima direktori untracked web dipertahankan (**100/100** berkas kontrol identik). Laporan lengkap di web `docs/optimasi-android-play/penyingkatan-resource/AUDIT-CODEX.md`; ringkasan mobile `docs/optimasi-android-play/PENYINGKATAN-RESOURCE.md`. Commit/push hanya fitur lalu berhenti; tanpa worktree/subagen, merge/deploy/OTA/upload Play atau fase lain.
+
+## Implementasi Claude Code — upgrade Expo SDK 58 untuk AGP 9 dan sisa GP-2 (23 November 2026)
+
+- Keputusan Human Developer: AGP 9 dan sisa GP-2 diselesaikan lewat upgrade Expo SDK yang mendukung AGP 9 (O-2). Claude Code implementator, Codex auditor. Branch `claude/upgrade-expo-sdk-58` dari `origin/main` `6328517`, klon bersih; versi **1.9.2 → 1.10.0**. Dokumentasi versi Expo yang dibaca kini v58.
+- Expo 58.0.26 / RN 0.88.1 (AGP 9.2.1); plugin R8 tidak lagi menyematkan AGP 8.12; penyesuaian tipe RN 0.88 dan impor `expo-router/native-tabs`. GP-2 tetap residual library 15/7. Rincian `docs/optimasi-android-play/UPGRADE-SDK-58.md`. Tidak merge/deploy/OTA/unggah Play.

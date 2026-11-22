@@ -13,20 +13,21 @@
 // template tidak ditemukan, agar perubahan template di masa depan tidak diam-diam
 // membuat build kembali memakai `-dontoptimize`.
 //
-// Selain itu plugin menyematkan Android Gradle Plugin ke patch terbaru jalur
-// 8.12 yang dipakai React Native 0.86 (template memakai 8.12.0). Google Play
-// mengambil skor optimasi/obfuscation/shrinking dari `r8.json` hanya untuk
-// "latest patch version of AGP 8.10 or higher" (contoh 8.10.1, bukan 8.10.0).
-// Ini kenaikan patch, bukan mayor/minor; ubah AGP_PATCH hanya ke patch 8.12.x
-// yang lebih baru setelah diuji.
+// AGP (diperbarui saat upgrade Expo SDK 58, 23 November 2026). Pada SDK 57 /
+// React Native 0.86 plugin ini menyematkan AGP 8.12.3 karena template memakai
+// 8.12.0 dan Google Play membaca `r8.json` hanya dari patch terbaru AGP. Template
+// SDK 58 menulis classpath AGP tanpa versi sehingga versinya diambil dari katalog
+// `@react-native/gradle-plugin` React Native 0.88 (AGP 9.2.1, patch terbaru jalur
+// 9.2 saat diuji). Plugin kini justru MENOLAK versi eksplisit: bila template atau
+// perubahan lain menyematkan versi AGP, versi itu dibuang agar build selalu
+// memakai AGP yang diuji bersama React Native. Ini menjawab rekomendasi Play
+// "upgrade ke AGP 9".
 //
 // Rekomendasi Play untuk 1.9.1 (22 November 2026): "Penyingkatan resource yang
-// dioptimalkan tidak diaktifkan". AGP 8.12+ menyediakan mode opt-in
-// `android.r8.optimizedResourceShrinking=true` (bawaan sejak AGP 9.0): R8
-// memangkas kode dan resource dalam satu analisis sehingga resource yang hanya
-// dirujuk kode mati ikut terbuang. Properti ini hanya bekerja bersama
-// `shrinkResources` (diaktifkan expo-build-properties di atas). Upgrade ke AGP 9
-// tidak dilakukan karena React Native 0.86 terikat AGP 8.12.
+// dioptimalkan tidak diaktifkan". Mode `android.r8.optimizedResourceShrinking`
+// adalah bawaan sejak AGP 9.0; properti tetap ditulis eksplisit agar perilaku
+// tidak bergantung pada bawaan versi AGP. Properti ini hanya bekerja bersama
+// `shrinkResources` (diaktifkan expo-build-properties di atas).
 const { withAppBuildGradle, withGradleProperties, withProjectBuildGradle } = require('expo/config-plugins');
 
 const PROPERTI_RESOURCE_OPTIMAL = 'android.r8.optimizedResourceShrinking';
@@ -36,18 +37,17 @@ function aktifkanPenyingkatanResourceOptimal(items) {
   return [...lain, { type: 'property', key: PROPERTI_RESOURCE_OPTIMAL, value: 'true' }];
 }
 
-const AGP_PATCH = '8.12.3';
 const POLA_AGP = /classpath\(\s*['"]com\.android\.tools\.build:gradle(?::[^'"]*)?['"]\s*\)/g;
-const AGP_BARU = `classpath('com.android.tools.build:gradle:${AGP_PATCH}')`;
+const AGP_TANPA_VERSI = "classpath('com.android.tools.build:gradle')";
 
-function sematkanPatchAgp(contents) {
+function pakaiAgpReactNative(contents) {
   const cocok = contents.match(POLA_AGP) || [];
   if (cocok.length !== 1) {
     throw new Error(
       `[with-android-r8-optimize] Diharapkan tepat satu classpath com.android.tools.build:gradle di android/build.gradle, ditemukan ${cocok.length}.`,
     );
   }
-  return contents.replace(POLA_AGP, AGP_BARU);
+  return contents.replace(POLA_AGP, AGP_TANPA_VERSI);
 }
 
 const POLA_LAMA = /getDefaultProguardFile\(\s*["']proguard-android\.txt["']\s*\)/g;
@@ -83,14 +83,13 @@ const withAndroidR8Optimize = (config) => {
     if (cfg.modResults.language !== 'groovy') {
       throw new Error('[with-android-r8-optimize] Hanya mendukung android/build.gradle (Groovy).');
     }
-    cfg.modResults.contents = sematkanPatchAgp(cfg.modResults.contents);
+    cfg.modResults.contents = pakaiAgpReactNative(cfg.modResults.contents);
     return cfg;
   });
 };
 
 module.exports = withAndroidR8Optimize;
 module.exports.terapkanProguardOptimize = terapkanProguardOptimize;
-module.exports.sematkanPatchAgp = sematkanPatchAgp;
-module.exports.AGP_PATCH = AGP_PATCH;
+module.exports.pakaiAgpReactNative = pakaiAgpReactNative;
 module.exports.aktifkanPenyingkatanResourceOptimal = aktifkanPenyingkatanResourceOptimal;
 module.exports.PROPERTI_RESOURCE_OPTIMAL = PROPERTI_RESOURCE_OPTIMAL;

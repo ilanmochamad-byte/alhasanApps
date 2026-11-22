@@ -9,8 +9,7 @@ import test from 'node:test';
 const require = createRequire(import.meta.url);
 const {
   terapkanProguardOptimize,
-  sematkanPatchAgp,
-  AGP_PATCH,
+  pakaiAgpReactNative,
   aktifkanPenyingkatanResourceOptimal,
   PROPERTI_RESOURCE_OPTIMAL,
 } = require('../plugins/with-android-r8-optimize.js');
@@ -28,14 +27,25 @@ const TEMPLATE_ROOT = `buildscript {
   }
 }`;
 
-test('AGP disematkan ke patch terbaru 8.12 (bukan mayor/minor baru), idempoten', () => {
-  assert.match(AGP_PATCH, /^8\.12\.\d+$/);
-  assert.notEqual(AGP_PATCH, '8.12.0');
-  const hasil = sematkanPatchAgp(TEMPLATE_ROOT);
-  assert.ok(hasil.includes(`classpath('com.android.tools.build:gradle:${AGP_PATCH}')`));
-  assert.ok(hasil.includes("classpath('com.facebook.react:react-native-gradle-plugin')"));
-  assert.equal(sematkanPatchAgp(hasil), hasil);
-  assert.throws(() => sematkanPatchAgp('buildscript { }'), /ditemukan 0/);
+// Diubah saat upgrade Expo SDK 58: AGP tidak lagi disematkan ke 8.12.x,
+// melainkan selalu dari katalog React Native (AGP 9).
+test('AGP diambil dari katalog React Native tanpa versi eksplisit, idempoten', () => {
+  const hasil = pakaiAgpReactNative(TEMPLATE_ROOT);
+  assert.equal(hasil, TEMPLATE_ROOT);
+  assert.equal(pakaiAgpReactNative(hasil), hasil);
+  const disematkan = TEMPLATE_ROOT.replace("gradle')", "gradle:8.12.3')");
+  assert.equal(pakaiAgpReactNative(disematkan), TEMPLATE_ROOT);
+  assert.throws(() => pakaiAgpReactNative('buildscript { }'), /ditemukan 0/);
+});
+
+test('katalog React Native terpasang memakai AGP 9 atau lebih baru', () => {
+  const katalog = readFileSync(
+    new URL('../node_modules/@react-native/gradle-plugin/gradle/libs.versions.toml', import.meta.url),
+    'utf8',
+  );
+  const versi = katalog.match(/^agp = "(\d+)\.(\d+)\.(\d+)"/m);
+  assert.ok(versi, 'versi agp ada di katalog');
+  assert.ok(Number(versi[1]) >= 9, `AGP ${versi.slice(1).join('.')} harus >= 9`);
 });
 
 // Potongan blok release persis seperti template prebuild Expo SDK 57 / RN 0.86.

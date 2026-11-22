@@ -76,6 +76,7 @@ test('app.json mendaftarkan plugin UIScene dan expo mendukung ExpoAppSceneDelega
   const app = JSON.parse(readFileSync(new URL('../app.json', import.meta.url), 'utf8'));
   assert.ok(app.expo.plugins.includes('./plugins/with-ios-scene-lifecycle'));
   const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'));
-  const [, minor, patch] = lock.packages['node_modules/expo'].version.split('.').map(Number);
-  assert.ok(minor > 0 || patch >= 33, 'expo >= 57.0.33 menyediakan ExpoAppSceneDelegate');
+  const [major, minor, patch] = lock.packages['node_modules/expo'].version.split('.').map(Number);
+  // Bandingkan major lebih dulu: SDK 58.0.x juga menyediakan ExpoAppSceneDelegate.
+  assert.ok(major > 57 || (major === 57 && (minor > 0 || patch >= 33)), 'expo >= 57.0.33 menyediakan ExpoAppSceneDelegate');
 });
