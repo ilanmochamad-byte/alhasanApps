@@ -19,7 +19,22 @@
 // "latest patch version of AGP 8.10 or higher" (contoh 8.10.1, bukan 8.10.0).
 // Ini kenaikan patch, bukan mayor/minor; ubah AGP_PATCH hanya ke patch 8.12.x
 // yang lebih baru setelah diuji.
-const { withAppBuildGradle, withProjectBuildGradle } = require('expo/config-plugins');
+//
+// Rekomendasi Play untuk 1.9.1 (22 November 2026): "Penyingkatan resource yang
+// dioptimalkan tidak diaktifkan". AGP 8.6+ menyediakan mode opt-in
+// `android.r8.optimizedResourceShrinking=true` (bawaan sejak AGP 9.0): R8
+// memangkas kode dan resource dalam satu analisis sehingga resource yang hanya
+// dirujuk kode mati ikut terbuang. Properti ini hanya bekerja bersama
+// `shrinkResources` (diaktifkan expo-build-properties di atas). Upgrade ke AGP 9
+// tidak dilakukan karena React Native 0.86 terikat AGP 8.12.
+const { withAppBuildGradle, withGradleProperties, withProjectBuildGradle } = require('expo/config-plugins');
+
+const PROPERTI_RESOURCE_OPTIMAL = 'android.r8.optimizedResourceShrinking';
+
+function aktifkanPenyingkatanResourceOptimal(items) {
+  const lain = items.filter((item) => !(item.type === 'property' && item.key === PROPERTI_RESOURCE_OPTIMAL));
+  return [...lain, { type: 'property', key: PROPERTI_RESOURCE_OPTIMAL, value: 'true' }];
+}
 
 const AGP_PATCH = '8.12.3';
 const POLA_AGP = /classpath\(\s*['"]com\.android\.tools\.build:gradle(?::[^'"]*)?['"]\s*\)/g;
@@ -60,6 +75,10 @@ const withAndroidR8Optimize = (config) => {
     cfg.modResults.contents = terapkanProguardOptimize(cfg.modResults.contents);
     return cfg;
   });
+  config = withGradleProperties(config, (cfg) => {
+    cfg.modResults = aktifkanPenyingkatanResourceOptimal(cfg.modResults);
+    return cfg;
+  });
   return withProjectBuildGradle(config, (cfg) => {
     if (cfg.modResults.language !== 'groovy') {
       throw new Error('[with-android-r8-optimize] Hanya mendukung android/build.gradle (Groovy).');
@@ -73,3 +92,5 @@ module.exports = withAndroidR8Optimize;
 module.exports.terapkanProguardOptimize = terapkanProguardOptimize;
 module.exports.sematkanPatchAgp = sematkanPatchAgp;
 module.exports.AGP_PATCH = AGP_PATCH;
+module.exports.aktifkanPenyingkatanResourceOptimal = aktifkanPenyingkatanResourceOptimal;
+module.exports.PROPERTI_RESOURCE_OPTIMAL = PROPERTI_RESOURCE_OPTIMAL;

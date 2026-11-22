@@ -7,7 +7,13 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const require = createRequire(import.meta.url);
-const { terapkanProguardOptimize, sematkanPatchAgp, AGP_PATCH } = require('../plugins/with-android-r8-optimize.js');
+const {
+  terapkanProguardOptimize,
+  sematkanPatchAgp,
+  AGP_PATCH,
+  aktifkanPenyingkatanResourceOptimal,
+  PROPERTI_RESOURCE_OPTIMAL,
+} = require('../plugins/with-android-r8-optimize.js');
 
 // Potongan android/build.gradle template prebuild (AGP versi dari plugin RN).
 const TEMPLATE_ROOT = `buildscript {
@@ -78,4 +84,19 @@ test('app.json mengaktifkan minify dan shrink release lewat expo-build-propertie
   const aturan = String(ebp[1].android?.extraProguardRules ?? '');
   assert.doesNotMatch(aturan, /-dontobfuscate|-dontoptimize|-dontshrink|-keep class \*\*/);
   assert.notEqual(ebp[1].android?.usesCleartextTraffic, true);
+});
+
+test('optimized resource shrinking diaktifkan tepat satu kali di gradle.properties, idempoten', () => {
+  assert.equal(PROPERTI_RESOURCE_OPTIMAL, 'android.r8.optimizedResourceShrinking');
+  const awal = [
+    { type: 'comment', value: 'template' },
+    { type: 'property', key: 'android.enableShrinkResourcesInReleaseBuilds', value: 'true' },
+    { type: 'property', key: PROPERTI_RESOURCE_OPTIMAL, value: 'false' },
+  ];
+  const hasil = aktifkanPenyingkatanResourceOptimal(awal);
+  const cocok = hasil.filter((i: { key?: string }) => i.key === PROPERTI_RESOURCE_OPTIMAL);
+  assert.deepEqual(cocok, [{ type: 'property', key: PROPERTI_RESOURCE_OPTIMAL, value: 'true' }]);
+  assert.ok(hasil.some((i: { key?: string; value?: string }) => i.key === 'android.enableShrinkResourcesInReleaseBuilds' && i.value === 'true'));
+  assert.equal(hasil.length, 3);
+  assert.deepEqual(aktifkanPenyingkatanResourceOptimal(hasil), hasil);
 });
