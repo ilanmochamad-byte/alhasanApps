@@ -17,7 +17,7 @@ export async function downloadReport(id: number, version: number, stillActive: (
   // Cache app (bukan Documents), dihapus setelah dialog selesai termasuk saat gagal.
   const file = new File(Paths.cache, `v4-rapor-${id}-${version}-${Date.now()}.pdf`);
   try {
-    file.write(new Uint8Array(bytes));
+    await file.write(new Uint8Array(bytes));
     if (stillActive()) await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: 'Simpan atau bagikan rapor' });
   } finally { if (file.exists) file.delete(); }
 }

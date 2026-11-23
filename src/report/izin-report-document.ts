@@ -18,9 +18,8 @@ import { opsiCetakA4Lanskap, opsiPdfA4Lanskap } from '@/report/print-page';
  *   - aturan cakupan tidak diduplikasi di sisi aplikasi;
  *   - CSV memuat SELURUH hasil filter, bukan halaman yang sedang terlihat.
  *
- * API yang dipakai seluruhnya resmi Expo SDK 57 dan sudah menjadi dependensi
- * proyek: `expo-print`, `expo-sharing`, dan `expo-file-system`. Tidak ada
- * kenaikan versi Expo maupun React Native.
+ * API memakai dependensi proyek: `expo-print`, `expo-sharing`, dan
+ * `expo-file-system`. Penulisan berkas ditunggu sesuai API asinkron SDK 58.
  */
 
 /** Batas aman ukuran CSV yang ditulis ke penyimpanan sementara perangkat. */
@@ -97,12 +96,12 @@ export async function bagikanLaporanIzinCsv(filters: IzinLaporanFilters): Promis
     throw new Error('Unduhan CSV pada peramban tersedia lewat halaman laporan website.');
   }
 
-  // API berkas expo-file-system SDK 57: `Paths` + `File` (sinkron).
+  // SDK 58: tunggu File.write sebelum menyerahkan berkas ke dialog berbagi.
   // `Paths.cache` adalah direktori cache milik aplikasi ini sendiri — bukan
   // penyimpanan bersama — sehingga berkas tidak dapat dibaca aplikasi lain.
   const berkas = new File(Paths.cache, namaBerkasAman(ekspor.nama_berkas, '.csv'));
   berkas.create({ overwrite: true, intermediates: true });
-  berkas.write(ekspor.konten, { encoding: EncodingType.UTF8 });
+  await berkas.write(ekspor.konten, { encoding: EncodingType.UTF8 });
 
   if (!(await Sharing.isAvailableAsync())) {
     // Bersihkan berkas bila tidak jadi dibagikan, agar data santri tidak
