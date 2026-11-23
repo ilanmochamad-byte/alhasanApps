@@ -11,6 +11,7 @@ import { ErrorState, LoadingState } from '@/components/screen-state';
 import { ThemedText } from '@/components/themed-text';
 import { usePrivateResource } from '@/hooks/use-private-resource';
 import { nadaKehadiran } from '@/keamanan/format';
+import { labelIzinSampai } from '@/lib/izin-otomatis';
 import { daftarKelas, labelKelas, namaKelasAsal } from '@/lib/kelas-jadwal';
 import { saringPeserta, tabKelas, TAB_SEMUA } from '@/lib/peserta-saring';
 
@@ -64,8 +65,10 @@ export default function KeamananPertemuanScreen() {
               <ThemedText type="caption" themeColor="textSecondary">NIS {s.nis}{gabungan && namaKelasAsal(s, kelas) ? ` · Kelas ${namaKelasAsal(s, kelas)}` : ''}{s.recorded_by ? ` · dicatat ${s.recorded_by}` : ''}</ThemedText>
               <BarisPilIsi>
                 <Lencana label={s.status ?? 'Belum dicatat'} nada={nadaKehadiran(s.status)} />
-                {s.izin_id !== null ? <Lencana label={`Sedang izin #${s.izin_id}`} nada="warning" /> : null}
+                {s.izin ? <Lencana label={labelIzinSampai(s.izin)} nada="warning" /> : s.izin_id !== null ? <Lencana label={`Sedang izin #${s.izin_id}`} nada="warning" /> : null}
               </BarisPilIsi>
+              {/* Usulan izin beku (migrasi 036): keterangan umum IP-3, tanpa alasan. */}
+              {s.izin ? <ThemedText type="caption" themeColor="textSecondary">{s.izin.keterangan}</ThemedText> : null}
               {s.notes ? <ThemedText>{s.notes}</ThemedText> : null}
             </View>
           )),

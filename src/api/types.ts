@@ -1,3 +1,5 @@
+import type { IzinUsulan } from '@/lib/izin-otomatis';
+
 export type AttendanceStatus = 'Hadir' | 'Terlambat' | 'Izin' | 'Sakit' | 'Alpa';
 
 export type Profile = {
@@ -87,6 +89,11 @@ export type StudentMeetingRow = {
     recorded_at: string;
     updated_at: string;
   } | null;
+  /**
+   * Usulan status "Izin" otomatis yang dibekukan server (migrasi 036, IP-1/IP-3).
+   * Hanya nomor, keterangan umum, dan tanggal kembali; opsional untuk server lama.
+   */
+  izin?: IzinUsulan | null;
 };
 
 export type MeetingDetail = {
@@ -121,7 +128,14 @@ export type MeetingDetail = {
   } | null;
   students: StudentMeetingRow[];
   /** Hanya pada respons `POST /meetings/{id}/participants/refresh` (ID santri). */
-  participant_changes?: { added: number[]; removed: number[]; kept_with_attendance: number[] };
+  participant_changes?: {
+    added: number[];
+    removed: number[];
+    kept_with_attendance: number[];
+    /** Aditif sesudah migrasi 036: jumlah usulan izin yang diisi/dihapus. */
+    izin_suggested?: number;
+    izin_cleared?: number;
+  };
 };
 
 export type LoginResponse = {
@@ -247,6 +261,8 @@ export type ReportMeetingDetail = {
     recorded_by: string | null;
     recorded_at: string | null;
     updated_at: string | null;
+    /** Usulan izin beku (migrasi 036); opsional untuk server lama. */
+    izin?: IzinUsulan | null;
   }[];
   student_summary: {
     participant_count: number;

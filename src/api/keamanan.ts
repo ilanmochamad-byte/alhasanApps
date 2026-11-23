@@ -1,4 +1,5 @@
 import { kueri } from '@/keamanan/format';
+import type { IzinUsulan } from '@/lib/izin-otomatis';
 import { request } from './client';
 
 // Penugasan Keamanan (lintas guru/pengurus Fase 4, PK-T3) — HANYA BACA.
@@ -89,7 +90,7 @@ export type Pertemuan = {
   id: number; date: string; status: string;
   task: { day: string; start_time: string; end_time: string; subject: string; book: string; place: string; class: { id?: number; name: string }; classes?: { id: number; name: string; is_primary?: boolean }[]; teacher: { name: string } };
   teacher_attendance: { status: string; notes: string | null } | null;
-  students: { student_id: number; nis: string; name: string; class?: { id: number; name: string }; status: string | null; notes: string | null; recorded_by: string | null; izin_id: number | null }[];
+  students: { student_id: number; nis: string; name: string; class?: { id: number; name: string }; status: string | null; notes: string | null; recorded_by: string | null; izin_id: number | null; izin?: IzinUsulan | null }[];
   student_summary?: { participant_count: number; recorded_count: number };
 };
 
