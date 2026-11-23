@@ -1,6 +1,11 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import {
+  AndroidImportance,
+  AndroidNotificationVisibility,
+  IosAuthorizationStatus,
+} from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
@@ -44,12 +49,12 @@ export async function ensureAndroidChannel(): Promise<void> {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
     name: 'Perizinan santri',
-    importance: Notifications.AndroidImportance.HIGH,
+    importance: AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
     lightColor: '#1B7A43',
     // Pemberitahuan perizinan tidak memuat data sensitif, tetapi tetap tidak
     // perlu tampil utuh di layar kunci: ringkasan sudah cukup.
-    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PRIVATE,
+    lockscreenVisibility: AndroidNotificationVisibility.PRIVATE,
   });
 }
 
@@ -126,7 +131,7 @@ export async function registerForPushNotificationsAsync(minta = false): Promise<
     await ensureAndroidChannel();
 
     const existing = await Notifications.getPermissionsAsync();
-    let granted = existing.granted || existing.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+    let granted = existing.granted || existing.ios?.status === IosAuthorizationStatus.PROVISIONAL;
 
     if (!granted) {
       // Registrasi otomatis tidak pernah memunculkan dialog. Bahkan ketika
@@ -147,7 +152,7 @@ export async function registerForPushNotificationsAsync(minta = false): Promise<
       const diminta = await Notifications.requestPermissionsAsync({
         ios: { allowAlert: true, allowBadge: true, allowSound: true },
       });
-      granted = diminta.granted || diminta.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+      granted = diminta.granted || diminta.ios?.status === IosAuthorizationStatus.PROVISIONAL;
       if (!granted) {
         return { status: 'ditolak', alasan: 'Izin notifikasi belum diberikan pada perangkat ini.' };
       }

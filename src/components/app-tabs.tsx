@@ -1,4 +1,4 @@
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from 'expo-router/native-tabs';
 import { useColorScheme } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
@@ -48,7 +48,7 @@ import { Colors } from '@/constants/theme';
  */
 export default function AppTabs() {
   const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
   const { profile, capabilities } = useAuth();
 
   const roles = profile?.roles ?? [];
