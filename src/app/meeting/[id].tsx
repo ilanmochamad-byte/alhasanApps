@@ -24,7 +24,8 @@ import { AppIcon } from '@/components/app-icon';
 import { Elevation, Layout, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { daftarKelas, labelKelas, namaKelasAsal } from '@/lib/kelas-jadwal';
-import { gabungDrafPeserta, ringkasPerubahanPeserta } from '@/lib/perbarui-peserta';
+import { drafAwalSantri, gabungDrafIzin, jumlahBerizin, labelIzinSampai, ringkasPerubahanIzin, tandaiSemuaHadir, ubahStatusDraf } from '@/lib/izin-otomatis';
+import { ringkasPerubahanPeserta } from '@/lib/perbarui-peserta';
 import { nomorUrut, saringPeserta, tabKelas, TAB_SEMUA } from '@/lib/peserta-saring';
 
 type StudentDraft = Record<number, { status: AttendanceStatus; notes: string }>;
@@ -57,17 +58,20 @@ export default function MeetingScreen() {
   const attempt = useRef<{ signature: string; key: string } | null>(null);
   // Satu kiriman pada satu waktu: ketukan ganda tidak mengirim dua permintaan.
   const inFlight = useRef(false);
+  // Santri yang isiannya diubah guru pada sesi ini: "Perbarui daftar" tidak
+  // menimpanya dengan usulan izin terbaru (rencana §3.5).
+  const diubahManual = useRef(new Set<number>());
 
   const applyMeeting = useCallback((value: MeetingDetail) => {
     setMeeting(value);
     setTeacherStatus(value.teacher_attendance?.status ?? 'Hadir');
     setTeacherNotes(value.teacher_attendance?.notes ?? '');
+    // Draf awal: absensi tersimpan; belum berabsensi + usulan izin → "Izin" +
+    // keterangan (IP-1); selain itu "Hadir". Server lama tanpa `izin` → "Hadir".
+    diubahManual.current = new Set();
     setStudents(
       Object.fromEntries(
-        value.students.map((student) => [
-          student.student_id,
-          { status: student.attendance?.status ?? 'Hadir', notes: student.attendance?.notes ?? '' },
-        ]),
+        value.students.map((student) => [student.student_id, drafAwalSantri(student) as StudentDraft[number]]),
       ),
     );
   }, []);
@@ -110,8 +114,8 @@ export default function MeetingScreen() {
   );
 
   // Perbarui daftar santri (pertemuan Dibuka): server menyelaraskan peserta
-  // dengan penempatan kelas terbaru; isian guru untuk santri yang tetap
-  // tercantum dipertahankan, santri baru diisi "Hadir".
+  // dengan penempatan kelas terbaru dan usulan izin; isian yang diubah guru dan
+  // santri berabsensi dipertahankan, santri lain mengikuti usulan terbaru.
   async function refreshParticipants() {
     if (inFlight.current || !meeting) return;
     inFlight.current = true;
@@ -122,13 +126,9 @@ export default function MeetingScreen() {
     try {
       const updated = await api.refreshParticipants(meetingId);
       setMeeting(updated);
-      setStudents((current) =>
-        gabungDrafPeserta(current, updated.students, (student) => ({
-          status: (student.attendance?.status as AttendanceStatus | undefined) ?? 'Hadir',
-          notes: student.attendance?.notes ?? '',
-        })),
-      );
-      setRefreshInfo({ text: ringkasPerubahanPeserta(updated.participant_changes), error: false });
+      setStudents((current) => gabungDrafIzin(current, updated.students, diubahManual.current) as StudentDraft);
+      const izinInfo = ringkasPerubahanIzin(updated.participant_changes);
+      setRefreshInfo({ text: ringkasPerubahanPeserta(updated.participant_changes) + (izinInfo ? ` ${izinInfo}` : ''), error: false });
     } catch (caught) {
       setRefreshInfo({ text: actionableError(caught), error: true });
     } finally {
@@ -138,16 +138,27 @@ export default function MeetingScreen() {
   }
 
   function updateStudent(id: number, patch: Partial<StudentDraft[number]>) {
+    diubahManual.current.add(id);
     setStudents((current) => ({ ...current, [id]: { ...current[id], ...patch } }));
     setSuccess(null);
   }
 
+  // Ganti status: catatan izin otomatis dikosongkan hanya bila belum diedit guru.
+  function updateStatus(student: StudentMeetingRow, status: AttendanceStatus) {
+    diubahManual.current.add(student.student_id);
+    setStudents((current) => ({
+      ...current,
+      [student.student_id]: ubahStatusDraf(current[student.student_id] ?? drafAwalSantri(student), status, student.izin) as StudentDraft[number],
+    }));
+    setSuccess(null);
+  }
+
+  // "Semua hadir" melewati santri yang sedang izin (penafsiran atas IP-1).
+  // Tindakan massal ini tidak dihitung sebagai ubahan per santri, sehingga izin
+  // yang baru disetujui tetap diterapkan oleh "Perbarui daftar" (IP-5).
   function markAllPresent() {
-    setStudents((current) =>
-      Object.fromEntries(
-        Object.entries(current).map(([id, value]) => [id, { ...value, status: 'Hadir' }] as const),
-      ),
-    );
+    const peserta = meeting?.students ?? [];
+    setStudents((current) => tandaiSemuaHadir(current, peserta).draf as StudentDraft);
     setSuccess(null);
   }
 
@@ -195,7 +206,7 @@ export default function MeetingScreen() {
   }
 
   function confirmSubmit() {
-    const message = `Guru: ${teacherStatus}. Santri hadir: ${counts.Hadir} dari ${meeting?.students.length ?? 0}.`;
+    const message = `Guru: ${teacherStatus}. Santri hadir: ${counts.Hadir} dari ${meeting?.students.length ?? 0}.${counts.Izin > 0 ? ` Izin: ${counts.Izin}.` : ''}`;
     if (process.env.EXPO_OS === 'web') {
       if (globalThis.confirm(`${meeting?.status === 'Selesai' ? 'Simpan koreksi?' : 'Kirim absensi?'}\n\n${message}`)) {
         void submit();
@@ -244,6 +255,8 @@ export default function MeetingScreen() {
   const nomor = nomorUrut(meeting.students, kelas);
   const tersaring = tampil < total;
   const dibuka = meeting.status === 'Dibuka';
+  const berizin = jumlahBerizin(meeting.students);
+  const tanpaIzin = total - berizin;
   const palette = statusPalette(theme);
   // "Perbarui daftar" adalah tindakan sekunder: pindah ke ⋯ (gelombang 2 §4.3).
   // Hanya ditawarkan pada pertemuan Dibuka, sama seperti sebelumnya.
@@ -342,13 +355,23 @@ export default function MeetingScreen() {
           </View>
         </View>
         <AppButton
-          label={`Semua hadir (${total})`}
+          label={`Semua hadir (${tanpaIzin})`}
           icon="check"
           variant="line"
           size="sm"
           onPress={markAllPresent}
-          accessibilityHint={`Menandai seluruh ${total} santri pertemuan ini hadir, termasuk yang tidak sedang ditampilkan.`}
+          accessibilityHint={
+            berizin > 0
+              ? `Menandai ${tanpaIzin} santri hadir, termasuk yang tidak sedang ditampilkan. ${berizin} santri yang sedang izin tidak diubah.`
+              : `Menandai seluruh ${total} santri pertemuan ini hadir, termasuk yang tidak sedang ditampilkan.`
+          }
         />
+        {berizin > 0 ? (
+          <ThemedText selectable type="caption" themeColor="textSecondary">
+            {berizin} santri sedang izin pada tanggal ini dan sudah terisi “Izin”. “Semua hadir” tidak mengubahnya; ubah
+            satu per satu bila santri ternyata hadir.
+          </ThemedText>
+        ) : null}
         {dibuka && refreshing ? <Notice tone="neutral" icon="refresh" text="Memperbarui daftar santri…" /> : null}
         {dibuka && refreshInfo ? (
           <Notice tone={refreshInfo.error ? 'danger' : 'success'} text={refreshInfo.text} />
@@ -360,8 +383,8 @@ export default function MeetingScreen() {
         ) : null}
         {gabungan || tersaring ? (
           <ThemedText selectable type="caption" themeColor="textSecondary">
-            “Semua hadir” berlaku untuk seluruh {total} santri pertemuan ini, termasuk yang tidak sedang
-            ditampilkan oleh pencarian atau tab kelas.
+            “Semua hadir” berlaku untuk seluruh {tanpaIzin} santri pertemuan ini{berizin > 0 ? ' yang tidak sedang izin' : ''},
+            termasuk yang tidak sedang ditampilkan oleh pencarian atau tab kelas.
           </ThemedText>
         ) : null}
 
@@ -400,8 +423,9 @@ export default function MeetingScreen() {
                 student={student}
                 number={nomor.get(student.student_id) ?? 0}
                 kelasAsal={gabungan ? namaKelasAsal(student, kelas) : ''}
-                draft={students[student.student_id] ?? { status: 'Hadir', notes: '' }}
+                draft={students[student.student_id] ?? (drafAwalSantri(student) as StudentDraft[number])}
                 onChange={(patch) => updateStudent(student.student_id, patch)}
+                onStatus={(status) => updateStatus(student, status)}
               />
             ))}
           </View>
@@ -439,6 +463,7 @@ function StudentCard({
   kelasAsal,
   draft,
   onChange,
+  onStatus,
 }: {
   student: StudentMeetingRow;
   number: number;
@@ -446,6 +471,7 @@ function StudentCard({
   kelasAsal: string;
   draft: { status: AttendanceStatus; notes: string };
   onChange: (patch: Partial<{ status: AttendanceStatus; notes: string }>) => void;
+  onStatus: (status: AttendanceStatus) => void;
 }) {
   const theme = useTheme();
   return (
@@ -465,7 +491,13 @@ function StudentCard({
           {String(number).padStart(2, '0')}
         </ThemedText>
       </View>
-      <StatusSelector compact value={draft.status} onChange={(status) => onChange({ status })} />
+      {student.izin ? (
+        // Penanda tetap tampil walau guru mengubah status (ikon + teks, bukan warna saja).
+        <View accessible accessibilityLabel={`${labelIzinSampai(student.izin)}. ${student.izin.keterangan}`} style={styles.izinBaris}>
+          <StatusPill label={labelIzinSampai(student.izin)} tone="info" icon="izin" />
+        </View>
+      ) : null}
+      <StatusSelector compact value={draft.status} onChange={onStatus} />
       <Field
         value={draft.notes}
         onChangeText={(notes) => onChange({ notes })}
@@ -517,5 +549,6 @@ const styles = StyleSheet.create({
   studentTitle: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   number: { fontVariant: ['tabular-nums'] },
   studentText: { flex: 1, gap: 1 },
+  izinBaris: { flexDirection: 'row' },
   grow: { flex: 1 },
 });

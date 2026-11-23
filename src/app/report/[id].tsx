@@ -17,6 +17,7 @@ import { statusPalette } from '@/components/ui/status-recap';
 import { Overline, Panel } from '@/components/ui/surface';
 import { Elevation, Layout, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { labelIzinSampai } from '@/lib/izin-otomatis';
 import { daftarKelas, labelKelas, namaKelasAsal } from '@/lib/kelas-jadwal';
 import { saringPeserta, tabKelas, TAB_SEMUA } from '@/lib/peserta-saring';
 
@@ -115,6 +116,12 @@ export default function ReportMeetingScreen() {
                   </View>
                 </View>
                 <PilKehadiran status={student.status} />
+                {student.izin ? (
+                  // Usulan izin beku (migrasi 036): keterangan umum, tanpa alasan.
+                  <ThemedText selectable type="caption" themeColor="textSecondary" accessibilityLabel={`Usulan izin: ${student.izin.keterangan}`}>
+                    {labelIzinSampai(student.izin)} · {student.izin.keterangan}
+                  </ThemedText>
+                ) : null}
                 <ThemedText selectable type="labelSmall">{student.notes || 'Tanpa catatan'}</ThemedText>
                 <ThemedText selectable type="caption" themeColor="textSecondary">Pencatat: {student.recorded_by ?? '-'} · diperbarui {student.updated_at ?? '-'}</ThemedText>
               </View>
